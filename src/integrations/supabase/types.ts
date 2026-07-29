@@ -256,6 +256,57 @@ export type Database = {
           },
         ]
       }
+      tarefas: {
+        Row: {
+          alvo: Database["public"]["Enums"]["tarefa_alvo"]
+          cliente_contato: string | null
+          cliente_nome: string | null
+          created_at: string
+          criador_id: string
+          data_venc: string
+          descricao: string | null
+          hora_venc: string | null
+          id: string
+          prioridade: Database["public"]["Enums"]["tarefa_prioridade"]
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["tarefa_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          alvo?: Database["public"]["Enums"]["tarefa_alvo"]
+          cliente_contato?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          criador_id: string
+          data_venc?: string
+          descricao?: string | null
+          hora_venc?: string | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["tarefa_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          alvo?: Database["public"]["Enums"]["tarefa_alvo"]
+          cliente_contato?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          criador_id?: string
+          data_venc?: string
+          descricao?: string | null
+          hora_venc?: string | null
+          id?: string
+          prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["tarefa_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_mensagens: {
         Row: {
           autor: string | null
@@ -529,6 +580,9 @@ export type Database = {
         | "nao_perturbar"
         | "transferido"
       loja_unidade: "norte" | "sul" | "shopping"
+      tarefa_alvo: "propria" | "usuario" | "cliente"
+      tarefa_prioridade: "baixa" | "media" | "alta"
+      tarefa_status: "pendente" | "concluida" | "cancelada"
       transfer_status: "pendente" | "aceita" | "recusada" | "cancelada"
       venda_status: "pendente" | "instalado" | "cancelado" | "em_analise"
     }
@@ -669,6 +723,9 @@ export const Constants = {
         "transferido",
       ],
       loja_unidade: ["norte", "sul", "shopping"],
+      tarefa_alvo: ["propria", "usuario", "cliente"],
+      tarefa_prioridade: ["baixa", "media", "alta"],
+      tarefa_status: ["pendente", "concluida", "cancelada"],
       transfer_status: ["pendente", "aceita", "recusada", "cancelada"],
       venda_status: ["pendente", "instalado", "cancelado", "em_analise"],
     },
