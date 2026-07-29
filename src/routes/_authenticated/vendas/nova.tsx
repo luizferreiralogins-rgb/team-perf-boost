@@ -22,6 +22,14 @@ import {
   ProjecaoComissaoLoja,
   ProjecaoComissaoPap,
 } from "@/components/vendas/projecao";
+import {
+  comissaoLoja,
+  comissaoPap,
+  faixaEfetivaLoja,
+  type LojaFaixaTicket,
+  type LojaMeta,
+  type PapFaixa,
+} from "@/lib/comissao";
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
@@ -180,6 +188,53 @@ function FormLoja() {
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
     const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
+    const valorAntigoNum =
+      typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
+
+    // Comissão: calcula faixa efetiva do mês (0-3) considerando esta venda.
+    let comissao = 0;
+    let tipoFaixa: "faixa_0" | "faixa_1" | "faixa_2" | "faixa_3" = "faixa_0";
+    const mesRef = mesRefFromDate(dataRef);
+    if (parsed.data.instalado) {
+      const [{ data: faixas }, { data: metas }, { data: mesVendas }] = await Promise.all([
+        supabase
+          .from("parametros_loja_faixas_ticket")
+          .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
+        supabase
+          .from("parametros_loja_metas")
+          .select("faixa, meta_receita, meta_renov_movel"),
+        supabase
+          .from("vendas_loja")
+          .select("valor_novo, classe_protocolo, contem_movel, status")
+          .eq("vendedor_id", uid)
+          .eq("mes_ref", mesRef),
+      ]);
+
+      const rows = mesVendas ?? [];
+      // Inclui a venda atual no acumulado
+      const receitaMes =
+        rows
+          .filter((v) => v.status === "instalado")
+          .reduce((s, v) => s + Number(v.valor_novo ?? 0), 0) + parsed.data.valor_novo;
+      const totalRenov =
+        rows.filter((v) => v.classe_protocolo === "Renovação Contratual").length +
+        (parsed.data.classe_protocolo === "Renovação Contratual" ? 1 : 0);
+      const renovComMovel =
+        rows.filter((v) => v.classe_protocolo === "Renovação Contratual" && v.contem_movel).length +
+        (parsed.data.classe_protocolo === "Renovação Contratual" && parsed.data.contem_movel ? 1 : 0);
+      const ratio = totalRenov > 0 ? renovComMovel / totalRenov : 0;
+
+      const faixaEfet = faixaEfetivaLoja((metas ?? []) as LojaMeta[], receitaMes, ratio);
+      const { porFaixa } = comissaoLoja(
+        (faixas ?? []) as LojaFaixaTicket[],
+        parsed.data.valor_novo,
+        valorAntigoNum,
+        true,
+      );
+      comissao = porFaixa[faixaEfet] ?? 0;
+      tipoFaixa = (`faixa_${faixaEfet}` as typeof tipoFaixa);
+    }
+
     const { error } = await supabase.from("vendas_loja").insert({
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
@@ -188,14 +243,15 @@ function FormLoja() {
       data_abertura: parsed.data.data_abertura,
       data_ativacao: parsed.data.data_ativacao || null,
       classe_protocolo: parsed.data.classe_protocolo,
-      mes_ref: mesRefFromDate(dataRef),
+      mes_ref: mesRef,
       valor_novo: parsed.data.valor_novo,
-      valor_antigo:
-        typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null,
+      valor_antigo: valorAntigoNum,
       tecnologia: parsed.data.tecnologia,
       contem_movel: parsed.data.contem_movel,
       qtd_linhas: parsed.data.qtd_linhas,
       status: parsed.data.instalado ? "instalado" : "pendente",
+      comissao,
+      tipo_comissao: tipoFaixa,
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
@@ -391,6 +447,16 @@ function FormPap() {
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
+
+    let comissao = 0;
+    if (parsed.data.status === "instalado") {
+      const { data: faixas } = await supabase
+        .from("parametros_pap_faixas")
+        .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel");
+      const r = comissaoPap((faixas ?? []) as PapFaixa[], parsed.data.valor, true);
+      comissao = r.valor;
+    }
+
     const { error } = await supabase.from("vendas_pap").insert({
       vendedor_id: uid,
       nome_cliente: parsed.data.nome_cliente,
@@ -402,6 +468,7 @@ function FormPap() {
       valor: parsed.data.valor,
       produto: parsed.data.produto || null,
       status: parsed.data.status,
+      comissao,
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
