@@ -34,15 +34,47 @@ function useCanal() {
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
-      const { data } = await supabase
-        .from("profiles")
-        .select("canal")
-        .eq("id", uid)
-        .maybeSingle();
+      const { data } = await supabase.from("profiles").select("canal").eq("id", uid).maybeSingle();
       return (data?.canal ?? "loja") as "loja" | "pap";
     },
   });
 }
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function mesRefFromDate(d: string) {
+  // "YYYY-MM-DD" -> "YYYY-MM"
+  return d.slice(0, 7);
+}
+
+const statusEnum = z.enum(["pendente", "instalado", "cancelado", "em_analise"]);
+type Status = z.infer<typeof statusEnum>;
+
+const commonBase = {
+  nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
+  cpf_cnpj: z.string().trim().max(20).optional().or(z.literal("")),
+  data: z.string().min(1, "Informe a data"),
+  observacoes: z.string().max(500).optional().or(z.literal("")),
+  status: statusEnum,
+};
+
+const lojaSchema = z.object({
+  ...commonBase,
+  valor_novo: z.coerce.number().positive("Valor deve ser maior que zero"),
+  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
+  tecnologia: z.string().max(60).optional().or(z.literal("")),
+  contem_movel: z.boolean(),
+});
+
+const papSchema = z.object({
+  ...commonBase,
+  valor: z.coerce.number().positive("Valor deve ser maior que zero"),
+  cidade: z.string().trim().max(80).optional().or(z.literal("")),
+  bairro: z.string().trim().max(80).optional().or(z.literal("")),
+  produto: z.string().trim().max(60).optional().or(z.literal("")),
+});
 
 function NovaVenda() {
   const canalQ = useCanal();
@@ -59,7 +91,6 @@ function NovaVenda() {
           Preencha os dados abaixo. A comissão é calculada na instalação.
         </p>
       </div>
-
       {canalQ.isLoading ? (
         <Card>
           <CardContent className="p-8 text-sm text-muted-foreground">Carregando...</CardContent>
@@ -73,44 +104,18 @@ function NovaVenda() {
   );
 }
 
-const commonSchema = {
-  cliente_nome: z.string().trim().min(2, "Informe o nome do cliente").max(120),
-  cliente_documento: z.string().trim().max(20).optional().or(z.literal("")),
-  cidade: z.string().trim().max(80).optional().or(z.literal("")),
-  data_venda: z.string().min(1, "Informe a data"),
-  observacoes: z.string().max(500).optional().or(z.literal("")),
-};
-
-const lojaSchema = z.object({
-  ...commonSchema,
-  valor_novo: z.coerce.number().positive("Valor deve ser maior que zero"),
-  valor_antigo: z.coerce.number().min(0).optional(),
-  tecnologia: z.string().max(60).optional().or(z.literal("")),
-  status: z.enum(["pendente", "instalado", "cancelado", "em_analise"]),
-});
-
-const papSchema = z.object({
-  ...commonSchema,
-  valor_venda: z.coerce.number().positive("Valor deve ser maior que zero"),
-  status: z.enum(["pendente", "instalado", "cancelado", "em_analise"]),
-});
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function FormLoja() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    cliente_nome: "",
-    cliente_documento: "",
-    cidade: "",
-    data_venda: today(),
+    nome_cliente: "",
+    cpf_cnpj: "",
+    data: today(),
     valor_novo: "",
     valor_antigo: "",
     tecnologia: "Fibra",
-    status: "pendente" as "pendente" | "instalado" | "cancelado" | "em_analise",
+    contem_movel: false,
+    status: "pendente" as Status,
     observacoes: "",
   });
 
@@ -125,14 +130,16 @@ function FormLoja() {
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
     const { error } = await supabase.from("vendas_loja").insert({
-      consultor_id: uid,
-      cliente_nome: parsed.data.cliente_nome,
-      cliente_documento: parsed.data.cliente_documento || null,
-      cidade: parsed.data.cidade || null,
-      data_venda: parsed.data.data_venda,
+      vendedor_id: uid,
+      nome_cliente: parsed.data.nome_cliente,
+      cpf_cnpj: parsed.data.cpf_cnpj || null,
+      data_abertura: parsed.data.data,
+      mes_ref: mesRefFromDate(parsed.data.data),
       valor_novo: parsed.data.valor_novo,
-      valor_antigo: parsed.data.valor_antigo || null,
+      valor_antigo:
+        typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null,
       tecnologia: parsed.data.tecnologia || null,
+      contem_movel: parsed.data.contem_movel,
       status: parsed.data.status,
       observacoes: parsed.data.observacoes || null,
     });
@@ -156,29 +163,29 @@ function FormLoja() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Cliente" required>
               <Input
-                value={form.cliente_nome}
-                onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })}
+                value={form.nome_cliente}
+                onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
               />
             </Field>
             <Field label="CPF/CNPJ">
               <Input
-                value={form.cliente_documento}
-                onChange={(e) => setForm({ ...form, cliente_documento: e.target.value })}
+                value={form.cpf_cnpj}
+                onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
               />
             </Field>
-            <Field label="Cidade">
-              <Input
-                value={form.cidade}
-                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-              />
-            </Field>
-            <Field label="Data da venda" required>
+            <Field label="Data de abertura" required>
               <Input
                 type="date"
-                value={form.data_venda}
-                onChange={(e) => setForm({ ...form, data_venda: e.target.value })}
+                value={form.data}
+                onChange={(e) => setForm({ ...form, data: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Tecnologia">
+              <Input
+                value={form.tecnologia}
+                onChange={(e) => setForm({ ...form, tecnologia: e.target.value })}
               />
             </Field>
             <Field label="Valor do plano novo (R$)" required>
@@ -191,7 +198,7 @@ function FormLoja() {
                 required
               />
             </Field>
-            <Field label="Valor do plano antigo (R$)" hint="Deixe em branco se for cliente novo.">
+            <Field label="Valor do plano antigo (R$)" hint="Em branco = cliente novo.">
               <Input
                 type="number"
                 step="0.01"
@@ -200,20 +207,21 @@ function FormLoja() {
                 onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
               />
             </Field>
-            <Field label="Tecnologia">
-              <Input
-                value={form.tecnologia}
-                onChange={(e) => setForm({ ...form, tecnologia: e.target.value })}
-              />
+            <Field label="Contém plano móvel?">
+              <Select
+                value={form.contem_movel ? "sim" : "nao"}
+                onValueChange={(v) => setForm({ ...form, contem_movel: v === "sim" })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nao">Não</SelectItem>
+                  <SelectItem value="sim">Sim</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Status" required>
-              <Select
-                value={form.status}
-                onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="em_analise">Em análise</SelectItem>
@@ -248,12 +256,14 @@ function FormPap() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    cliente_nome: "",
-    cliente_documento: "",
+    nome_cliente: "",
+    cpf_cnpj: "",
     cidade: "",
-    data_venda: today(),
-    valor_venda: "",
-    status: "pendente" as "pendente" | "instalado" | "cancelado" | "em_analise",
+    bairro: "",
+    data: today(),
+    valor: "",
+    produto: "",
+    status: "pendente" as Status,
     observacoes: "",
   });
 
@@ -268,12 +278,15 @@ function FormPap() {
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
     const { error } = await supabase.from("vendas_pap").insert({
-      consultor_id: uid,
-      cliente_nome: parsed.data.cliente_nome,
-      cliente_documento: parsed.data.cliente_documento || null,
+      vendedor_id: uid,
+      nome_cliente: parsed.data.nome_cliente,
+      cpf_cnpj: parsed.data.cpf_cnpj || null,
       cidade: parsed.data.cidade || null,
-      data_venda: parsed.data.data_venda,
-      valor_venda: parsed.data.valor_venda,
+      bairro: parsed.data.bairro || null,
+      data_venda: parsed.data.data,
+      mes_ref: mesRefFromDate(parsed.data.data),
+      valor: parsed.data.valor,
+      produto: parsed.data.produto || null,
       status: parsed.data.status,
       observacoes: parsed.data.observacoes || null,
     });
@@ -297,29 +310,36 @@ function FormPap() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Cliente" required>
               <Input
-                value={form.cliente_nome}
-                onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })}
+                value={form.nome_cliente}
+                onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
               />
             </Field>
             <Field label="CPF/CNPJ">
               <Input
-                value={form.cliente_documento}
-                onChange={(e) => setForm({ ...form, cliente_documento: e.target.value })}
+                value={form.cpf_cnpj}
+                onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
               />
             </Field>
             <Field label="Cidade">
-              <Input
-                value={form.cidade}
-                onChange={(e) => setForm({ ...form, cidade: e.target.value })}
-              />
+              <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+            </Field>
+            <Field label="Bairro">
+              <Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
             </Field>
             <Field label="Data da venda" required>
               <Input
                 type="date"
-                value={form.data_venda}
-                onChange={(e) => setForm({ ...form, data_venda: e.target.value })}
+                value={form.data}
+                onChange={(e) => setForm({ ...form, data: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Produto">
+              <Input
+                value={form.produto}
+                onChange={(e) => setForm({ ...form, produto: e.target.value })}
+                placeholder="Ex: Fibra 500Mb"
               />
             </Field>
             <Field label="Valor da venda (R$)" required>
@@ -327,19 +347,14 @@ function FormPap() {
                 type="number"
                 step="0.01"
                 min="0"
-                value={form.valor_venda}
-                onChange={(e) => setForm({ ...form, valor_venda: e.target.value })}
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
                 required
               />
             </Field>
             <Field label="Status" required>
-              <Select
-                value={form.status}
-                onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="em_analise">Em análise</SelectItem>
