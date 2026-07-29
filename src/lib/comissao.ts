@@ -18,6 +18,27 @@ export type PapFaixa = {
   acelerador_baixo_cancel: number;
 };
 
+export type LojaMeta = {
+  faixa: number;
+  meta_receita: number;
+  meta_renov_movel: number;
+};
+
+/** Determina a faixa efetiva (0-3) do consultor no mês com base em metas. */
+export function faixaEfetivaLoja(
+  metas: LojaMeta[],
+  receitaMes: number,
+  ratioRenovMovel: number,
+): 0 | 1 | 2 | 3 {
+  const ordered = [...metas].sort((a, b) => a.faixa - b.faixa);
+  let faixa: 0 | 1 | 2 | 3 = 0;
+  for (const m of ordered) {
+    if (receitaMes >= Number(m.meta_receita) && ratioRenovMovel >= Number(m.meta_renov_movel)) {
+      faixa = Math.min(3, Math.max(0, Number(m.faixa))) as 0 | 1 | 2 | 3;
+    }
+  }
+  return faixa;
+}
 /** Comissão Loja: R$ por protocolo, cruzando diferença de ticket x faixa efetiva. */
 export function comissaoLoja(
   faixas: LojaFaixaTicket[],
