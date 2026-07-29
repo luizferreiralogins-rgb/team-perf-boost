@@ -122,6 +122,7 @@ export type Database = {
           email: string | null
           gerente_id: string | null
           id: string
+          loja_unidade: Database["public"]["Enums"]["loja_unidade"] | null
           nome: string
           regional_id: string | null
           updated_at: string
@@ -134,6 +135,7 @@ export type Database = {
           email?: string | null
           gerente_id?: string | null
           id: string
+          loja_unidade?: Database["public"]["Enums"]["loja_unidade"] | null
           nome?: string
           regional_id?: string | null
           updated_at?: string
@@ -146,6 +148,7 @@ export type Database = {
           email?: string | null
           gerente_id?: string | null
           id?: string
+          loja_unidade?: Database["public"]["Enums"]["loja_unidade"] | null
           nome?: string
           regional_id?: string | null
           updated_at?: string
@@ -343,10 +346,15 @@ export type Database = {
         Args: { _consultant: string; _manager: string }
         Returns: boolean
       }
+      pode_gerenciar: {
+        Args: { _manager: string; _target: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "consultor" | "gerente" | "regional" | "admin"
       canal_venda: "loja" | "pap"
+      loja_unidade: "norte" | "sul" | "shopping"
       venda_status: "pendente" | "instalado" | "cancelado" | "em_analise"
     }
     CompositeTypes: {
@@ -477,6 +485,7 @@ export const Constants = {
     Enums: {
       app_role: ["consultor", "gerente", "regional", "admin"],
       canal_venda: ["loja", "pap"],
+      loja_unidade: ["norte", "sul", "shopping"],
       venda_status: ["pendente", "instalado", "cancelado", "em_analise"],
     },
   },
