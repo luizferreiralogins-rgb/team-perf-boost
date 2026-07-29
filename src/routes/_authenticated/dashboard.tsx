@@ -20,6 +20,19 @@ const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Dashboard() {
+  const { data: roleInfo } = useQuery({
+    queryKey: ["me-roles"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id;
+      if (!uid) return { isGestor: false };
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      const list = (roles ?? []).map((r) => r.role);
+      return { isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin") };
+    },
+    staleTime: 30_000,
+  });
+  const isGestor = roleInfo?.isGestor ?? false;
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-mes"],
     queryFn: async () => {
@@ -61,23 +74,33 @@ function Dashboard() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Painel do consultor</p>
+          <p className="text-sm text-muted-foreground">
+            {isGestor ? "Painel de gestão" : "Painel do consultor"}
+          </p>
           <h1 className="text-3xl font-bold tracking-tight">
             Olá{data?.nome ? `, ${data.nome.split(" ")[0]}` : ""} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Aqui está um resumo do seu mês em{" "}
-            <span className="font-semibold text-foreground">
-              {data?.canal === "pap" ? "PAP" : "Loja"}
-            </span>
-            .
+            {isGestor ? (
+              "Acompanhe os resultados do seu time."
+            ) : (
+              <>
+                Aqui está um resumo do seu mês em{" "}
+                <span className="font-semibold text-foreground">
+                  {data?.canal === "pap" ? "PAP" : "Loja"}
+                </span>
+                .
+              </>
+            )}
           </p>
         </div>
-        <Button asChild size="lg">
-          <Link to="/vendas/nova">
-            <Plus className="mr-2 h-4 w-4" /> Nova venda
-          </Link>
-        </Button>
+        {!isGestor && (
+          <Button asChild size="lg">
+            <Link to="/vendas/nova">
+              <Plus className="mr-2 h-4 w-4" /> Nova venda
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -87,16 +110,18 @@ function Dashboard() {
         <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Próximos passos</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>• Cadastre suas vendas do dia em <Link to="/vendas/nova" className="text-primary underline">Nova venda</Link>.</p>
-          <p>• Consulte o histórico em <Link to="/vendas" className="text-primary underline">Vendas</Link>.</p>
-          <p>• A comissão é calculada quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
-        </CardContent>
-      </Card>
+      {!isGestor && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Próximos passos</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>• Cadastre suas vendas do dia em <Link to="/vendas/nova" className="text-primary underline">Nova venda</Link>.</p>
+            <p>• Consulte o histórico em <Link to="/vendas" className="text-primary underline">Vendas</Link>.</p>
+            <p>• A comissão é calculada quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
