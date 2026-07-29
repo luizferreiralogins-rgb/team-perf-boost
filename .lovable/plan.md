@@ -1,55 +1,87 @@
-## Fase 1 — MVP do Sistema de Gestão Comercial Unifique
+# Reestruturação de Acessos e Hierarquia
 
-Vou entregar a fundação do sistema. Módulos avançados (Kanban, Contestação, Tarefas, Fechamento Mensal, Dashboards regionais) virão em fases seguintes.
+## Visão geral
 
-### O que entra nesta fase
+Hoje qualquer novo cadastro entra como **Consultor**. Vamos inverter a lógica: o **Gerente Regional** é o perfil principal, e a criação de acessos passa a ser feita de cima para baixo:
 
-**1. Backend (Lovable Cloud)**
+```text
+Regional  ──cria──►  Gerentes         (vê tudo, filtra por qualquer nível)
+   │
+Gerente   ──cria──►  Consultores       (vê só o próprio time)
+   │
+Consultor ──registra──►  Vendas
+```
 
-- Ativação do Lovable Cloud (banco + autenticação).
-- Auth por e-mail/senha + Google (auto-confirm ativado).
-- Tabelas:
-  - `profiles` (nome, tipo canal: `loja`/`pap`, gerente_id, regional_id, ativo)
-  - `user_roles` (`consultor` | `gerente` | `regional` | `admin`) — tabela separada com função `has_role()` SECURITY DEFINER
-  - `vendas_loja` (campos da planilha Loja: protocolo, cliente, data abertura, data ativação, classe, contém móvel, qtd linhas, tecnologia, valor novo, valor antigo, tipo comissão, comissão R$, status)
-  - `vendas_pap` (variante PAP com campos correspondentes)
-  - `parametros_comissao_loja` / `parametros_comissao_pap` — tabelas de faixas extraídas das planilhas (seed via migration)
-- RLS por hierarquia:
-  - Consultor: só vê/edita as próprias vendas
-  - Gerente: vê vendas dos consultores da sua equipe
-  - Regional: vê tudo
-- Trigger para auto-criar profile no signup.
+Um consultor é sempre vinculado a um **Gerente** e, opcionalmente, marcado como **Loja (Norte / Sul / Shopping)** ou **PAP**.
 
-**2. Frontend**
+## Mudanças de banco
 
-- Design system em português BR, azul corporativo Unifique, mobile-friendly (tokens em `styles.css`, sem cores hardcoded).
-- Rotas públicas:
-  - `/` — landing pública explicando o sistema + CTA login
-  - `/auth` — login/cadastro (e-mail/senha + Google)
-- Rotas autenticadas (`/_authenticated/`):
-  - `/dashboard` — visão individual: total vendido no mês, comissão estimada, gráfico de evolução, últimas vendas
-  - `/vendas` — lista + filtros; form de nova venda **dinâmico por canal** (Loja vs PAP) com validação Zod
-  - `/vendas/nova` — cadastro
-  - `/equipe` (só gerente/regional) — lista consultores/gerentes com resumo
-  - `/perfil` — dados pessoais
-- Cálculo de comissão no servidor (server function) usando as tabelas de parâmetros; regra: `status != 'Instalado' → comissão = 0`.
-- Componentes: sidebar com nav filtrada por role, header com usuário/logout, cards de KPI, tabela sortável (shadcn).
+Nova migração:
 
-**3. Regras de comissão extraídas das planilhas**
+1. Enum `loja_unidade` = `norte | sul | shopping`.
+2. Coluna `profiles.loja_unidade loja_unidade NULL` (só faz sentido quando `canal = 'loja'`).
+3. Ajustar `handle_new_user()`: primeiro cadastro do sistema vira **Regional** automaticamente; demais permanecem como Consultor "solto" até que um gestor os promova/vincule.
+4. Políticas RLS de `user_roles`:
+   - Regional pode `INSERT/UPDATE/DELETE` roles `gerente` e `consultor`.
+   - Gerente pode `INSERT/UPDATE/DELETE` role `consultor` **apenas** para perfis onde `profiles.gerente_id = auth.uid()`.
+5. Políticas de `profiles`:
+   - Regional pode atualizar qualquer perfil (canal, loja_unidade, gerente_id, regional_id, ativo).
+   - Gerente pode atualizar consultores do seu time (canal, loja_unidade, ativo) — **não** pode reatribuir para outro gerente.
+6. Função `admin_create_user(email, nome, role, canal, loja_unidade, gerente_id)` `SECURITY DEFINER` que:
+   - valida se o chamador tem permissão para criar aquele `role`,
+   - usa `supabaseAdmin` via server function (ver abaixo) — a parte SQL só valida/insere em `profiles` e `user_roles` depois que o usuário existe em `auth.users`.
 
-- **Loja**: faixas por Diferença de Ticket (0-10, 10-20, ... 100+) × Faixa efetiva (0-3) → valor de comissão em R$. Faixa efetiva definida por meta de % renovações c/móvel (0 / 0.5 / 0.7) e meta de receita ($2.5k / $5k). Bônus por novos produtos (Telemedicina 100%, Seguros 50%, etc.).
-- **PAP**: faixas de receita (R$0-1500, 1500-1750, ..., até 3500+) → % sobre ativações (5% a 31%), com meta de índice de cancelamento (8%) e bônus indireta.
-- Tudo em tabelas versionáveis para o admin ajustar depois.
+## Server functions (createServerFn + requireSupabaseAuth)
 
-### Fora desta fase (próximas)
+Arquivo `src/lib/team.functions.ts`:
 
-Kanban de leads, Contestação de vendas, Tarefas/Agenda, Fechamento mensal, Rankings/gamificação avançada, Insights automáticos.
+- `createTeamMember({ email, nome, role, canal, loja_unidade, gerente_id })`
+  - checa role do chamador (`has_role`),
+  - `supabaseAdmin.auth.admin.createUser` com senha temporária + envio de convite,
+  - insere/atualiza `profiles` e `user_roles`.
+- `updateTeamMember({ user_id, ...campos })` — mesma checagem de escopo.
+- `deleteTeamMember({ user_id })` — `supabaseAdmin.auth.admin.deleteUser` (cascata remove profile/roles).
+- `listTeam()` — retorna perfis visíveis ao chamador, já com role e nome do gerente.
 
-### Notas técnicas
+Admin client é importado dinamicamente dentro do handler.
 
-- Stack: TanStack Start + Supabase (via Lovable Cloud) + Tailwind v4 + shadcn.
-- Server functions para leitura/gravação de vendas (RLS aplicada como usuário autenticado).
-- Google OAuth via `lovable.auth.signInWithOAuth` + `supabase--configure_social_auth`.
-- Seed dos parâmetros de comissão via SQL migration (sem seed em runtime).
+## Telas
 
-Aprovar para eu começar? Sim, o mais importante é transformar essas duas planilhas em um sistema online e depois vamos melhorando o sistema.
+### `/equipe` (reformulada)
+- Regional: tabela com **Gerentes** e **Consultores**, filtro por gerente, canal, unidade, status.
+- Gerente: tabela apenas dos **Consultores do seu time**, filtro por canal/unidade/status.
+- Ações por linha: **Editar**, **Desativar**, **Excluir**.
+- Botão **"Novo acesso"** abre dialog:
+  - Regional escolhe entre Gerente ou Consultor (e nesse caso qual gerente).
+  - Gerente cria apenas Consultor, escolhendo Canal (Loja/PAP) e, se Loja, Unidade (Norte/Sul/Shopping).
+
+### `/dashboard` com filtros
+Barra de filtros no topo (visível para Gerente e Regional):
+- Período (mês/intervalo de datas),
+- Canal (Loja/PAP/Todos),
+- Unidade da loja (Norte/Sul/Shopping/Todas) — só quando Canal=Loja,
+- Gerente (só para Regional),
+- Consultor (dependente dos filtros acima),
+- Indicadores (checkboxes): Vendas, Instaladas, Receita, Comissão, Ticket médio, Ranking.
+
+Consultor continua vendo apenas o próprio dashboard, sem filtros de escopo.
+
+### `/vendas`
+- Adicionar mesmos filtros de escopo (quem, quando) para Gerente/Regional.
+
+### Cadastro público (`/auth`)
+- Remover o seletor de canal do signup — canal e vínculo agora vêm do gestor.
+- Mensagem: "Seu acesso será configurado pelo seu gestor" para signups que não sejam o primeiro Regional.
+
+## Aspectos técnicos
+
+- Novo `useMe()` retorna também `loja_unidade` e helpers `isRegional`, `isGerente`.
+- Filtros do dashboard viram `search params` da rota (`validateSearch` com Zod + `fallback`), assim links são compartilháveis.
+- Queries do dashboard passam a receber `vendedor_ids[]` calculados a partir dos filtros; RLS continua sendo a última linha de defesa.
+- Convites por e-mail usam o fluxo padrão do Supabase Auth (link mágico) — sem senha temporária exposta na UI.
+
+## Fora deste escopo
+
+- Reset de senha administrativo com senha visível.
+- Reatribuição em massa de consultores entre gerentes (fica para depois).
+- Logs de auditoria de criação/exclusão de acessos.
