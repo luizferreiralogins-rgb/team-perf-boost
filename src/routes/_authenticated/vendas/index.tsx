@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +16,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/vendas/")({
   head: () => ({
@@ -62,6 +80,10 @@ type Row = {
 };
 
 function VendasList() {
+  const qc = useQueryClient();
+  const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
     queryFn: async (): Promise<{ canal: "loja" | "pap"; rows: Row[] }> => {
@@ -112,6 +134,21 @@ function VendasList() {
     },
   });
 
+  async function confirmDelete() {
+    if (!toDelete || !data) return;
+    setDeleting(true);
+    const table = data.canal === "pap" ? "vendas_pap" : "vendas_loja";
+    const { error } = await supabase.from(table).delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Erro ao excluir: " + error.message);
+      return;
+    }
+    toast.success("Venda excluída.");
+    setToDelete(null);
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -160,6 +197,7 @@ function VendasList() {
                     <TableHead>Valor</TableHead>
                     <TableHead>Comissão</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -176,6 +214,32 @@ function VendasList() {
                           {statusLabel[v.status] ?? v.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Ações</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link to="/vendas/$id" params={{ id: v.id }}>
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                setToDelete(v);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -184,6 +248,31 @@ function VendasList() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. A venda de{" "}
+              <span className="font-semibold">{toDelete?.cliente}</span> será removida
+              e a comissão sairá dos seus indicadores.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
