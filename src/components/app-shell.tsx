@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   KanbanSquare,
+  FileText,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
