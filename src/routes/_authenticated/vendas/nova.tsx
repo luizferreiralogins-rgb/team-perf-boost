@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
   component: NovaVenda,
 });
 
-function useCanal() {
+export function useCanal() {
   return useQuery({
     queryKey: ["me-canal"],
     queryFn: async () => {
