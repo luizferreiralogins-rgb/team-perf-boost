@@ -22,7 +22,14 @@ import {
   ProjecaoComissaoLoja,
   ProjecaoComissaoPap,
 } from "@/components/vendas/projecao";
-import { comissaoLoja, comissaoPap, type LojaFaixaTicket, type PapFaixa } from "@/lib/comissao";
+import {
+  comissaoLoja,
+  comissaoPap,
+  faixaEfetivaLoja,
+  type LojaFaixaTicket,
+  type LojaMeta,
+  type PapFaixa,
+} from "@/lib/comissao";
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
