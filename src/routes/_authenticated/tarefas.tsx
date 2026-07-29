@@ -251,7 +251,7 @@ function TarefasPage() {
               </h2>
               <div className="space-y-2">
                 {itens.map((t) => (
-                  <Card key={t.id} className={cn(t.status !== "pendente" && "opacity-60")}>
+                  <Card key={t.id} className={cn(!emAberto(t.status) && "opacity-60")}>
                     <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
                       <div className="min-w-0 space-y-1">
                         <p className="font-medium">
@@ -274,31 +274,34 @@ function TarefasPage() {
                               }`
                             : `Responsável: ${nomePessoa(t.responsavel_id)}`}
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
-                          {t.status !== "pendente" &&
-                            ` · ${t.status === "concluida" ? "Concluída" : "Cancelada"}`}
+                          {" · "}
+                          {STATUS_LABEL[t.status]}
                         </p>
                       </div>
-                      <div className="flex gap-1">
-                        {t.status === "pendente" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              title="Concluir"
-                              onClick={() => atualizar.mutate({ id: t.id, status: "concluida" })}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              title="Cancelar"
-                              onClick={() => atualizar.mutate({ id: t.id, status: "cancelada" })}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {STATUS_BOTOES.map((s) => (
+                          <Button
+                            key={s.valor}
+                            size="sm"
+                            variant={t.status === s.valor ? "default" : "outline"}
+                            disabled={atualizar.isPending}
+                            onClick={() => atualizar.mutate({ id: t.id, status: s.valor })}
+                          >
+                            {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
+                            {s.label}
+                          </Button>
+                        ))}
+                        {t.status !== "cancelada" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Cancelar tarefa"
+                            onClick={() => atualizar.mutate({ id: t.id, status: "cancelada" })}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         )}
+
                         {t.criador_id === me.data && (
                           <Button
                             size="sm"
