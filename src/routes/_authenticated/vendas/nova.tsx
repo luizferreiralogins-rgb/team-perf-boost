@@ -411,6 +411,16 @@ function FormPap() {
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
+
+    let comissao = 0;
+    if (parsed.data.status === "instalado") {
+      const { data: faixas } = await supabase
+        .from("parametros_pap_faixas")
+        .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel");
+      const r = comissaoPap((faixas ?? []) as PapFaixa[], parsed.data.valor, true);
+      comissao = r.valor;
+    }
+
     const { error } = await supabase.from("vendas_pap").insert({
       vendedor_id: uid,
       nome_cliente: parsed.data.nome_cliente,
@@ -422,6 +432,7 @@ function FormPap() {
       valor: parsed.data.valor,
       produto: parsed.data.produto || null,
       status: parsed.data.status,
+      comissao,
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
