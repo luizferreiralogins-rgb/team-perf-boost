@@ -40,7 +40,8 @@ export function faixaEfetivaLoja(
   return 3;
 }
 
-/** Comissão Loja: R$ por protocolo. Só paga quando o ticket (novo) > R$ 10. */
+/** Comissão Loja: R$ por protocolo. Só paga quando a diferença (novo - antigo) ≥ R$ 10.
+ *  Para novas vendas (sem valor antigo) a diferença equivale ao próprio valor novo. */
 export function comissaoLoja(
   faixas: LojaFaixaTicket[],
   valorNovo: number,
@@ -48,8 +49,7 @@ export function comissaoLoja(
   instalado: boolean,
 ): { diff: number; porFaixa: [number, number, number, number] } {
   const diff = Math.max(0, (valorNovo || 0) - (valorAntigo || 0));
-  const ticket = valorNovo || 0;
-  if (!instalado || !faixas.length || ticket <= TICKET_MINIMO) {
+  if (!instalado || !faixas.length || diff < TICKET_MINIMO) {
     return { diff, porFaixa: [0, 0, 0, 0] };
   }
   const row =
@@ -65,6 +65,7 @@ export function comissaoLoja(
     ],
   };
 }
+
 
 /** Comissão PAP: % sobre valor de ativação. Só paga quando o ticket > R$ 10. */
 export function comissaoPap(
