@@ -42,10 +42,19 @@ const statusLabel: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+type Row = {
+  id: string;
+  data: string;
+  cliente: string;
+  valor: number;
+  status: string;
+  comissao: number;
+};
+
 function VendasList() {
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ canal: "loja" | "pap"; rows: Row[] }> => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       const { data: profile } = await supabase
@@ -54,14 +63,42 @@ function VendasList() {
         .eq("id", uid)
         .maybeSingle();
       const canal = (profile?.canal ?? "loja") as "loja" | "pap";
-      const table = canal === "loja" ? "vendas_loja" : "vendas_pap";
+      if (canal === "loja") {
+        const { data: rows } = await supabase
+          .from("vendas_loja")
+          .select("id, nome_cliente, valor_novo, status, data_abertura, comissao")
+          .eq("vendedor_id", uid)
+          .order("data_abertura", { ascending: false, nullsFirst: false })
+          .limit(100);
+        return {
+          canal,
+          rows: (rows ?? []).map((v) => ({
+            id: v.id,
+            data: v.data_abertura ?? "",
+            cliente: v.nome_cliente,
+            valor: Number(v.valor_novo ?? 0),
+            status: v.status,
+            comissao: Number(v.comissao ?? 0),
+          })),
+        };
+      }
       const { data: rows } = await supabase
-        .from(table)
-        .select("*")
-        .eq("consultor_id", uid)
+        .from("vendas_pap")
+        .select("id, nome_cliente, valor, status, data_venda, comissao")
+        .eq("vendedor_id", uid)
         .order("data_venda", { ascending: false })
         .limit(100);
-      return { canal, rows: rows ?? [] };
+      return {
+        canal,
+        rows: (rows ?? []).map((v) => ({
+          id: v.id,
+          data: v.data_venda,
+          cliente: v.nome_cliente,
+          valor: Number(v.valor ?? 0),
+          status: v.status,
+          comissao: Number(v.comissao ?? 0),
+        })),
+      };
     },
   });
 
@@ -96,11 +133,9 @@ function VendasList() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : (data?.rows?.length ?? 0) === 0 ? (
+          ) : (data?.rows.length ?? 0) === 0 ? (
             <div className="rounded-lg border border-dashed p-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                Você ainda não cadastrou vendas neste canal.
-              </p>
+              <p className="text-sm text-muted-foreground">Você ainda não cadastrou vendas neste canal.</p>
               <Button asChild className="mt-4">
                 <Link to="/vendas/nova">Registrar primeira venda</Link>
               </Button>
@@ -113,19 +148,19 @@ function VendasList() {
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Valor</TableHead>
+                    <TableHead>Comissão</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data!.rows.map((v: any) => (
+                  {data!.rows.map((v) => (
                     <TableRow key={v.id}>
                       <TableCell className="whitespace-nowrap">
-                        {new Date(v.data_venda).toLocaleDateString("pt-BR")}
+                        {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
                       </TableCell>
-                      <TableCell>{v.cliente_nome ?? "—"}</TableCell>
-                      <TableCell className="font-medium">
-                        {brl(Number(v.valor_novo ?? v.valor_venda ?? 0))}
-                      </TableCell>
+                      <TableCell>{v.cliente}</TableCell>
+                      <TableCell className="font-medium">{brl(v.valor)}</TableCell>
+                      <TableCell>{brl(v.comissao)}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[v.status] ?? "secondary"}>
                           {statusLabel[v.status] ?? v.status}

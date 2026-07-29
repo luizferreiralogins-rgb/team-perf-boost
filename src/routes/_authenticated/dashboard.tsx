@@ -28,30 +28,32 @@ function Dashboard() {
       const inicioMes = new Date();
       inicioMes.setDate(1);
       inicioMes.setHours(0, 0, 0, 0);
+      const inicioISO = inicioMes.toISOString().slice(0, 10);
 
       const [{ data: profile }, loja, pap] = await Promise.all([
         supabase.from("profiles").select("canal, nome").eq("id", uid).maybeSingle(),
         supabase
           .from("vendas_loja")
-          .select("valor_novo, status, data_venda")
-          .eq("consultor_id", uid)
-          .gte("data_venda", inicioMes.toISOString()),
+          .select("valor_novo, status, data_abertura, comissao")
+          .eq("vendedor_id", uid)
+          .gte("data_abertura", inicioISO),
         supabase
           .from("vendas_pap")
-          .select("valor_venda, status, data_venda")
-          .eq("consultor_id", uid)
-          .gte("data_venda", inicioMes.toISOString()),
+          .select("valor, status, data_venda, comissao")
+          .eq("vendedor_id", uid)
+          .gte("data_venda", inicioISO),
       ]);
 
       const canal = (profile?.canal ?? "loja") as "loja" | "pap";
-      const vendas = canal === "loja" ? loja.data ?? [] : pap.data ?? [];
+      const vendas =
+        canal === "loja"
+          ? (loja.data ?? []).map((v) => ({ status: v.status, valor: Number(v.valor_novo ?? 0), comissao: Number(v.comissao ?? 0) }))
+          : (pap.data ?? []).map((v) => ({ status: v.status, valor: Number(v.valor ?? 0), comissao: Number(v.comissao ?? 0) }));
       const total = vendas.length;
-      const instaladas = vendas.filter((v: any) => v.status === "instalado").length;
-      const receita = vendas.reduce(
-        (s: number, v: any) => s + Number(v.valor_novo ?? v.valor_venda ?? 0),
-        0,
-      );
-      return { canal, total, instaladas, receita, nome: profile?.nome ?? "" };
+      const instaladas = vendas.filter((v) => v.status === "instalado").length;
+      const receita = vendas.reduce((s, v) => s + v.valor, 0);
+      const comissao = vendas.reduce((s, v) => s + v.comissao, 0);
+      return { canal, total, instaladas, receita, comissao, nome: profile?.nome ?? "" };
     },
   });
 
@@ -78,22 +80,11 @@ function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title="Vendas no mês"
-          value={isLoading ? null : String(data?.total ?? 0)}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Instaladas"
-          value={isLoading ? null : String(data?.instaladas ?? 0)}
-          icon={Award}
-        />
-        <StatCard
-          title="Receita gerada"
-          value={isLoading ? null : brl(data?.receita ?? 0)}
-          icon={Target}
-        />
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
+        <StatCard title="Instaladas" value={isLoading ? null : String(data?.instaladas ?? 0)} icon={Award} />
+        <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
+        <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
       </div>
 
       <Card>
@@ -103,7 +94,7 @@ function Dashboard() {
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>• Cadastre suas vendas do dia em <Link to="/vendas/nova" className="text-primary underline">Nova venda</Link>.</p>
           <p>• Consulte o histórico em <Link to="/vendas" className="text-primary underline">Vendas</Link>.</p>
-          <p>• A comissão é calculada automaticamente quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
+          <p>• A comissão é calculada quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
         </CardContent>
       </Card>
     </div>
@@ -126,11 +117,7 @@ function StatCard({
         <Icon className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent>
-        {value === null ? (
-          <Skeleton className="h-8 w-24" />
-        ) : (
-          <div className="text-2xl font-bold">{value}</div>
-        )}
+        {value === null ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">{value}</div>}
       </CardContent>
     </Card>
   );
