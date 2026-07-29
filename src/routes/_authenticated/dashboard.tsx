@@ -20,6 +20,19 @@ const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Dashboard() {
+  const { data: roleInfo } = useQuery({
+    queryKey: ["me-roles"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id;
+      if (!uid) return { isGestor: false };
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      const list = (roles ?? []).map((r) => r.role);
+      return { isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin") };
+    },
+    staleTime: 30_000,
+  });
+  const isGestor = roleInfo?.isGestor ?? false;
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-mes"],
     queryFn: async () => {
