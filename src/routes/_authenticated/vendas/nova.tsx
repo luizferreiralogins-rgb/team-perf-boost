@@ -158,24 +158,48 @@ function NovaVenda() {
   );
 }
 
-function FormLoja() {
+export type FormLojaState = {
+  protocolo: string;
+  nome_cliente: string;
+  cpf_cnpj: string;
+  observacoes: string;
+  data_abertura: string;
+  data_ativacao: string;
+  classe_protocolo: (typeof CLASSES_PROTOCOLO)[number];
+  tecnologia: (typeof TECNOLOGIAS)[number];
+  contem_movel: boolean;
+  qtd_linhas: string;
+  valor_novo: string;
+  valor_antigo: string;
+  instalado: boolean;
+};
+
+export function FormLoja({
+  editingId,
+  initial,
+}: {
+  editingId?: string;
+  initial?: FormLojaState;
+} = {}) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    protocolo: "",
-    nome_cliente: "",
-    cpf_cnpj: "",
-    observacoes: "",
-    data_abertura: today(),
-    data_ativacao: "",
-    classe_protocolo: "Novo Acesso" as (typeof CLASSES_PROTOCOLO)[number],
-    tecnologia: "01.04 - Internet - Banda Larga - Fibra" as (typeof TECNOLOGIAS)[number],
-    contem_movel: false,
-    qtd_linhas: "0",
-    valor_novo: "",
-    valor_antigo: "",
-    instalado: false,
-  });
+  const [form, setForm] = useState<FormLojaState>(
+    initial ?? {
+      protocolo: "",
+      nome_cliente: "",
+      cpf_cnpj: "",
+      observacoes: "",
+      data_abertura: today(),
+      data_ativacao: "",
+      classe_protocolo: "Novo Acesso",
+      tecnologia: "01.04 - Internet - Banda Larga - Fibra",
+      contem_movel: false,
+      qtd_linhas: "0",
+      valor_novo: "",
+      valor_antigo: "",
+      instalado: false,
+    },
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +215,7 @@ function FormLoja() {
     const valorAntigoNum =
       typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
 
-    // Comissão: calcula faixa efetiva do mês (0-3) considerando esta venda.
+    // Comissão: calcula faixa efetiva do mês (1-3) considerando esta venda.
     let comissao = 0;
     let tipoFaixa: "faixa_0" | "faixa_1" | "faixa_2" | "faixa_3" = "faixa_0";
     const mesRef = mesRefFromDate(dataRef);
@@ -205,13 +229,13 @@ function FormLoja() {
           .select("faixa, meta_receita, meta_renov_movel"),
         supabase
           .from("vendas_loja")
-          .select("valor_novo, classe_protocolo, contem_movel, status")
+          .select("id, valor_novo, classe_protocolo, contem_movel, status")
           .eq("vendedor_id", uid)
           .eq("mes_ref", mesRef),
       ]);
 
-      const rows = mesVendas ?? [];
-      // Inclui a venda atual no acumulado
+      // Ao editar, exclui a própria venda do acumulado (será recontabilizada).
+      const rows = (mesVendas ?? []).filter((v) => v.id !== editingId);
       const receitaMes =
         rows
           .filter((v) => v.status === "instalado")
@@ -235,7 +259,7 @@ function FormLoja() {
       tipoFaixa = (`faixa_${faixaEfet}` as typeof tipoFaixa);
     }
 
-    const { error } = await supabase.from("vendas_loja").insert({
+    const payload = {
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
       nome_cliente: parsed.data.nome_cliente,
@@ -249,17 +273,21 @@ function FormLoja() {
       tecnologia: parsed.data.tecnologia,
       contem_movel: parsed.data.contem_movel,
       qtd_linhas: parsed.data.qtd_linhas,
-      status: parsed.data.instalado ? "instalado" : "pendente",
+      status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
       tipo_comissao: tipoFaixa,
       observacoes: parsed.data.observacoes || null,
-    });
+    };
+
+    const { error } = editingId
+      ? await supabase.from("vendas_loja").update(payload).eq("id", editingId).eq("vendedor_id", uid)
+      : await supabase.from("vendas_loja").insert(payload);
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
       return;
     }
-    toast.success("Venda registrada!");
+    toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
     navigate({ to: "/vendas" });
   }
 
