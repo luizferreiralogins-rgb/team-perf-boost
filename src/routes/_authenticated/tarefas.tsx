@@ -128,7 +128,7 @@ function TarefasPage() {
 
   const lista = useMemo(() => {
     const t = tarefas.data ?? [];
-    return filtro === "pendentes" ? t.filter((x) => x.status === "pendente") : t;
+    return filtro === "pendentes" ? t.filter((x) => emAberto(x.status)) : t;
   }, [tarefas.data, filtro]);
 
   const grupos = useMemo(() => {
@@ -142,10 +142,10 @@ function TarefasPage() {
   }, [lista]);
 
   const vencemAmanha = (tarefas.data ?? []).filter(
-    (t) => t.status === "pendente" && t.data_venc === amanha(),
+    (t) => emAberto(t.status) && t.data_venc === amanha(),
   );
   const atrasadas = (tarefas.data ?? []).filter(
-    (t) => t.status === "pendente" && t.data_venc < hoje(),
+    (t) => emAberto(t.status) && t.data_venc < hoje(),
   );
 
   const atualizar = useMutation({
