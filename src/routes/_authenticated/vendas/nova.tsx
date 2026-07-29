@@ -210,6 +210,13 @@ function FormLoja() {
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Protocolo">
+              <Input
+                value={form.protocolo}
+                onChange={(e) => setForm({ ...form, protocolo: e.target.value })}
+                placeholder="Nº do protocolo"
+              />
+            </Field>
             <Field label="Cliente" required>
               <Input
                 value={form.nome_cliente}
@@ -223,40 +230,52 @@ function FormLoja() {
                 onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
               />
             </Field>
-            <Field label="Data de abertura" required>
+            <Field label="Classe de protocolo" required>
+              <Select
+                value={form.classe_protocolo}
+                onValueChange={(v) =>
+                  setForm({ ...form, classe_protocolo: v as (typeof CLASSES_PROTOCOLO)[number] })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CLASSES_PROTOCOLO.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Data de abertura do protocolo" required>
               <Input
                 type="date"
-                value={form.data}
-                onChange={(e) => setForm({ ...form, data: e.target.value })}
+                value={form.data_abertura}
+                onChange={(e) => setForm({ ...form, data_abertura: e.target.value })}
                 required
               />
             </Field>
-            <Field label="Tecnologia">
+            <Field label="Data de ativação" hint="Preencha quando o serviço for ativado.">
               <Input
+                type="date"
+                value={form.data_ativacao}
+                onChange={(e) => setForm({ ...form, data_ativacao: e.target.value })}
+              />
+            </Field>
+            <Field label="Tecnologia" required>
+              <Select
                 value={form.tecnologia}
-                onChange={(e) => setForm({ ...form, tecnologia: e.target.value })}
-              />
+                onValueChange={(v) =>
+                  setForm({ ...form, tecnologia: v as (typeof TECNOLOGIAS)[number] })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TECNOLOGIAS.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-            <Field label="Valor do plano novo (R$)" required>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.valor_novo}
-                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
-                required
-              />
-            </Field>
-            <Field label="Valor do plano antigo (R$)" hint="Em branco = cliente novo.">
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.valor_antigo}
-                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
-              />
-            </Field>
-            <Field label="Contém plano móvel?">
+            <Field label="Contém móvel?">
               <Select
                 value={form.contem_movel ? "sim" : "nao"}
                 onValueChange={(v) => setForm({ ...form, contem_movel: v === "sim" })}
@@ -268,18 +287,48 @@ function FormLoja() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Status" required>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+            <Field label="Qtd. de linhas">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.qtd_linhas}
+                onChange={(e) => setForm({ ...form, qtd_linhas: e.target.value })}
+              />
+            </Field>
+            <Field label="Valor novo (R$)" required>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_novo}
+                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="Valor antigo (R$)" hint="Em branco = cliente novo.">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_antigo}
+                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
+              />
+            </Field>
+            <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
+              <Select
+                value={form.instalado ? "sim" : "nao"}
+                onValueChange={(v) => setForm({ ...form, instalado: v === "sim" })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="em_analise">Em análise</SelectItem>
-                  <SelectItem value="instalado">Instalado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                  <SelectItem value="sim">Sim</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
           </div>
+
           <Field label="Observações">
             <Textarea
               rows={3}
