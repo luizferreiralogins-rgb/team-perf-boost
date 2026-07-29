@@ -450,20 +450,40 @@ export function FormLoja({
   );
 }
 
-function FormPap() {
+export type FormPapState = {
+  nome_cliente: string;
+  cpf_cnpj: string;
+  cidade: string;
+  bairro: string;
+  data: string;
+  valor: string;
+  produto: string;
+  status: Status;
+  observacoes: string;
+};
+
+export function FormPap({
+  editingId,
+  initial,
+}: {
+  editingId?: string;
+  initial?: FormPapState;
+} = {}) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    nome_cliente: "",
-    cpf_cnpj: "",
-    cidade: "",
-    bairro: "",
-    data: today(),
-    valor: "",
-    produto: "",
-    status: "pendente" as Status,
-    observacoes: "",
-  });
+  const [form, setForm] = useState<FormPapState>(
+    initial ?? {
+      nome_cliente: "",
+      cpf_cnpj: "",
+      cidade: "",
+      bairro: "",
+      data: today(),
+      valor: "",
+      produto: "",
+      status: "pendente",
+      observacoes: "",
+    },
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -485,7 +505,7 @@ function FormPap() {
       comissao = r.valor;
     }
 
-    const { error } = await supabase.from("vendas_pap").insert({
+    const payload = {
       vendedor_id: uid,
       nome_cliente: parsed.data.nome_cliente,
       cpf_cnpj: parsed.data.cpf_cnpj || null,
@@ -498,13 +518,16 @@ function FormPap() {
       status: parsed.data.status,
       comissao,
       observacoes: parsed.data.observacoes || null,
-    });
+    };
+    const { error } = editingId
+      ? await supabase.from("vendas_pap").update(payload).eq("id", editingId).eq("vendedor_id", uid)
+      : await supabase.from("vendas_pap").insert(payload);
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
       return;
     }
-    toast.success("Venda registrada!");
+    toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
     navigate({ to: "/vendas" });
   }
 
