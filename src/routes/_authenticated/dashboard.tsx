@@ -38,19 +38,17 @@ function Dashboard() {
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
-      const inicioMes = new Date();
-      inicioMes.setDate(1);
-      inicioMes.setHours(0, 0, 0, 0);
-      const inicioISO = inicioMes.toISOString().slice(0, 10);
+      const hoje = new Date();
+      const mesRefISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("valor_novo, status, data_abertura, comissao, tecnologia, classe_protocolo, contem_movel")
-        .gte("data_abertura", inicioISO);
+        .select("valor_novo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel")
+        .eq("mes_ref", mesRefISO);
       const papQ = supabase
         .from("vendas_pap")
-        .select("valor, status, data_venda, comissao, tecnologia")
-        .gte("data_venda", inicioISO);
+        .select("valor, status, mes_ref, comissao, tecnologia")
+        .eq("mes_ref", mesRefISO);
       if (!isGestor) {
         lojaQ.eq("vendedor_id", uid);
         papQ.eq("vendedor_id", uid);
