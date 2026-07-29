@@ -181,6 +181,24 @@ function FormLoja() {
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
     const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
+    const valorAntigoNum =
+      typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
+
+    // Comissão estimada (base = faixa_0). Ajustada no fechamento mensal conforme faixa efetiva.
+    let comissao = 0;
+    if (parsed.data.instalado) {
+      const { data: faixas } = await supabase
+        .from("parametros_loja_faixas_ticket")
+        .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3");
+      const { porFaixa } = comissaoLoja(
+        (faixas ?? []) as LojaFaixaTicket[],
+        parsed.data.valor_novo,
+        valorAntigoNum,
+        true,
+      );
+      comissao = porFaixa[0] ?? 0;
+    }
+
     const { error } = await supabase.from("vendas_loja").insert({
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
@@ -191,12 +209,13 @@ function FormLoja() {
       classe_protocolo: parsed.data.classe_protocolo,
       mes_ref: mesRefFromDate(dataRef),
       valor_novo: parsed.data.valor_novo,
-      valor_antigo:
-        typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null,
+      valor_antigo: valorAntigoNum,
       tecnologia: parsed.data.tecnologia,
       contem_movel: parsed.data.contem_movel,
       qtd_linhas: parsed.data.qtd_linhas,
       status: parsed.data.instalado ? "instalado" : "pendente",
+      comissao,
+      tipo_comissao: "faixa_0",
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
