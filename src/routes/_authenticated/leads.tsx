@@ -430,9 +430,10 @@ function LeadFormDialog({
       return;
     }
     const { data } = await supabase.rpc("buscar_lead_duplicado", {
-      _email: form.email || null,
-      _whatsapp: form.whatsapp || null,
+      _email: form.email || "",
+      _whatsapp: form.whatsapp || "",
     });
+
     setDuplicates((data ?? []) as any);
   };
 
