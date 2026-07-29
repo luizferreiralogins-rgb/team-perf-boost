@@ -270,18 +270,9 @@ function SignupForm() {
           required
         />
       </div>
-      <div className="space-y-2">
-        <Label>Canal de atuação</Label>
-        <Select value={form.canal} onValueChange={(v) => setForm({ ...form, canal: v as "loja" | "pap" })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="loja">Loja</SelectItem>
-            <SelectItem value="pap">PAP (Porta a Porta)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+        O primeiro cadastro do sistema entra como <b>Gerente Regional</b>. Novos usuários criados depois disso aguardam vínculo do gestor para acessar as funcionalidades.
+      </p>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Criando..." : "Criar conta"}
       </Button>
