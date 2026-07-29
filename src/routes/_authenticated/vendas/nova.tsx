@@ -55,9 +55,10 @@ function today() {
 }
 
 function mesRefFromDate(d: string) {
-  // "YYYY-MM-DD" -> "YYYY-MM"
-  return d.slice(0, 7);
+  // "YYYY-MM-DD" -> "YYYY-MM-01" (coluna é DATE)
+  return `${d.slice(0, 7)}-01`;
 }
+
 
 const statusEnum = z.enum(["pendente", "instalado", "cancelado", "em_analise"]);
 type Status = z.infer<typeof statusEnum>;
