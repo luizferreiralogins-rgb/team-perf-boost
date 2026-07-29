@@ -11,6 +11,7 @@ import {
   X,
   KanbanSquare,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -113,6 +114,7 @@ function Sidebar({
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
+    { to: "/chat", label: "Chat Telegram", icon: MessageCircle, show: true },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/regras-comissionamento", label: "Regras de Comissionamento", icon: FileText, show: isGestor },
     { to: "/perfil", label: "Perfil", icon: UserCircle, show: true },
