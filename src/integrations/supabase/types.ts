@@ -582,7 +582,7 @@ export type Database = {
       loja_unidade: "norte" | "sul" | "shopping"
       tarefa_alvo: "propria" | "usuario" | "cliente"
       tarefa_prioridade: "baixa" | "media" | "alta"
-      tarefa_status: "pendente" | "concluida" | "cancelada"
+      tarefa_status: "pendente" | "concluida" | "cancelada" | "iniciada"
       transfer_status: "pendente" | "aceita" | "recusada" | "cancelada"
       venda_status: "pendente" | "instalado" | "cancelado" | "em_analise"
     }
@@ -725,7 +725,7 @@ export const Constants = {
       loja_unidade: ["norte", "sul", "shopping"],
       tarefa_alvo: ["propria", "usuario", "cliente"],
       tarefa_prioridade: ["baixa", "media", "alta"],
-      tarefa_status: ["pendente", "concluida", "cancelada"],
+      tarefa_status: ["pendente", "concluida", "cancelada", "iniciada"],
       transfer_status: ["pendente", "aceita", "recusada", "cancelada"],
       venda_status: ["pendente", "instalado", "cancelado", "em_analise"],
     },
