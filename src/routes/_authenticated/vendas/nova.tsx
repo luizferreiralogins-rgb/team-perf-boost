@@ -17,6 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CalculadoraParcelaMedia,
+  ProjecaoComissaoLoja,
+  ProjecaoComissaoPap,
+} from "@/components/vendas/projecao";
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
@@ -120,7 +125,7 @@ const papSchema = z.object({
 function NovaVenda() {
   const canalQ = useCanal();
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm">
           <Link to="/vendas">
