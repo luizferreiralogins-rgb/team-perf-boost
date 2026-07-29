@@ -24,22 +24,23 @@ export type LojaMeta = {
   meta_renov_movel: number;
 };
 
-/** Determina a faixa efetiva (0-3) do consultor no mês com base em metas. */
+/** Ticket mínimo para elegibilidade de comissão (vendas, renovações e demais serviços). */
+export const TICKET_MINIMO = 10;
+
+/**
+ * Faixa efetiva do consultor no mês.
+ * Regra atual: única condicionante é o ticket > R$ 10 (validado em comissaoLoja).
+ * Metas de receita/renov. móvel não gatam mais a comissão — mantém-se a faixa máxima.
+ */
 export function faixaEfetivaLoja(
-  metas: LojaMeta[],
-  receitaMes: number,
-  ratioRenovMovel: number,
+  _metas: LojaMeta[],
+  _receitaMes: number,
+  _ratioRenovMovel: number,
 ): 0 | 1 | 2 | 3 {
-  const ordered = [...metas].sort((a, b) => a.faixa - b.faixa);
-  let faixa: 0 | 1 | 2 | 3 = 0;
-  for (const m of ordered) {
-    if (receitaMes >= Number(m.meta_receita) && ratioRenovMovel >= Number(m.meta_renov_movel)) {
-      faixa = Math.min(3, Math.max(0, Number(m.faixa))) as 0 | 1 | 2 | 3;
-    }
-  }
-  return faixa;
+  return 3;
 }
-/** Comissão Loja: R$ por protocolo, cruzando diferença de ticket x faixa efetiva. */
+
+/** Comissão Loja: R$ por protocolo. Só paga quando o ticket (novo) > R$ 10. */
 export function comissaoLoja(
   faixas: LojaFaixaTicket[],
   valorNovo: number,
@@ -47,7 +48,8 @@ export function comissaoLoja(
   instalado: boolean,
 ): { diff: number; porFaixa: [number, number, number, number] } {
   const diff = Math.max(0, (valorNovo || 0) - (valorAntigo || 0));
-  if (!instalado || !faixas.length) {
+  const ticket = valorNovo || 0;
+  if (!instalado || !faixas.length || ticket <= TICKET_MINIMO) {
     return { diff, porFaixa: [0, 0, 0, 0] };
   }
   const row =
@@ -64,13 +66,13 @@ export function comissaoLoja(
   };
 }
 
-/** Comissão PAP: % sobre valor de ativação. */
+/** Comissão PAP: % sobre valor de ativação. Só paga quando o ticket > R$ 10. */
 export function comissaoPap(
   faixas: PapFaixa[],
   valor: number,
   instalado: boolean,
 ): { pct: number; valor: number; pctAcelerado: number; valorAcelerado: number; faixa: number } {
-  if (!instalado || !faixas.length || !valor) {
+  if (!instalado || !faixas.length || !valor || valor <= TICKET_MINIMO) {
     return { pct: 0, valor: 0, pctAcelerado: 0, valorAcelerado: 0, faixa: 0 };
   }
   const row =
