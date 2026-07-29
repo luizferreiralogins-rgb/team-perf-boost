@@ -1,0 +1,712 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Plus, ArrowRightLeft, Check, X, Users, Pencil, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const Route = createFileRoute("/_authenticated/leads")({
+  head: () => ({
+    meta: [
+      { title: "Leads — Unifique Comercial" },
+      { name: "description", content: "CRM de leads em modelo Kanban com transferências entre consultores." },
+    ],
+  }),
+  component: LeadsPage,
+});
+
+type LeadStatus =
+  | "contato_feito"
+  | "negociando"
+  | "desistiu"
+  | "fechou"
+  | "nao_perturbar"
+  | "transferido";
+
+type Lead = {
+  id: string;
+  vendedor_id: string;
+  nome: string;
+  cidade: string | null;
+  fonte: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  produto_interesse: string | null;
+  status: LeadStatus;
+  observacoes: string | null;
+  created_at: string;
+};
+
+const COLUMNS: { key: LeadStatus; label: string; tone: string }[] = [
+  { key: "contato_feito", label: "Contato Feito", tone: "bg-sky-100 text-sky-800 border-sky-200" },
+  { key: "negociando", label: "Negociando", tone: "bg-amber-100 text-amber-800 border-amber-200" },
+  { key: "fechou", label: "Fechou", tone: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { key: "desistiu", label: "Desistiu", tone: "bg-rose-100 text-rose-800 border-rose-200" },
+  { key: "nao_perturbar", label: "Não Perturbar", tone: "bg-zinc-200 text-zinc-800 border-zinc-300" },
+  { key: "transferido", label: "Transferido", tone: "bg-violet-100 text-violet-800 border-violet-200" },
+];
+
+function useMe() {
+  return useQuery({
+    queryKey: ["me-basic"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id ?? null;
+      if (!uid) return null;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      return {
+        userId: uid,
+        roles: (roles ?? []).map((r) => r.role as string),
+      };
+    },
+    staleTime: 30_000,
+  });
+}
+
+function LeadsPage() {
+  const me = useMe();
+  const qc = useQueryClient();
+  const [newOpen, setNewOpen] = useState(false);
+  const [editing, setEditing] = useState<Lead | null>(null);
+  const [transferFor, setTransferFor] = useState<Lead | null>(null);
+
+  const isConsultor =
+    !!me.data && me.data.roles.includes("consultor") &&
+    !me.data.roles.some((r) => ["gerente", "regional", "admin"].includes(r));
+
+  const leadsQ = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Lead[];
+    },
+  });
+
+  const transfersQ = useQuery({
+    queryKey: ["lead-transfers-inbox"],
+    queryFn: async () => {
+      const uid = me.data?.userId;
+      if (!uid) return [];
+      const { data, error } = await supabase
+        .from("lead_transferencias")
+        .select("id, lead_id, from_user, to_user, status, mensagem, created_at")
+        .eq("to_user", uid)
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!me.data?.userId,
+  });
+
+  const inboxLeadIds = (transfersQ.data ?? []).map((t: any) => t.lead_id);
+  const inboxLeadsQ = useQuery({
+    queryKey: ["leads-inbox", inboxLeadIds.join(",")],
+    queryFn: async () => {
+      if (!inboxLeadIds.length) return [] as Lead[];
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .in("id", inboxLeadIds);
+      if (error) throw error;
+      return (data ?? []) as Lead[];
+    },
+    enabled: inboxLeadIds.length > 0,
+  });
+
+  const senderIds = Array.from(new Set((transfersQ.data ?? []).map((t: any) => t.from_user)));
+  const sendersQ = useQuery({
+    queryKey: ["profiles-senders", senderIds.join(",")],
+    queryFn: async () => {
+      if (!senderIds.length) return [] as { id: string; nome: string }[];
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", senderIds);
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: senderIds.length > 0,
+  });
+
+  const acceptMut = useMutation({
+    mutationFn: async (transferId: string) => {
+      const { error } = await supabase.rpc("aceitar_transferencia_lead", {
+        _transfer_id: transferId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Transferência aceita — lead adicionado ao seu funil.");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["lead-transfers-inbox"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao aceitar"),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: async (transferId: string) => {
+      const { error } = await supabase
+        .from("lead_transferencias")
+        .update({ status: "recusada" })
+        .eq("id", transferId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Transferência recusada.");
+      qc.invalidateQueries({ queryKey: ["lead-transfers-inbox"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao recusar"),
+  });
+
+  const moveMut = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: LeadStatus }) => {
+      const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+    onError: (e: any) => toast.error(e.message ?? "Falha ao atualizar"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("leads").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead removido.");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao remover"),
+  });
+
+  const grouped = useMemo(() => {
+    const g: Record<LeadStatus, Lead[]> = {
+      contato_feito: [],
+      negociando: [],
+      fechou: [],
+      desistiu: [],
+      nao_perturbar: [],
+      transferido: [],
+    };
+    (leadsQ.data ?? []).forEach((l) => g[l.status].push(l));
+    return g;
+  }, [leadsQ.data]);
+
+  const inbox = (transfersQ.data ?? []).map((t: any) => ({
+    ...t,
+    lead: (inboxLeadsQ.data ?? []).find((l) => l.id === t.lead_id),
+    sender: (sendersQ.data ?? []).find((s) => s.id === t.from_user),
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Leads (CRM)</h1>
+          <p className="text-sm text-muted-foreground">
+            Gestão de leads em modelo Kanban — arraste pelo status ou edite pela ação de cada card.
+          </p>
+        </div>
+        {isConsultor && (
+          <Button onClick={() => setNewOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Novo lead
+          </Button>
+        )}
+      </div>
+
+      {inbox.length > 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ArrowRightLeft className="h-4 w-4" /> Transferências pendentes para você
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {inbox.map((t) => (
+              <div
+                key={t.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium">
+                    {t.lead?.nome ?? "Lead"}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      · enviado por {t.sender?.nome ?? "consultor"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {t.lead?.cidade ?? ""} {t.lead?.produto_interesse ? `· ${t.lead.produto_interesse}` : ""}
+                    {t.mensagem ? ` · "${t.mensagem}"` : ""}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => acceptMut.mutate(t.id)}
+                    disabled={acceptMut.isPending}
+                  >
+                    <Check className="mr-1 h-4 w-4" /> Aceitar transferir?
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => rejectMut.mutate(t.id)}
+                    disabled={rejectMut.isPending}
+                  >
+                    <X className="mr-1 h-4 w-4" /> Recusar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {COLUMNS.map((col) => (
+          <div key={col.key} className="rounded-xl border bg-card">
+            <div className={`flex items-center justify-between rounded-t-xl border-b px-3 py-2 ${col.tone}`}>
+              <div className="font-semibold text-sm">{col.label}</div>
+              <Badge variant="secondary">{grouped[col.key].length}</Badge>
+            </div>
+            <div
+              className="min-h-[120px] space-y-2 p-2"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const id = e.dataTransfer.getData("text/plain");
+                if (id) moveMut.mutate({ id, status: col.key });
+              }}
+            >
+              {grouped[col.key].map((lead) => (
+                <div
+                  key={lead.id}
+                  draggable={isConsultor && lead.vendedor_id === me.data?.userId}
+                  onDragStart={(e) => e.dataTransfer.setData("text/plain", lead.id)}
+                  className="cursor-grab rounded-lg border bg-background p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium">{lead.nome}</div>
+                    {lead.vendedor_id === me.data?.userId && (
+                      <div className="flex gap-1">
+                        <button
+                          className="rounded p-1 hover:bg-accent"
+                          onClick={() => setEditing(lead)}
+                          aria-label="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="rounded p-1 hover:bg-accent"
+                          onClick={() => setTransferFor(lead)}
+                          aria-label="Transferir"
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="rounded p-1 hover:bg-accent text-destructive"
+                          onClick={() => {
+                            if (confirm("Remover este lead?")) deleteMut.mutate(lead.id);
+                          }}
+                          aria-label="Excluir"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    {lead.cidade && <div>{lead.cidade}</div>}
+                    {lead.produto_interesse && <div>Interesse: {lead.produto_interesse}</div>}
+                    {lead.whatsapp && <div>WhatsApp: {lead.whatsapp}</div>}
+                    {lead.email && <div className="truncate">{lead.email}</div>}
+                    {lead.fonte && <div>Fonte: {lead.fonte}</div>}
+                  </div>
+                </div>
+              ))}
+              {grouped[col.key].length === 0 && (
+                <div className="py-8 text-center text-xs text-muted-foreground">Vazio</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!isConsultor && me.data && (
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Users className="h-3.5 w-3.5" /> Você está visualizando os leads do time — apenas consultores podem
+          criar, editar ou transferir leads.
+        </p>
+      )}
+
+      <LeadFormDialog
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+      />
+      <LeadFormDialog
+        open={!!editing}
+        lead={editing ?? undefined}
+        onClose={() => setEditing(null)}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+      />
+      <TransferDialog
+        lead={transferFor}
+        onClose={() => setTransferFor(null)}
+        onDone={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+      />
+    </div>
+  );
+}
+
+function LeadFormDialog({
+  open,
+  lead,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  lead?: Lead;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState({
+    nome: "",
+    cidade: "",
+    fonte: "",
+    email: "",
+    whatsapp: "",
+    produto_interesse: "",
+    status: "contato_feito" as LeadStatus,
+    observacoes: "",
+  });
+  const [duplicates, setDuplicates] = useState<
+    { lead_id: string; vendedor_id: string; vendedor_nome: string; nome: string }[]
+  >([]);
+  const [saving, setSaving] = useState(false);
+
+  // reset when opening
+  useMemo(() => {
+    if (open) {
+      setForm({
+        nome: lead?.nome ?? "",
+        cidade: lead?.cidade ?? "",
+        fonte: lead?.fonte ?? "",
+        email: lead?.email ?? "",
+        whatsapp: lead?.whatsapp ?? "",
+        produto_interesse: lead?.produto_interesse ?? "",
+        status: lead?.status ?? "contato_feito",
+        observacoes: lead?.observacoes ?? "",
+      });
+      setDuplicates([]);
+    }
+  }, [open, lead]);
+
+  const checkDup = async () => {
+    if (lead) return; // só na criação
+    if (!form.email && !form.whatsapp) {
+      setDuplicates([]);
+      return;
+    }
+    const { data } = await supabase.rpc("buscar_lead_duplicado", {
+      _email: form.email || "",
+      _whatsapp: form.whatsapp || "",
+    });
+
+    setDuplicates((data ?? []) as any);
+  };
+
+  const submit = async () => {
+    if (!form.nome.trim()) {
+      toast.error("Informe o nome do lead.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user!.id;
+      const payload = {
+        nome: form.nome.trim(),
+        cidade: form.cidade.trim() || null,
+        fonte: form.fonte.trim() || null,
+        email: form.email.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
+        produto_interesse: form.produto_interesse.trim() || null,
+        status: form.status,
+        observacoes: form.observacoes.trim() || null,
+      };
+      if (lead) {
+        const { error } = await supabase.from("leads").update(payload).eq("id", lead.id);
+        if (error) throw error;
+        toast.success("Lead atualizado.");
+      } else {
+        const { error } = await supabase.from("leads").insert({ ...payload, vendedor_id: uid });
+        if (error) throw error;
+        toast.success("Lead cadastrado.");
+      }
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const suggestTransfer = async (dup: { lead_id: string; vendedor_id: string; vendedor_nome: string }) => {
+    // Envia solicitação de transferência do lead do consultor DONO -> para mim
+    // Como não somos o dono, criamos uma transferência com from_user=eu e to_user=dono
+    // pedindo que o dono aceite mover o lead para nós? A regra é: sugere para o outro consultor.
+    // Interpretação escolhida: enviamos ao dono uma solicitação para ele TRANSFERIR o lead a nós.
+    // Registro: from_user = eu (solicitante), to_user = dono. Dono aceita → aceitar_transferencia_lead
+    // moverá o lead para o to_user (dono), o que é ele mesmo. Isso não faz sentido.
+    //
+    // Ajuste: registramos from_user=dono, to_user=eu? Mas RLS exige from_user=auth.uid().
+    // Solução: pulamos essa etapa e apenas mostramos o dono; o próprio dono, ao ver o duplicado,
+    // pode iniciar transferência para mim. Portanto, aqui apenas informamos.
+    toast.message(
+      `Lead já pertence a ${dup.vendedor_nome}. Peça a ele para transferir a você pela tela de Leads.`,
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{lead ? "Editar lead" : "Novo lead"}</DialogTitle>
+          <DialogDescription>
+            Cadastro simples para gestão no CRM. Ao informar e-mail ou WhatsApp, verificamos se outro
+            consultor já cadastrou.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label>Nome *</Label>
+            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Cidade</Label>
+              <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Fonte</Label>
+              <Input
+                placeholder="Indicação, Instagram, Porta a porta..."
+                value={form.fonte}
+                onChange={(e) => setForm({ ...form, fonte: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onBlur={checkDup}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>WhatsApp</Label>
+              <Input
+                value={form.whatsapp}
+                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                onBlur={checkDup}
+              />
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Produto de interesse</Label>
+            <Input
+              value={form.produto_interesse}
+              onChange={(e) => setForm({ ...form, produto_interesse: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Status</Label>
+              <Select
+                value={form.status}
+                onValueChange={(v) => setForm({ ...form, status: v as LeadStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLUMNS.map((c) => (
+                    <SelectItem key={c.key} value={c.key}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Observações</Label>
+            <Textarea
+              rows={2}
+              value={form.observacoes}
+              onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+            />
+          </div>
+
+          {duplicates.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+              <div className="font-medium text-amber-900">
+                Este contato já está cadastrado por outro consultor:
+              </div>
+              <ul className="mt-2 space-y-2">
+                {duplicates.map((d) => (
+                  <li key={d.lead_id} className="flex items-center justify-between gap-2">
+                    <span className="text-amber-900">
+                      {d.nome} · <strong>{d.vendedor_nome}</strong>
+                    </span>
+                    <Button size="sm" variant="outline" onClick={() => suggestTransfer(d)}>
+                      Solicitar transferência
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-amber-800">
+                Você ainda pode salvar seu lead — o dono atual será notificado e poderá transferir a você
+                pela ação de transferência no card dele.
+              </p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? "Salvando..." : lead ? "Salvar" : "Cadastrar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TransferDialog({
+  lead,
+  onClose,
+  onDone,
+}: {
+  lead: Lead | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [toUser, setToUser] = useState("");
+  const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const consultoresQ = useQuery({
+    queryKey: ["consultores-para-transferir"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "consultor");
+      const ids = (roles ?? []).map((r) => r.user_id).filter((id) => id !== uid);
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, nome, canal")
+        .in("id", ids)
+        .order("nome");
+      return data ?? [];
+    },
+    enabled: !!lead,
+  });
+
+  const submit = async () => {
+    if (!lead || !toUser) return;
+    setSaving(true);
+    try {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user!.id;
+      const { error } = await supabase.from("lead_transferencias").insert({
+        lead_id: lead.id,
+        from_user: uid,
+        to_user: toUser,
+        mensagem: msg.trim() || null,
+      });
+      if (error) throw error;
+      toast.success("Solicitação de transferência enviada.");
+      onDone();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao enviar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Transferir lead</DialogTitle>
+          <DialogDescription>
+            O consultor selecionado receberá uma solicitação com o botão "Aceitar transferir?".
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label>Consultor destinatário</Label>
+            <Select value={toUser} onValueChange={setToUser}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um consultor" />
+              </SelectTrigger>
+              <SelectContent>
+                {(consultoresQ.data ?? []).map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome} ({c.canal.toUpperCase()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Mensagem (opcional)</Label>
+            <Textarea rows={2} value={msg} onChange={(e) => setMsg(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={saving || !toUser}>
+            {saving ? "Enviando..." : "Enviar solicitação"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

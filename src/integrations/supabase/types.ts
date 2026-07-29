@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      lead_transferencias: {
+        Row: {
+          created_at: string
+          from_user: string
+          id: string
+          lead_id: string
+          mensagem: string | null
+          status: Database["public"]["Enums"]["transfer_status"]
+          to_user: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          id?: string
+          lead_id: string
+          mensagem?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          to_user: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          id?: string
+          lead_id?: string
+          mensagem?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          to_user?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_transferencias_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          email: string | null
+          fonte: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          produto_interesse: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+          vendedor_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          fonte?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          produto_interesse?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          vendedor_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          fonte?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          produto_interesse?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+          vendedor_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       parametros_loja_faixas_ticket: {
         Row: {
           diff_ate: number
@@ -331,6 +417,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aceitar_transferencia_lead: {
+        Args: { _transfer_id: string }
+        Returns: undefined
+      }
+      buscar_lead_duplicado: {
+        Args: { _email: string; _whatsapp: string }
+        Returns: {
+          email: string
+          lead_id: string
+          nome: string
+          vendedor_id: string
+          vendedor_nome: string
+          whatsapp: string
+        }[]
+      }
       get_canal: {
         Args: { _user: string }
         Returns: Database["public"]["Enums"]["canal_venda"]
@@ -354,7 +455,15 @@ export type Database = {
     Enums: {
       app_role: "consultor" | "gerente" | "regional" | "admin"
       canal_venda: "loja" | "pap"
+      lead_status:
+        | "contato_feito"
+        | "negociando"
+        | "desistiu"
+        | "fechou"
+        | "nao_perturbar"
+        | "transferido"
       loja_unidade: "norte" | "sul" | "shopping"
+      transfer_status: "pendente" | "aceita" | "recusada" | "cancelada"
       venda_status: "pendente" | "instalado" | "cancelado" | "em_analise"
     }
     CompositeTypes: {
@@ -485,7 +594,16 @@ export const Constants = {
     Enums: {
       app_role: ["consultor", "gerente", "regional", "admin"],
       canal_venda: ["loja", "pap"],
+      lead_status: [
+        "contato_feito",
+        "negociando",
+        "desistiu",
+        "fechou",
+        "nao_perturbar",
+        "transferido",
+      ],
       loja_unidade: ["norte", "sul", "shopping"],
+      transfer_status: ["pendente", "aceita", "recusada", "cancelada"],
       venda_status: ["pendente", "instalado", "cancelado", "em_analise"],
     },
   },
