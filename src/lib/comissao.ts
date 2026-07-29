@@ -28,16 +28,35 @@ export type LojaMeta = {
 export const TICKET_MINIMO = 10;
 
 /**
- * Faixa efetiva do consultor no mês.
- * Regra atual: única condicionante é o ticket mínimo (validado em comissaoLoja).
- * Metas de receita/renov. móvel não gatam mais a comissão; usa-se a tabela base (faixa 1).
+ * Faixa efetiva do consultor no mês (1 a 3). Faixa 1 é a base.
+ * Sobe para faixa 2/3 conforme atinge, simultaneamente, a meta de receita
+ * e a meta de % de renovações com móvel. Usa-se o MIN entre as duas dimensões.
+ *
+ * Tabela de metas (planilha Loja):
+ *   Faixa 1: base (qualquer receita, qualquer % renov c/ móvel)
+ *   Faixa 2: receita ≥ meta_receita(faixa 1) E % renov c/ móvel ≥ meta_renov(faixa 2)
+ *   Faixa 3: receita ≥ meta_receita(faixa 2) E % renov c/ móvel ≥ meta_renov(faixa 3)
  */
 export function faixaEfetivaLoja(
-  _metas: LojaMeta[],
-  _receitaMes: number,
-  _ratioRenovMovel: number,
-): 0 | 1 | 2 | 3 {
-  return 1;
+  metas: LojaMeta[],
+  receitaMes: number,
+  ratioRenovMovel: number,
+): 1 | 2 | 3 {
+  const m = [...(metas ?? [])].sort((a, b) => a.faixa - b.faixa);
+  const f1 = m.find((x) => x.faixa === 1);
+  const f2 = m.find((x) => x.faixa === 2);
+  const f3 = m.find((x) => x.faixa === 3);
+  if (!f1 || !f2) return 1;
+
+  let lvlReceita: 1 | 2 | 3 = 1;
+  if (receitaMes >= Number(f1.meta_receita)) lvlReceita = 2;
+  if (receitaMes >= Number(f2.meta_receita)) lvlReceita = 3;
+
+  let lvlRenov: 1 | 2 | 3 = 1;
+  if (ratioRenovMovel >= Number(f2.meta_renov_movel)) lvlRenov = 2;
+  if (f3 && ratioRenovMovel >= Number(f3.meta_renov_movel)) lvlRenov = 3;
+
+  return Math.min(lvlReceita, lvlRenov) as 1 | 2 | 3;
 }
 
 /** Comissão Loja: R$ por protocolo. Só paga quando a diferença (novo - antigo) ≥ R$ 10.
