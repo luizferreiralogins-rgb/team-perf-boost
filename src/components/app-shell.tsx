@@ -105,9 +105,10 @@ function Sidebar({
   onClose: () => void;
 }) {
   const isGestor = roles.includes("gerente") || roles.includes("regional") || roles.includes("admin");
+  const isConsultor = roles.includes("consultor") && !isGestor;
   const items = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
-    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: true },
+    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/perfil", label: "Perfil", icon: UserCircle, show: true },
   ];
