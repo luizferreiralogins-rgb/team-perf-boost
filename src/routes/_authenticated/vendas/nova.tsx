@@ -25,6 +25,16 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
       { name: "description", content: "Registre uma nova venda Unifique (Loja ou PAP)." },
     ],
   }),
+  beforeLoad: async () => {
+    const { redirect } = await import("@tanstack/react-router");
+    const { data: sess } = await supabase.auth.getUser();
+    const uid = sess.user?.id;
+    if (!uid) return;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+    const list = (roles ?? []).map((r) => r.role);
+    const isGestor = list.some((r) => r === "gerente" || r === "regional" || r === "admin");
+    if (isGestor) throw redirect({ to: "/dashboard" });
+  },
   component: NovaVenda,
 });
 
