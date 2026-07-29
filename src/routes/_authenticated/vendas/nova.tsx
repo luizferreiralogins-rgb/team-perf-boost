@@ -495,8 +495,13 @@ function FormPap() {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <aside className="space-y-4">
+        <ProjecaoComissaoPap valor={form.valor} instalado={form.status === "instalado"} />
+        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
+      </aside>
+    </div>
   );
 }
 
