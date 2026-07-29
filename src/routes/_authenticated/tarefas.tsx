@@ -43,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/tarefas")({
 
 type Alvo = "propria" | "usuario" | "cliente";
 type Prioridade = "baixa" | "media" | "alta";
-type Status = "pendente" | "concluida" | "cancelada";
+type Status = "pendente" | "iniciada" | "concluida" | "cancelada";
 
 type Tarefa = {
   id: string;
@@ -68,6 +68,21 @@ const PRIORIDADE_LABEL: Record<Prioridade, string> = {
   media: "Média",
   alta: "Alta",
 };
+
+const STATUS_LABEL: Record<Status, string> = {
+  pendente: "Parado",
+  iniciada: "Iniciado",
+  concluida: "Concluído",
+  cancelada: "Cancelado",
+};
+
+const STATUS_BOTOES: { valor: Status; label: string }[] = [
+  { valor: "pendente", label: "Parado" },
+  { valor: "iniciada", label: "Iniciado" },
+  { valor: "concluida", label: "Concluído" },
+];
+
+const emAberto = (s: Status) => s === "pendente" || s === "iniciada";
 
 function formatarData(d: string) {
   const [y, m, day] = d.split("-");
