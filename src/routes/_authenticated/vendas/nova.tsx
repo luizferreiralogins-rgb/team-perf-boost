@@ -62,24 +62,54 @@ function mesRefFromDate(d: string) {
 const statusEnum = z.enum(["pendente", "instalado", "cancelado", "em_analise"]);
 type Status = z.infer<typeof statusEnum>;
 
+const CLASSES_PROTOCOLO = [
+  "Novo Acesso",
+  "Renovação Contratual",
+  "Adicional de Serviço",
+  "Transferência de Endereço",
+  "Migração de Tecnologia",
+] as const;
+
+const TECNOLOGIAS = [
+  "01.04 - Internet - Banda Larga - Fibra",
+  "02.02 - Telefonia - Voz - Fibra",
+  "03.01 - TV - Fibra",
+  "01.09 - IP Fixo",
+  "06.04 - Aluguel de Equipamento",
+  "10.01 - Câmeras de monitoramento",
+  "14.01 - Telefonia móvel 5G",
+  "11.01 - Wifi Business",
+  "08.01 - Telefonia - Pabx Virtual",
+  "12.01 - Telemedicina",
+  "13.01 - Seguros",
+  "15.01 - Casa Inteligente",
+  "04.02 - Data Center - Hospedagem - Windows",
+] as const;
+
 const commonBase = {
   nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
   cpf_cnpj: z.string().trim().max(20).optional().or(z.literal("")),
-  data: z.string().min(1, "Informe a data"),
   observacoes: z.string().max(500).optional().or(z.literal("")),
-  status: statusEnum,
 };
 
 const lojaSchema = z.object({
   ...commonBase,
-  valor_novo: z.coerce.number().positive("Valor deve ser maior que zero"),
-  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
-  tecnologia: z.string().max(60).optional().or(z.literal("")),
+  protocolo: z.string().trim().max(60).optional().or(z.literal("")),
+  data_abertura: z.string().min(1, "Informe a data de abertura"),
+  data_ativacao: z.string().optional().or(z.literal("")),
+  classe_protocolo: z.enum(CLASSES_PROTOCOLO),
+  tecnologia: z.enum(TECNOLOGIAS),
   contem_movel: z.boolean(),
+  qtd_linhas: z.coerce.number().int().min(0),
+  valor_novo: z.coerce.number().positive("Valor novo deve ser maior que zero"),
+  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
+  instalado: z.boolean(),
 });
 
 const papSchema = z.object({
   ...commonBase,
+  data: z.string().min(1, "Informe a data"),
+  status: statusEnum,
   valor: z.coerce.number().positive("Valor deve ser maior que zero"),
   cidade: z.string().trim().max(80).optional().or(z.literal("")),
   bairro: z.string().trim().max(80).optional().or(z.literal("")),
@@ -98,7 +128,7 @@ function NovaVenda() {
         </Button>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Nova venda</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Preencha os dados abaixo. A comissão é calculada na instalação.
+          Preencha os dados abaixo. A comissão só é contabilizada quando marcado como Instalado.
         </p>
       </div>
       {canalQ.isLoading ? (
@@ -118,15 +148,19 @@ function FormLoja() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
+    protocolo: "",
     nome_cliente: "",
     cpf_cnpj: "",
-    data: today(),
+    observacoes: "",
+    data_abertura: today(),
+    data_ativacao: "",
+    classe_protocolo: "Novo Acesso" as (typeof CLASSES_PROTOCOLO)[number],
+    tecnologia: "01.04 - Internet - Banda Larga - Fibra" as (typeof TECNOLOGIAS)[number],
+    contem_movel: false,
+    qtd_linhas: "0",
     valor_novo: "",
     valor_antigo: "",
-    tecnologia: "Fibra",
-    contem_movel: false,
-    status: "pendente" as Status,
-    observacoes: "",
+    instalado: false,
   });
 
   async function onSubmit(e: React.FormEvent) {
@@ -139,18 +173,23 @@ function FormLoja() {
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
+    const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
     const { error } = await supabase.from("vendas_loja").insert({
       vendedor_id: uid,
+      protocolo: parsed.data.protocolo || null,
       nome_cliente: parsed.data.nome_cliente,
       cpf_cnpj: parsed.data.cpf_cnpj || null,
-      data_abertura: parsed.data.data,
-      mes_ref: mesRefFromDate(parsed.data.data),
+      data_abertura: parsed.data.data_abertura,
+      data_ativacao: parsed.data.data_ativacao || null,
+      classe_protocolo: parsed.data.classe_protocolo,
+      mes_ref: mesRefFromDate(dataRef),
       valor_novo: parsed.data.valor_novo,
       valor_antigo:
         typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null,
-      tecnologia: parsed.data.tecnologia || null,
+      tecnologia: parsed.data.tecnologia,
       contem_movel: parsed.data.contem_movel,
-      status: parsed.data.status,
+      qtd_linhas: parsed.data.qtd_linhas,
+      status: parsed.data.instalado ? "instalado" : "pendente",
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
