@@ -15,11 +15,20 @@ export type TelegramStatus = {
 
 export type TelegramMensagem = {
   id: string;
+  chat_id: number;
   direcao: "entrada" | "saida";
   texto: string | null;
   autor: string | null;
   created_at: string;
 };
+
+export type TelegramConversa = {
+  chat_id: number;
+  titulo: string;
+  ultima: string | null;
+  ultimaEm: string;
+};
+
 
 function novoToken() {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 20);
