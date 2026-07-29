@@ -9,7 +9,9 @@ import {
   LogOut,
   Menu,
   X,
+  KanbanSquare,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -108,10 +110,12 @@ function Sidebar({
   const isConsultor = roles.includes("consultor") && !isGestor;
   const items = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
+    { to: "/leads", label: "Leads", icon: KanbanSquare, show: true },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/perfil", label: "Perfil", icon: UserCircle, show: true },
   ];
+
 
   return (
     <>
