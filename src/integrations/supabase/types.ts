@@ -421,6 +421,17 @@ export type Database = {
         Args: { _transfer_id: string }
         Returns: undefined
       }
+      buscar_lead_duplicado: {
+        Args: { _email: string; _whatsapp: string }
+        Returns: {
+          email: string
+          lead_id: string
+          nome: string
+          vendedor_id: string
+          vendedor_nome: string
+          whatsapp: string
+        }[]
+      }
       get_canal: {
         Args: { _user: string }
         Returns: Database["public"]["Enums"]["canal_venda"]
