@@ -72,14 +72,27 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           .eq("chat_id", chatId)
           .maybeSingle();
 
-        if (!dono) {
-          await sendMessage(chatId, "Este chat ainda não está vinculado. Abra o sistema Unifique Comercial em Chat Telegram e escaneie o QR Code.");
+        // Chats não vinculados (clientes, contatos externos, grupos) caem na
+        // caixa de entrada do gestor regional/admin para não se perderem.
+        let ownerId = dono?.user_id ?? null;
+        if (!ownerId) {
+          const { data: gestor } = await supabaseAdmin
+            .from("user_roles")
+            .select("user_id")
+            .in("role", ["regional", "admin"])
+            .limit(1)
+            .maybeSingle();
+          ownerId = gestor?.user_id ?? null;
+        }
+
+        if (!ownerId) {
+          await sendMessage(chatId, "Sistema Unifique Comercial ainda não configurado. Tente novamente mais tarde.");
           return Response.json({ ok: true, unlinked: true });
         }
 
         const { error } = await supabaseAdmin.from("telegram_mensagens").upsert(
           {
-            user_id: dono.user_id,
+            user_id: ownerId,
             chat_id: chatId,
             direcao: "entrada",
             texto: texto || "[mensagem sem texto]",
@@ -89,6 +102,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           { onConflict: "update_id" },
         );
         if (error) return Response.json({ error: error.message }, { status: 500 });
+
 
         return Response.json({ ok: true });
       },
