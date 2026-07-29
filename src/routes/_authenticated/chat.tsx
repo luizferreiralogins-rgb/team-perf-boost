@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
-import { Send, Smartphone, Unlink, RefreshCw } from "lucide-react";
+import { Send, Smartphone, Unlink, RefreshCw, MessagesSquare } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   getTelegramStatus,
   listTelegramMensagens,
+  listTelegramConversas,
   enviarTelegramMensagem,
   desvincularTelegram,
 } from "@/lib/telegram.functions";
+
 
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({
