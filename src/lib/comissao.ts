@@ -73,7 +73,7 @@ export function comissaoPap(
   valor: number,
   instalado: boolean,
 ): { pct: number; valor: number; pctAcelerado: number; valorAcelerado: number; faixa: number } {
-  if (!instalado || !faixas.length || !valor || valor <= TICKET_MINIMO) {
+  if (!instalado || !faixas.length || !valor || valor < TICKET_MINIMO) {
     return { pct: 0, valor: 0, pctAcelerado: 0, valorAcelerado: 0, faixa: 0 };
   }
   const row =
