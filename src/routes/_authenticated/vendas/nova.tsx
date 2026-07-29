@@ -62,24 +62,54 @@ function mesRefFromDate(d: string) {
 const statusEnum = z.enum(["pendente", "instalado", "cancelado", "em_analise"]);
 type Status = z.infer<typeof statusEnum>;
 
+const CLASSES_PROTOCOLO = [
+  "Novo Acesso",
+  "Renovação Contratual",
+  "Adicional de Serviço",
+  "Transferência de Endereço",
+  "Migração de Tecnologia",
+] as const;
+
+const TECNOLOGIAS = [
+  "01.04 - Internet - Banda Larga - Fibra",
+  "02.02 - Telefonia - Voz - Fibra",
+  "03.01 - TV - Fibra",
+  "01.09 - IP Fixo",
+  "06.04 - Aluguel de Equipamento",
+  "10.01 - Câmeras de monitoramento",
+  "14.01 - Telefonia móvel 5G",
+  "11.01 - Wifi Business",
+  "08.01 - Telefonia - Pabx Virtual",
+  "12.01 - Telemedicina",
+  "13.01 - Seguros",
+  "15.01 - Casa Inteligente",
+  "04.02 - Data Center - Hospedagem - Windows",
+] as const;
+
 const commonBase = {
   nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
   cpf_cnpj: z.string().trim().max(20).optional().or(z.literal("")),
-  data: z.string().min(1, "Informe a data"),
   observacoes: z.string().max(500).optional().or(z.literal("")),
-  status: statusEnum,
 };
 
 const lojaSchema = z.object({
   ...commonBase,
-  valor_novo: z.coerce.number().positive("Valor deve ser maior que zero"),
-  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
-  tecnologia: z.string().max(60).optional().or(z.literal("")),
+  protocolo: z.string().trim().max(60).optional().or(z.literal("")),
+  data_abertura: z.string().min(1, "Informe a data de abertura"),
+  data_ativacao: z.string().optional().or(z.literal("")),
+  classe_protocolo: z.enum(CLASSES_PROTOCOLO),
+  tecnologia: z.enum(TECNOLOGIAS),
   contem_movel: z.boolean(),
+  qtd_linhas: z.coerce.number().int().min(0),
+  valor_novo: z.coerce.number().positive("Valor novo deve ser maior que zero"),
+  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
+  instalado: z.boolean(),
 });
 
 const papSchema = z.object({
   ...commonBase,
+  data: z.string().min(1, "Informe a data"),
+  status: statusEnum,
   valor: z.coerce.number().positive("Valor deve ser maior que zero"),
   cidade: z.string().trim().max(80).optional().or(z.literal("")),
   bairro: z.string().trim().max(80).optional().or(z.literal("")),
@@ -98,7 +128,7 @@ function NovaVenda() {
         </Button>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Nova venda</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Preencha os dados abaixo. A comissão é calculada na instalação.
+          Preencha os dados abaixo. A comissão só é contabilizada quando marcado como Instalado.
         </p>
       </div>
       {canalQ.isLoading ? (
@@ -118,15 +148,19 @@ function FormLoja() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
+    protocolo: "",
     nome_cliente: "",
     cpf_cnpj: "",
-    data: today(),
+    observacoes: "",
+    data_abertura: today(),
+    data_ativacao: "",
+    classe_protocolo: "Novo Acesso" as (typeof CLASSES_PROTOCOLO)[number],
+    tecnologia: "01.04 - Internet - Banda Larga - Fibra" as (typeof TECNOLOGIAS)[number],
+    contem_movel: false,
+    qtd_linhas: "0",
     valor_novo: "",
     valor_antigo: "",
-    tecnologia: "Fibra",
-    contem_movel: false,
-    status: "pendente" as Status,
-    observacoes: "",
+    instalado: false,
   });
 
   async function onSubmit(e: React.FormEvent) {
@@ -139,18 +173,23 @@ function FormLoja() {
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user!.id;
+    const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
     const { error } = await supabase.from("vendas_loja").insert({
       vendedor_id: uid,
+      protocolo: parsed.data.protocolo || null,
       nome_cliente: parsed.data.nome_cliente,
       cpf_cnpj: parsed.data.cpf_cnpj || null,
-      data_abertura: parsed.data.data,
-      mes_ref: mesRefFromDate(parsed.data.data),
+      data_abertura: parsed.data.data_abertura,
+      data_ativacao: parsed.data.data_ativacao || null,
+      classe_protocolo: parsed.data.classe_protocolo,
+      mes_ref: mesRefFromDate(dataRef),
       valor_novo: parsed.data.valor_novo,
       valor_antigo:
         typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null,
-      tecnologia: parsed.data.tecnologia || null,
+      tecnologia: parsed.data.tecnologia,
       contem_movel: parsed.data.contem_movel,
-      status: parsed.data.status,
+      qtd_linhas: parsed.data.qtd_linhas,
+      status: parsed.data.instalado ? "instalado" : "pendente",
       observacoes: parsed.data.observacoes || null,
     });
     setLoading(false);
@@ -171,6 +210,13 @@ function FormLoja() {
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Protocolo">
+              <Input
+                value={form.protocolo}
+                onChange={(e) => setForm({ ...form, protocolo: e.target.value })}
+                placeholder="Nº do protocolo"
+              />
+            </Field>
             <Field label="Cliente" required>
               <Input
                 value={form.nome_cliente}
@@ -184,40 +230,52 @@ function FormLoja() {
                 onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
               />
             </Field>
-            <Field label="Data de abertura" required>
+            <Field label="Classe de protocolo" required>
+              <Select
+                value={form.classe_protocolo}
+                onValueChange={(v) =>
+                  setForm({ ...form, classe_protocolo: v as (typeof CLASSES_PROTOCOLO)[number] })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CLASSES_PROTOCOLO.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Data de abertura do protocolo" required>
               <Input
                 type="date"
-                value={form.data}
-                onChange={(e) => setForm({ ...form, data: e.target.value })}
+                value={form.data_abertura}
+                onChange={(e) => setForm({ ...form, data_abertura: e.target.value })}
                 required
               />
             </Field>
-            <Field label="Tecnologia">
+            <Field label="Data de ativação" hint="Preencha quando o serviço for ativado.">
               <Input
+                type="date"
+                value={form.data_ativacao}
+                onChange={(e) => setForm({ ...form, data_ativacao: e.target.value })}
+              />
+            </Field>
+            <Field label="Tecnologia" required>
+              <Select
                 value={form.tecnologia}
-                onChange={(e) => setForm({ ...form, tecnologia: e.target.value })}
-              />
+                onValueChange={(v) =>
+                  setForm({ ...form, tecnologia: v as (typeof TECNOLOGIAS)[number] })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TECNOLOGIAS.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-            <Field label="Valor do plano novo (R$)" required>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.valor_novo}
-                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
-                required
-              />
-            </Field>
-            <Field label="Valor do plano antigo (R$)" hint="Em branco = cliente novo.">
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.valor_antigo}
-                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
-              />
-            </Field>
-            <Field label="Contém plano móvel?">
+            <Field label="Contém móvel?">
               <Select
                 value={form.contem_movel ? "sim" : "nao"}
                 onValueChange={(v) => setForm({ ...form, contem_movel: v === "sim" })}
@@ -229,18 +287,48 @@ function FormLoja() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Status" required>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+            <Field label="Qtd. de linhas">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.qtd_linhas}
+                onChange={(e) => setForm({ ...form, qtd_linhas: e.target.value })}
+              />
+            </Field>
+            <Field label="Valor novo (R$)" required>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_novo}
+                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="Valor antigo (R$)" hint="Em branco = cliente novo.">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_antigo}
+                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
+              />
+            </Field>
+            <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
+              <Select
+                value={form.instalado ? "sim" : "nao"}
+                onValueChange={(v) => setForm({ ...form, instalado: v === "sim" })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="em_analise">Em análise</SelectItem>
-                  <SelectItem value="instalado">Instalado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                  <SelectItem value="sim">Sim</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
           </div>
+
           <Field label="Observações">
             <Textarea
               rows={3}
