@@ -208,12 +208,13 @@ function FormLoja() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Venda de Loja</CardTitle>
-        <CardDescription>Registro para o canal Loja.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Venda de Loja</CardTitle>
+          <CardDescription>Registro para o canal Loja.</CardDescription>
+        </CardHeader>
+        <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Protocolo">
@@ -351,8 +352,17 @@ function FormLoja() {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <aside className="space-y-4">
+        <ProjecaoComissaoLoja
+          valorNovo={form.valor_novo}
+          valorAntigo={form.valor_antigo}
+          instalado={form.instalado}
+        />
+        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor_novo} />
+      </aside>
+    </div>
   );
 }
 
@@ -404,12 +414,13 @@ function FormPap() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Venda PAP</CardTitle>
-        <CardDescription>Registro para o canal Porta a Porta.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Venda PAP</CardTitle>
+          <CardDescription>Registro para o canal Porta a Porta.</CardDescription>
+        </CardHeader>
+        <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Cliente" required>
