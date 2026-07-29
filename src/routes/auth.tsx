@@ -207,11 +207,10 @@ const signupSchema = z.object({
   nome: z.string().trim().min(2, "Informe seu nome").max(100),
   email: z.string().trim().email("Email inválido").max(255),
   password: z.string().min(6, "Mínimo 6 caracteres").max(72),
-  canal: z.enum(["loja", "pap"]),
 });
 
 function SignupForm() {
-  const [form, setForm] = useState({ nome: "", email: "", password: "", canal: "loja" as "loja" | "pap" });
+  const [form, setForm] = useState({ nome: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -228,7 +227,7 @@ function SignupForm() {
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { nome: parsed.data.nome, canal: parsed.data.canal },
+        data: { nome: parsed.data.nome },
       },
     });
     setLoading(false);
@@ -236,7 +235,7 @@ function SignupForm() {
       toast.error(error.message);
       return;
     }
-    toast.success("Conta criada! Você já pode entrar.");
+    toast.success("Conta criada! O primeiro cadastro do sistema entra como Regional; os demais aguardam vínculo do gestor.");
     navigate({ to: "/dashboard", replace: true });
   }
 
