@@ -29,15 +29,15 @@ export const TICKET_MINIMO = 10;
 
 /**
  * Faixa efetiva do consultor no mês.
- * Regra atual: única condicionante é o ticket > R$ 10 (validado em comissaoLoja).
- * Metas de receita/renov. móvel não gatam mais a comissão — mantém-se a faixa máxima.
+ * Regra atual: única condicionante é o ticket mínimo (validado em comissaoLoja).
+ * Metas de receita/renov. móvel não gatam mais a comissão; usa-se a tabela base (faixa 1).
  */
 export function faixaEfetivaLoja(
   _metas: LojaMeta[],
   _receitaMes: number,
   _ratioRenovMovel: number,
 ): 0 | 1 | 2 | 3 {
-  return 3;
+  return 1;
 }
 
 /** Comissão Loja: R$ por protocolo. Só paga quando a diferença (novo - antigo) ≥ R$ 10.
