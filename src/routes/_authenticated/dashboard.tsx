@@ -145,9 +145,10 @@ function Dashboard() {
       }
 
       return {
-        canal, total, instaladas, receita, comissao, nome: profile?.nome ?? "",
+        canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
         blQtd, blRs, mvQtd, mvRs, rvQtd, rvRs,
       };
+
     },
   });
 
