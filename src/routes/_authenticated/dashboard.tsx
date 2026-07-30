@@ -354,11 +354,13 @@ function KpiCard({
   qtd,
   valor,
   icon: Icon,
+  fator = 1,
 }: {
   title: string;
   qtd: number | null;
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
+  fator?: number;
 }) {
   return (
     <Card>
@@ -377,13 +379,19 @@ function KpiCard({
           <Skeleton className="mt-2 h-5 w-24" />
         ) : (
           <div className="pt-1 text-sm font-semibold text-primary">
-            {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            {brl(valor)}
           </div>
+        )}
+        {qtd !== null && valor !== null && (
+          <p className="pt-1 text-xs font-medium text-muted-foreground">
+            Projeção: {Math.round(qtd * fator)} · {brl(valor * fator)}
+          </p>
         )}
       </CardContent>
     </Card>
   );
 }
+
 
 function ProdutividadeTime() {
   const hoje = new Date();
