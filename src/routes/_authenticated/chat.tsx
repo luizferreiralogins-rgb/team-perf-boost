@@ -1,37 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import QRCode from "react-qr-code";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Smartphone, Unlink, RefreshCw, MessagesSquare } from "lucide-react";
+import { CalendarPlus, MessagesSquare, RefreshCw, Search, Send } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  getTelegramStatus,
-  listTelegramMensagens,
-  listTelegramConversas,
-  enviarTelegramMensagem,
-  desvincularTelegram,
-} from "@/lib/telegram.functions";
-
 
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({
     meta: [
-      { title: "Chat Telegram — Unifique Comercial" },
+      { title: "Chat da equipe — Unifique Comercial" },
       {
         name: "description",
         content:
-          "Converse com o bot da Unifique direto no sistema. Vincule seu Telegram por QR Code e troque mensagens com a equipe.",
+          "Converse por mensagem com qualquer usuário do sistema, mantenha o histórico e abra uma tarefa na agenda direto da conversa.",
       },
-      { property: "og:title", content: "Chat Telegram — Unifique Comercial" },
+      { property: "og:title", content: "Chat da equipe — Unifique Comercial" },
       {
         property: "og:description",
-        content: "Vincule o Telegram por QR Code e converse com a equipe dentro do sistema.",
+        content: "Mensagens internas entre usuários com histórico e atalho para a Agenda/Tarefas.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -40,239 +31,274 @@ export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
 });
 
+type Pessoa = { id: string; nome: string };
+
+type Mensagem = {
+  id: string;
+  remetente_id: string;
+  destinatario_id: string;
+  texto: string;
+  lida: boolean;
+  created_at: string;
+};
+
 function ChatPage() {
-  const statusFn = useServerFn(getTelegramStatus);
-  const status = useQuery({
-    queryKey: ["telegram-status"],
-    queryFn: () => statusFn(),
-    refetchInterval: (q) => (q.state.data?.vinculado ? false : 4000),
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [contatoId, setContatoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [texto, setTexto] = useState("");
+  const fim = useRef<HTMLDivElement>(null);
+
+  const me = useQuery({
+    queryKey: ["chat-me"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+    staleTime: 60_000,
+  });
+
+  const pessoas = useQuery({
+    queryKey: ["chat-pessoas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("listar_usuarios_tarefas");
+      if (error) throw error;
+      return (data ?? []) as Pessoa[];
+    },
+    staleTime: 60_000,
+  });
+
+  const mensagens = useQuery({
+    queryKey: ["chat-mensagens"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mensagens_chat")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []) as Mensagem[];
+    },
+    refetchInterval: 5000,
+  });
+
+  const meId = me.data ?? null;
+
+  const contatos = useMemo(() => {
+    const lista = (pessoas.data ?? []).filter((p) => p.id !== meId);
+    const termo = busca.trim().toLowerCase();
+    const filtrada = termo ? lista.filter((p) => p.nome.toLowerCase().includes(termo)) : lista;
+    const msgs = mensagens.data ?? [];
+    return filtrada
+      .map((p) => {
+        const doPar = msgs.filter(
+          (m) => m.remetente_id === p.id || m.destinatario_id === p.id,
+        );
+        const ultima = doPar[doPar.length - 1];
+        const naoLidas = msgs.filter(
+          (m) => m.remetente_id === p.id && m.destinatario_id === meId && !m.lida,
+        ).length;
+        return { ...p, ultima, naoLidas };
+      })
+      .sort((a, b) => {
+        const ta = a.ultima ? Date.parse(a.ultima.created_at) : 0;
+        const tb = b.ultima ? Date.parse(b.ultima.created_at) : 0;
+        if (ta !== tb) return tb - ta;
+        return a.nome.localeCompare(b.nome);
+      });
+  }, [pessoas.data, mensagens.data, meId, busca]);
+
+  const conversa = useMemo(
+    () =>
+      (mensagens.data ?? []).filter(
+        (m) =>
+          (m.remetente_id === meId && m.destinatario_id === contatoId) ||
+          (m.remetente_id === contatoId && m.destinatario_id === meId),
+      ),
+    [mensagens.data, meId, contatoId],
+  );
+
+  const contato = contatos.find((c) => c.id === contatoId);
+
+  useEffect(() => {
+    fim.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversa.length, contatoId]);
+
+  // marca as mensagens recebidas do contato aberto como lidas
+  useEffect(() => {
+    if (!contatoId || !meId) return;
+    const pendentes = conversa.filter(
+      (m) => m.remetente_id === contatoId && m.destinatario_id === meId && !m.lida,
+    );
+    if (pendentes.length === 0) return;
+    void supabase
+      .from("mensagens_chat")
+      .update({ lida: true })
+      .in(
+        "id",
+        pendentes.map((m) => m.id),
+      )
+      .then(() => qc.invalidateQueries({ queryKey: ["chat-mensagens"] }));
+  }, [contatoId, meId, conversa, qc]);
+
+  const enviar = useMutation({
+    mutationFn: async (t: string) => {
+      if (!meId || !contatoId) throw new Error("Selecione um contato.");
+      const { error } = await supabase
+        .from("mensagens_chat")
+        .insert({ remetente_id: meId, destinatario_id: contatoId, texto: t });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setTexto("");
+      qc.invalidateQueries({ queryKey: ["chat-mensagens"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl space-y-6">
         <header>
-          <h1 className="text-2xl font-bold tracking-tight">Chat Telegram</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Chat da equipe</h1>
           <p className="text-sm text-muted-foreground">
-            Vincule sua conta pelo QR Code e converse com a equipe pelo bot da Unifique.
+            Converse por mensagem com qualquer usuário do sistema. Todo o histórico fica salvo.
           </p>
         </header>
 
-        {status.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-        {status.data && !status.data.vinculado && <VincularCard status={status.data} />}
-        {status.data?.vinculado && <ChatBox nome={status.data.telegramNome} username={status.data.telegramUsername} />}
+        <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+          <Card className="flex h-[70vh] flex-col">
+            <CardHeader className="space-y-2 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessagesSquare className="h-4 w-4" /> Contatos
+              </CardTitle>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar usuário…"
+                  className="pl-8"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-1 overflow-y-auto px-2">
+              {contatos.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setContatoId(c.id)}
+                  className={`w-full rounded-lg px-3 py-2 text-left transition ${
+                    contatoId === c.id ? "bg-primary/10" : "hover:bg-muted"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium">{c.nome}</span>
+                    {c.naoLidas > 0 && (
+                      <span className="rounded-full bg-primary px-2 text-[11px] font-semibold text-primary-foreground">
+                        {c.naoLidas}
+                      </span>
+                    )}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {c.ultima?.texto ?? "Sem mensagens"}
+                  </span>
+                </button>
+              ))}
+              {contatos.length === 0 && (
+                <p className="px-3 py-4 text-xs text-muted-foreground">Nenhum usuário encontrado.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="flex h-[70vh] flex-col">
+            <CardHeader className="flex-row items-center justify-between space-y-0 border-b">
+              <div className="min-w-0">
+                <CardTitle className="truncate text-base">
+                  {contato?.nome ?? "Selecione um contato"}
+                </CardTitle>
+                <CardDescription>
+                  {contato ? "Conversa privada" : "Escolha alguém na lista ao lado"}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => qc.invalidateQueries({ queryKey: ["chat-mensagens"] })}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!contato}
+                  onClick={() =>
+                    contato &&
+                    navigate({
+                      to: "/tarefas",
+                      search: { responsavel: contato.id },
+                    })
+                  }
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" /> Agenda/Tarefa
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="flex-1 space-y-3 overflow-y-auto py-4">
+              {!contato && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Selecione um usuário para começar a conversa.
+                </p>
+              )}
+              {contato && conversa.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Nenhuma mensagem ainda. Envie a primeira abaixo.
+                </p>
+              )}
+              {conversa.map((m) => (
+                <div
+                  key={m.id}
+                  className={m.remetente_id === meId ? "flex justify-end" : "flex justify-start"}
+                >
+                  <div
+                    className={
+                      m.remetente_id === meId
+                        ? "max-w-[75%] rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground"
+                        : "max-w-[75%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm"
+                    }
+                  >
+                    <p className="whitespace-pre-wrap break-words">{m.texto}</p>
+                    <span className="mt-1 block text-[10px] opacity-70">
+                      {new Date(m.created_at).toLocaleString("pt-BR")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div ref={fim} />
+            </CardContent>
+
+            <form
+              className="flex gap-2 border-t p-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const t = texto.trim();
+                if (t) enviar.mutate(t);
+              }}
+            >
+              <Input
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder={contato ? `Mensagem para ${contato.nome}…` : "Selecione um contato"}
+                disabled={!contato}
+                maxLength={4000}
+              />
+              <Button type="submit" disabled={!contato || enviar.isPending || !texto.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );
 }
-
-function VincularCard({
-  status,
-}: {
-  status: { deepLink: string; botUsername: string };
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Smartphone className="h-5 w-5" /> Conectar Telegram
-        </CardTitle>
-        <CardDescription>
-          Escaneie o QR Code com a câmera do celular (ou pelo Telegram Web) para vincular sua conta ao
-          sistema. O vínculo é individual e só você vê suas conversas.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center gap-6 md:flex-row md:items-start">
-        <div className="rounded-xl border bg-white p-4">
-          <QRCode value={status.deepLink} size={192} />
-        </div>
-        <div className="space-y-3 text-sm">
-          <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
-            <li>Abra a câmera do celular ou o Telegram Web e aponte para o QR Code.</li>
-            <li>
-              O Telegram abrirá a conversa com <b>@{status.botUsername}</b>.
-            </li>
-            <li>
-              Toque em <b>Iniciar / Start</b> — o vínculo é concluído automaticamente.
-            </li>
-          </ol>
-          <Button asChild variant="outline">
-            <a href={status.deepLink} target="_blank" rel="noreferrer">
-              Abrir no Telegram Web
-            </a>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ChatBox({ nome, username }: { nome: string | null; username: string | null }) {
-  const qc = useQueryClient();
-  const listFn = useServerFn(listTelegramMensagens);
-  const conversasFn = useServerFn(listTelegramConversas);
-  const enviarFn = useServerFn(enviarTelegramMensagem);
-  const desvincularFn = useServerFn(desvincularTelegram);
-  const [texto, setTexto] = useState("");
-  const [chatAtivo, setChatAtivo] = useState<number | null>(null);
-  const fim = useRef<HTMLDivElement>(null);
-
-  const conversas = useQuery({
-    queryKey: ["telegram-conversas"],
-    queryFn: () => conversasFn(),
-    refetchInterval: 5000,
-  });
-
-  const mensagens = useQuery({
-    queryKey: ["telegram-mensagens", chatAtivo],
-    queryFn: () => listFn({ data: chatAtivo != null ? { chatId: chatAtivo } : {} }),
-    refetchInterval: 5000,
-  });
-
-  useEffect(() => {
-    fim.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens.data?.length]);
-
-  const invalidar = () => {
-    qc.invalidateQueries({ queryKey: ["telegram-mensagens"] });
-    qc.invalidateQueries({ queryKey: ["telegram-conversas"] });
-  };
-
-  const enviar = useMutation({
-    mutationFn: (t: string) =>
-      enviarFn({ data: { texto: t, ...(chatAtivo != null ? { chatId: chatAtivo } : {}) } }),
-    onSuccess: () => {
-      setTexto("");
-      invalidar();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const desvincular = useMutation({
-    mutationFn: () => desvincularFn(),
-    onSuccess: () => {
-      toast.success("Telegram desvinculado.");
-      qc.invalidateQueries({ queryKey: ["telegram-status"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const conversaAtiva = conversas.data?.find((c) => c.chat_id === chatAtivo);
-
-  return (
-    <div className="grid gap-4 md:grid-cols-[260px_1fr]">
-      <Card className="h-[70vh] overflow-y-auto">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessagesSquare className="h-4 w-4" /> Conversas
-          </CardTitle>
-          <CardDescription>Mensagens recebidas pelo bot</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-1 px-2">
-          <button
-            type="button"
-            onClick={() => setChatAtivo(null)}
-            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-              chatAtivo === null ? "bg-primary/10 font-medium" : "hover:bg-muted"
-            }`}
-          >
-            Todas as mensagens
-          </button>
-          {conversas.data?.map((c) => (
-            <button
-              key={c.chat_id}
-              type="button"
-              onClick={() => setChatAtivo(c.chat_id)}
-              className={`w-full rounded-lg px-3 py-2 text-left transition ${
-                chatAtivo === c.chat_id ? "bg-primary/10" : "hover:bg-muted"
-              }`}
-            >
-              <span className="block truncate text-sm font-medium">{c.titulo}</span>
-              <span className="block truncate text-xs text-muted-foreground">{c.ultima}</span>
-            </button>
-          ))}
-          {conversas.data?.length === 0 && (
-            <p className="px-3 py-4 text-xs text-muted-foreground">Nenhuma conversa ainda.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="flex h-[70vh] flex-col">
-        <CardHeader className="flex-row items-center justify-between space-y-0 border-b">
-          <div>
-            <CardTitle className="text-base">
-              {conversaAtiva?.titulo ?? nome ?? "Telegram"}
-            </CardTitle>
-            <CardDescription>
-              {conversaAtiva ? `Chat ${conversaAtiva.chat_id}` : username ? `@${username}` : "Conectado"}
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={invalidar}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={desvincular.isPending}
-              onClick={() => desvincular.mutate()}
-            >
-              <Unlink className="mr-2 h-4 w-4" /> Desvincular
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex-1 space-y-3 overflow-y-auto py-4">
-          {mensagens.data?.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Nenhuma mensagem ainda. Envie a primeira abaixo.
-            </p>
-          )}
-          {mensagens.data?.map((m) => (
-            <div
-              key={m.id}
-              className={m.direcao === "saida" ? "flex justify-end" : "flex justify-start"}
-            >
-              <div
-                className={
-                  m.direcao === "saida"
-                    ? "max-w-[75%] rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground"
-                    : "max-w-[75%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2 text-sm"
-                }
-              >
-                {m.direcao === "entrada" && m.autor && (
-                  <span className="mb-1 block text-[11px] font-medium opacity-70">{m.autor}</span>
-                )}
-                <p className="whitespace-pre-wrap break-words">{m.texto}</p>
-                <span className="mt-1 block text-[10px] opacity-70">
-                  {new Date(m.created_at).toLocaleString("pt-BR")}
-                </span>
-              </div>
-            </div>
-          ))}
-          <div ref={fim} />
-        </CardContent>
-
-        <form
-          className="flex gap-2 border-t p-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const t = texto.trim();
-            if (t) enviar.mutate(t);
-          }}
-        >
-          <Input
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Escreva uma mensagem…"
-            maxLength={4000}
-          />
-          <Button type="submit" disabled={enviar.isPending || !texto.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </Card>
-    </div>
-  );
-}
-

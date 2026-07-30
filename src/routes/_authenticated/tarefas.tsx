@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    responsavel: typeof search.responsavel === "string" ? search.responsavel : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Agenda e Tarefas — Unifique Comercial" },
@@ -118,6 +121,7 @@ function formatarData(d: string) {
 
 function TarefasPage() {
   const qc = useQueryClient();
+  const { responsavel: responsavelInicial } = Route.useSearch();
   const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
 
   const me = useQuery({
@@ -265,8 +269,10 @@ function TarefasPage() {
         )}
 
         <NovaTarefa
+          key={responsavelInicial ?? "novo"}
           meId={me.data ?? null}
           pessoas={pessoas.data ?? []}
+          responsavelInicial={responsavelInicial}
           onCriada={() => qc.invalidateQueries({ queryKey: ["tarefas"] })}
         />
 
@@ -373,15 +379,17 @@ function TarefasPage() {
 function NovaTarefa({
   meId,
   pessoas,
+  responsavelInicial,
   onCriada,
 }: {
   meId: string | null;
   pessoas: { id: string; nome: string; email: string | null }[];
+  responsavelInicial?: string;
   onCriada: () => void;
 }) {
-  const [aberto, setAberto] = useState(false);
-  const [alvo, setAlvo] = useState<Alvo>("propria");
-  const [responsavel, setResponsavel] = useState("");
+  const [aberto, setAberto] = useState(Boolean(responsavelInicial));
+  const [alvo, setAlvo] = useState<Alvo>(responsavelInicial ? "usuario" : "propria");
+  const [responsavel, setResponsavel] = useState(responsavelInicial ?? "");
   const [clienteNome, setClienteNome] = useState("");
   const [clienteContato, setClienteContato] = useState("");
   const [titulo, setTitulo] = useState("");

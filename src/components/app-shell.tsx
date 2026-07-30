@@ -125,7 +125,7 @@ function Sidebar({
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
     { to: "/historico", label: "Histórico", icon: History, show: true },
     { to: "/contestacoes", label: "Contestações", icon: Scale, show: true },
-    { to: "/chat", label: "Chat Telegram", icon: MessageCircle, show: true },
+    { to: "/chat", label: "Chat", icon: MessageCircle, show: true },
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/regras-comissionamento", label: "Regras de Comissionamento", icon: FileText, show: isGestor },

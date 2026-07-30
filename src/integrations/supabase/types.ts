@@ -335,6 +335,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mensagens_chat: {
+        Row: {
+          created_at: string
+          destinatario_id: string
+          id: string
+          lida: boolean
+          remetente_id: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          destinatario_id: string
+          id?: string
+          lida?: boolean
+          remetente_id: string
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          destinatario_id?: string
+          id?: string
+          lida?: boolean
+          remetente_id?: string
+          texto?: string
+        }
+        Relationships: []
+      }
       parametros_loja_faixas_ticket: {
         Row: {
           diff_ate: number
@@ -572,72 +599,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      telegram_mensagens: {
-        Row: {
-          autor: string | null
-          chat_id: number
-          created_at: string
-          direcao: string
-          id: string
-          texto: string | null
-          update_id: number | null
-          user_id: string
-        }
-        Insert: {
-          autor?: string | null
-          chat_id: number
-          created_at?: string
-          direcao: string
-          id?: string
-          texto?: string | null
-          update_id?: number | null
-          user_id: string
-        }
-        Update: {
-          autor?: string | null
-          chat_id?: number
-          created_at?: string
-          direcao?: string
-          id?: string
-          texto?: string | null
-          update_id?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      telegram_vinculos: {
-        Row: {
-          chat_id: number | null
-          created_at: string
-          telegram_nome: string | null
-          telegram_username: string | null
-          token: string
-          updated_at: string
-          user_id: string
-          vinculado_em: string | null
-        }
-        Insert: {
-          chat_id?: number | null
-          created_at?: string
-          telegram_nome?: string | null
-          telegram_username?: string | null
-          token: string
-          updated_at?: string
-          user_id: string
-          vinculado_em?: string | null
-        }
-        Update: {
-          chat_id?: number | null
-          created_at?: string
-          telegram_nome?: string | null
-          telegram_username?: string | null
-          token?: string
-          updated_at?: string
-          user_id?: string
-          vinculado_em?: string | null
         }
         Relationships: []
       }
