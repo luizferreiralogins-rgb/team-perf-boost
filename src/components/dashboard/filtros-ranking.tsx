@@ -49,6 +49,30 @@ export function mesAtual() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Retorna todos os descendentes (equipe direta + equipes de gerentes subordinados). */
+export function descendentesDe(todos: Membro[], uid: string) {
+  const filhosPorGerente = new Map<string, Membro[]>();
+  for (const m of todos) {
+    if (!m.gerente_id) continue;
+    const arr = filhosPorGerente.get(m.gerente_id) ?? [];
+    arr.push(m);
+    filhosPorGerente.set(m.gerente_id, arr);
+  }
+  const out: Membro[] = [];
+  const visitados = new Set<string>([uid]);
+  const fila = [uid];
+  while (fila.length) {
+    const atual = fila.shift()!;
+    for (const f of filhosPorGerente.get(atual) ?? []) {
+      if (visitados.has(f.id)) continue;
+      visitados.add(f.id);
+      out.push(f);
+      fila.push(f.id);
+    }
+  }
+  return out;
+}
+
 /** Carrega o time visível para o gestor logado. */
 export function useEquipe(uid?: string, role?: string) {
   return useQuery({
@@ -73,7 +97,8 @@ export function useEquipe(uid?: string, role?: string) {
       }));
 
       if (role === "gerente") {
-        return todos.filter((m) => m.gerente_id === uid && m.role === "consultor");
+        // toda a cadeia abaixo do gerente (consultores + gerentes subordinados e seus times)
+        return descendentesDe(todos, uid!);
       }
       // regional / admin
       return todos.filter((m) => m.id !== uid);
@@ -83,22 +108,20 @@ export function useEquipe(uid?: string, role?: string) {
 
 export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
   let list = membros;
-  if (role !== "gerente") {
-    if (f.unidade !== "all") {
-      list =
-        f.unidade === "pap"
-          ? list.filter((m) => m.canal === "pap")
-          : list.filter((m) => m.loja_unidade === f.unidade);
-    }
-    if (f.pessoa !== "all") {
-      // pessoa = gerente selecionado → gerente + seus consultores
-      list = list.filter((m) => m.id === f.pessoa || m.gerente_id === f.pessoa);
-    }
-  } else if (f.pessoa !== "all") {
-    list = list.filter((m) => m.id === f.pessoa);
+  if (f.unidade !== "all") {
+    list =
+      f.unidade === "pap"
+        ? list.filter((m) => m.canal === "pap")
+        : list.filter((m) => m.loja_unidade === f.unidade);
+  }
+  if (f.pessoa !== "all") {
+    // pessoa = gestor selecionado → ele + toda a sua cadeia
+    const cadeia = new Set([f.pessoa, ...descendentesDe(membros, f.pessoa).map((m) => m.id)]);
+    list = list.filter((m) => cadeia.has(m.id));
   }
   return list;
 }
+
 
 export function FiltrosBar({
   role,
