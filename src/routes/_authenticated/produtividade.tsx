@@ -72,6 +72,7 @@ function Produtividade() {
   const [tipo, setTipo] = useState<Tipo>("suporte");
   const [contato, setContato] = useState("");
   const [data, setData] = useState(iso(hoje));
+  const diasDecorridos = Math.max(1, hoje.getDate());
 
   const { data: prod, isLoading } = useQuery({
     queryKey: ["produtividade", inicioMes],
@@ -195,10 +196,34 @@ function Produtividade() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Stat title="Atendimentos" value={prod?.totais.atendimentos} loading={isLoading} icon={ClipboardList} />
-        <Stat title="Vendas" value={prod?.totais.vendas} loading={isLoading} icon={ShoppingBag} />
-        <Stat title="Leads" value={prod?.totais.leads} loading={isLoading} icon={Users} />
-        <Stat title="Produtividade total" value={prod?.totais.total} loading={isLoading} icon={Activity} />
+        <Stat
+          title="Atendimentos"
+          value={prod?.totais.atendimentos}
+          media={(prod?.totais.atendimentos ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={ClipboardList}
+        />
+        <Stat
+          title="Vendas"
+          value={prod?.totais.vendas}
+          media={(prod?.totais.vendas ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={ShoppingBag}
+        />
+        <Stat
+          title="Leads"
+          value={prod?.totais.leads}
+          media={(prod?.totais.leads ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={Users}
+        />
+        <Stat
+          title="Produtividade total"
+          value={prod?.totais.total}
+          media={(prod?.totais.total ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={Activity}
+        />
       </div>
 
       <Card>
@@ -331,11 +356,13 @@ function Produtividade() {
 function Stat({
   title,
   value,
+  media,
   loading,
   icon: Icon,
 }: {
   title: string;
   value?: number;
+  media?: number;
   loading: boolean;
   icon: React.ComponentType<{ className?: string }>;
 }) {
@@ -346,7 +373,18 @@ function Stat({
         <Icon className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="h-8 w-16" /> : <div className="text-2xl font-bold">{value ?? 0}</div>}
+        {loading ? (
+          <Skeleton className="h-8 w-16" />
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value ?? 0}</div>
+            {media !== undefined && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Média diária: {media.toFixed(1)}
+              </p>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );
