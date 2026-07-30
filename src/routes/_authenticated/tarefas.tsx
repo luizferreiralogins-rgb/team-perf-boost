@@ -22,6 +22,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    responsavel: typeof search.responsavel === "string" ? search.responsavel : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Agenda e Tarefas — Unifique Comercial" },
