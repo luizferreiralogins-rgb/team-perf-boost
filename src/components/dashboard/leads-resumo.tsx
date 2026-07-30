@@ -62,7 +62,7 @@ export function LeadsResumo({
         .select(
           "id, vendedor_id, nome, cidade, whatsapp, produto_interesse, status, etapa_contato, proximo_contato_em",
         )
-        .in("status", STATUS_ATIVOS as unknown as string[]);
+        .in("status", [...STATUS_ATIVOS]);
       q = isGestor
         ? q.in("vendedor_id", escopoIds.length ? escopoIds : [vazio])
         : q.eq("vendedor_id", uid ?? vazio);
