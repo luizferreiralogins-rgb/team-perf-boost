@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
+import { Route as AuthenticatedProdutividadeRouteImport } from './routes/_authenticated/produtividade'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
@@ -47,6 +48,12 @@ const AuthenticatedRegrasComissionamentoRoute =
   AuthenticatedRegrasComissionamentoRouteImport.update({
     id: '/regras-comissionamento',
     path: '/regras-comissionamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProdutividadeRoute =
+  AuthenticatedProdutividadeRouteImport.update({
+    id: '/produtividade',
+    path: '/produtividade',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/equipe': typeof AuthenticatedEquipeRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/equipe': typeof AuthenticatedEquipeRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
@@ -137,6 +146,7 @@ export interface FileRoutesById {
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/produtividade': typeof AuthenticatedProdutividadeRoute
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
   '/_authenticated/vendas/$id': typeof AuthenticatedVendasIdRoute
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/equipe'
     | '/leads'
     | '/perfil'
+    | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
     | '/vendas/$id'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/equipe'
     | '/leads'
     | '/perfil'
+    | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
     | '/vendas/$id'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
     | '/_authenticated/equipe'
     | '/_authenticated/leads'
     | '/_authenticated/perfil'
+    | '/_authenticated/produtividade'
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/tarefas'
     | '/_authenticated/vendas/$id'
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/regras-comissionamento'
       fullPath: '/regras-comissionamento'
       preLoaderRoute: typeof AuthenticatedRegrasComissionamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/produtividade': {
+      id: '/_authenticated/produtividade'
+      path: '/produtividade'
+      fullPath: '/produtividade'
+      preLoaderRoute: typeof AuthenticatedProdutividadeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
@@ -309,6 +329,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedProdutividadeRoute: typeof AuthenticatedProdutividadeRoute
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
   AuthenticatedVendasIdRoute: typeof AuthenticatedVendasIdRoute
@@ -322,6 +343,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedProdutividadeRoute: AuthenticatedProdutividadeRoute,
   AuthenticatedRegrasComissionamentoRoute:
     AuthenticatedRegrasComissionamentoRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,

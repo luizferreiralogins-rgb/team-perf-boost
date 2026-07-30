@@ -175,6 +175,8 @@ function Dashboard() {
         </div>
       </div>
 
+      {isGestor && <ProdutividadeTime />}
+
       {!isGestor && (
         <Card>
           <CardHeader>
@@ -244,6 +246,81 @@ function KpiCard({
             {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProdutividadeTime() {
+  const hoje = new Date();
+  const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+  const fimMes = (() => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["produtividade-time", inicioMes],
+    queryFn: async () => {
+      const [atend, loja, pap, leads, profs] = await Promise.all([
+        supabase
+          .from("atendimentos")
+          .select("usuario_id")
+          .gte("data_atendimento", inicioMes)
+          .lte("data_atendimento", fimMes),
+        supabase.from("vendas_loja").select("vendedor_id").gte("created_at", `${inicioMes}T00:00:00`),
+        supabase.from("vendas_pap").select("vendedor_id").gte("created_at", `${inicioMes}T00:00:00`),
+        supabase
+          .from("leads")
+          .select("vendedor_id, created_at, updated_at")
+          .or(`created_at.gte.${inicioMes}T00:00:00,updated_at.gte.${inicioMes}T00:00:00`),
+        supabase.from("profiles").select("id, nome"),
+      ]);
+
+      const nomes = new Map((profs.data ?? []).map((p) => [p.id, p.nome || "—"]));
+      const linhas = new Map<string, { atendimentos: number; vendas: number; leads: number }>();
+      const bump = (id: string, k: "atendimentos" | "vendas" | "leads", n = 1) => {
+        const cur = linhas.get(id) ?? { atendimentos: 0, vendas: 0, leads: 0 };
+        cur[k] += n;
+        linhas.set(id, cur);
+      };
+      for (const a of atend.data ?? []) bump(a.usuario_id, "atendimentos");
+      for (const v of [...(loja.data ?? []), ...(pap.data ?? [])]) bump(v.vendedor_id, "vendas");
+      for (const l of leads.data ?? []) {
+        const dia = (s: string) => s.slice(0, 10);
+        bump(l.vendedor_id, "leads", dia(l.created_at) !== dia(l.updated_at) ? 2 : 1);
+      }
+
+      return [...linhas.entries()]
+        .map(([id, v]) => ({
+          id,
+          nome: nomes.get(id) ?? "—",
+          ...v,
+          total: v.atendimentos + v.vendas + v.leads,
+        }))
+        .sort((a, b) => b.total - a.total);
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Produtividade do time — mês atual</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isLoading && <Skeleton className="h-24 w-full" />}
+        {!isLoading && (data?.length ?? 0) === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhuma atividade registrada neste mês.</p>
+        )}
+        {(data ?? []).map((l) => (
+          <div key={l.id} className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
+            <span className="font-medium">{l.nome}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
+            </span>
+            <span className="w-10 text-right text-lg font-bold">{l.total}</span>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      atendimentos: {
+        Row: {
+          contato_cliente: string | null
+          created_at: string
+          data_atendimento: string
+          id: string
+          nome_cliente: string
+          observacoes: string | null
+          tipo: Database["public"]["Enums"]["tipo_atendimento"]
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          contato_cliente?: string | null
+          created_at?: string
+          data_atendimento?: string
+          id?: string
+          nome_cliente: string
+          observacoes?: string | null
+          tipo: Database["public"]["Enums"]["tipo_atendimento"]
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          contato_cliente?: string | null
+          created_at?: string
+          data_atendimento?: string
+          id?: string
+          nome_cliente?: string
+          observacoes?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_atendimento"]
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       lead_transferencias: {
         Row: {
           created_at: string
@@ -619,6 +655,16 @@ export type Database = {
       tarefa_alvo: "propria" | "usuario" | "cliente"
       tarefa_prioridade: "baixa" | "media" | "alta"
       tarefa_status: "pendente" | "concluida" | "cancelada" | "iniciada"
+      tipo_atendimento:
+        | "pagamento"
+        | "boleto"
+        | "suporte"
+        | "cancelamento"
+        | "duvida"
+        | "entrega_equipamento"
+        | "reclamacao"
+        | "ativacao_configuracao"
+        | "retirada_chip"
       transfer_status: "pendente" | "aceita" | "recusada" | "cancelada"
       venda_status: "pendente" | "instalado" | "cancelado" | "em_analise"
     }
@@ -762,6 +808,17 @@ export const Constants = {
       tarefa_alvo: ["propria", "usuario", "cliente"],
       tarefa_prioridade: ["baixa", "media", "alta"],
       tarefa_status: ["pendente", "concluida", "cancelada", "iniciada"],
+      tipo_atendimento: [
+        "pagamento",
+        "boleto",
+        "suporte",
+        "cancelamento",
+        "duvida",
+        "entrega_equipamento",
+        "reclamacao",
+        "ativacao_configuracao",
+        "retirada_chip",
+      ],
       transfer_status: ["pendente", "aceita", "recusada", "cancelada"],
       venda_status: ["pendente", "instalado", "cancelado", "em_analise"],
     },
