@@ -84,6 +84,32 @@ const STATUS_BOTOES: { valor: Status; label: string }[] = [
 
 const emAberto = (s: Status) => s === "pendente" || s === "iniciada";
 
+const TODOS = "__todos__";
+
+type Recorrencia = "nenhuma" | "diaria" | "semanal" | "quinzenal" | "mensal";
+
+const RECORRENCIA_LABEL: Record<Recorrencia, string> = {
+  nenhuma: "Sem recorrência",
+  diaria: "Diária",
+  semanal: "Semanal",
+  quinzenal: "Quinzenal",
+  mensal: "Mensal",
+};
+
+function gerarDatas(inicio: string, recorrencia: Recorrencia, qtd: number) {
+  const [y, m, d] = inicio.split("-").map(Number);
+  const datas: string[] = [];
+  for (let i = 0; i < qtd; i++) {
+    const base = new Date(Date.UTC(y, m - 1, d));
+    if (recorrencia === "diaria") base.setUTCDate(base.getUTCDate() + i);
+    else if (recorrencia === "semanal") base.setUTCDate(base.getUTCDate() + i * 7);
+    else if (recorrencia === "quinzenal") base.setUTCDate(base.getUTCDate() + i * 14);
+    else if (recorrencia === "mensal") base.setUTCMonth(base.getUTCMonth() + i);
+    datas.push(base.toISOString().slice(0, 10));
+  }
+  return datas;
+}
+
 function formatarData(d: string) {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
@@ -353,6 +379,8 @@ function NovaTarefa({
   const [data, setData] = useState(hoje());
   const [hora, setHora] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
+  const [recorrencia, setRecorrencia] = useState<Recorrencia>("nenhuma");
+  const [repeticoes, setRepeticoes] = useState("4");
 
   const limpar = () => {
     setAlvo("propria");
@@ -364,6 +392,8 @@ function NovaTarefa({
     setData(hoje());
     setHora("");
     setPrioridade("media");
+    setRecorrencia("nenhuma");
+    setRepeticoes("4");
   };
 
   const criar = useMutation({
@@ -374,22 +404,39 @@ function NovaTarefa({
       if (alvo === "usuario" && !responsavel) throw new Error("Escolha o responsável.");
       if (alvo === "cliente" && !clienteNome.trim()) throw new Error("Informe o nome do cliente.");
 
-      const { error } = await supabase.from("tarefas").insert({
-        criador_id: meId,
-        alvo,
-        responsavel_id: alvo === "propria" ? meId : alvo === "usuario" ? responsavel : meId,
-        cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
-        cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
-        titulo: t.slice(0, 140),
-        descricao: descricao.trim().slice(0, 1000) || null,
-        data_venc: data,
-        hora_venc: hora || null,
-        prioridade,
-      });
+      const responsaveis: string[] =
+        alvo === "usuario"
+          ? responsavel === TODOS
+            ? pessoas.map((p) => p.id)
+            : [responsavel]
+          : [meId];
+      if (responsaveis.length === 0) throw new Error("Nenhum usuário disponível.");
+
+      const qtd =
+        recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
+      const datas = gerarDatas(data, recorrencia, qtd);
+
+      const linhas = responsaveis.flatMap((rid) =>
+        datas.map((d) => ({
+          criador_id: meId,
+          alvo,
+          responsavel_id: rid,
+          cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
+          cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
+          titulo: t.slice(0, 140),
+          descricao: descricao.trim().slice(0, 1000) || null,
+          data_venc: d,
+          hora_venc: hora || null,
+          prioridade,
+        })),
+      );
+
+      const { error } = await supabase.from("tarefas").insert(linhas);
       if (error) throw error;
+      return linhas.length;
     },
-    onSuccess: () => {
-      toast.success("Tarefa criada.");
+    onSuccess: (n) => {
+      toast.success(n && n > 1 ? `${n} tarefas criadas.` : "Tarefa criada.");
       limpar();
       setAberto(false);
       onCriada();
@@ -441,6 +488,7 @@ function NovaTarefa({
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={TODOS}>Todos os usuários</SelectItem>
                   {pessoas.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.nome || p.email}
@@ -510,6 +558,41 @@ function NovaTarefa({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Recorrência</Label>
+            <Select value={recorrencia} onValueChange={(v) => setRecorrencia(v as Recorrencia)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(RECORRENCIA_LABEL) as Recorrencia[]).map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {RECORRENCIA_LABEL[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {recorrencia !== "nenhuma" && (
+            <div className="space-y-1.5">
+              <Label>Repetições</Label>
+              <Input
+                type="number"
+                min={1}
+                max={52}
+                value={repeticoes}
+                onChange={(e) => setRepeticoes(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Serão criadas {Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52)} ocorrências
+                a partir da data escolhida.
+              </p>
+            </div>
+          )}
+
+
 
           <div className="flex items-end gap-2 md:col-span-2">
             <Button type="submit" disabled={criar.isPending}>
