@@ -56,7 +56,11 @@ type Lead = {
   status: LeadStatus;
   observacoes: string | null;
   created_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  localizacao: string | null;
 };
+
 
 const COLUMNS: { key: LeadStatus; label: string; tone: string }[] = [
   { key: "contato_feito", label: "Contato Feito", tone: "bg-sky-100 text-sky-800 border-sky-200" },
@@ -69,20 +73,25 @@ const COLUMNS: { key: LeadStatus; label: string; tone: string }[] = [
 
 function useMe() {
   return useQuery({
-    queryKey: ["me-basic"],
+    queryKey: ["me-basic-canal"],
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user?.id ?? null;
       if (!uid) return null;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      const [{ data: roles }, { data: prof }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", uid),
+        supabase.from("profiles").select("canal").eq("id", uid).maybeSingle(),
+      ]);
       return {
         userId: uid,
         roles: (roles ?? []).map((r) => r.role as string),
+        canal: (prof?.canal ?? "loja") as "loja" | "pap",
       };
     },
     staleTime: 30_000,
   });
 }
+
 
 function LeadsPage() {
   const me = useMe();
