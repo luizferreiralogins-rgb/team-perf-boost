@@ -406,6 +406,15 @@ function LeadsPage() {
                       <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
                     </Button>
                   )}
+                  {!["desistiu", "fechou", "nao_perturbar", "transferido"].includes(lead.status) && (
+                    <CadenciaLead
+                      leadId={lead.id}
+                      etapa={lead.etapa_contato ?? 0}
+                      proximoContatoEm={lead.proximo_contato_em}
+                      podeRegistrar={lead.vendedor_id === me.data?.userId}
+                      onRegistrado={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+                    />
+                  )}
                 </div>
 
               ))}
