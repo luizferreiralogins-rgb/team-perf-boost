@@ -182,7 +182,7 @@ function Dashboard() {
         </div>
         {!isGestor && (
           <Button asChild size="lg">
-            <Link to="/vendas/nova">
+            <Link to="/vendas/nova" search={{}}>
               <Plus className="mr-2 h-4 w-4" /> Nova venda
             </Link>
           </Button>
@@ -268,7 +268,7 @@ function Dashboard() {
             <CardTitle>Próximos passos</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>• Cadastre suas vendas do dia em <Link to="/vendas/nova" className="text-primary underline">Nova venda</Link>.</p>
+            <p>• Cadastre suas vendas do dia em <Link to="/vendas/nova" search={{}} className="text-primary underline">Nova venda</Link>.</p>
             <p>• Consulte o histórico em <Link to="/vendas" className="text-primary underline">Vendas</Link>.</p>
             <p>• A comissão é calculada quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
           </CardContent>
