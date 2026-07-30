@@ -49,6 +49,30 @@ export function mesAtual() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Retorna todos os descendentes (equipe direta + equipes de gerentes subordinados). */
+export function descendentesDe(todos: Membro[], uid: string) {
+  const filhosPorGerente = new Map<string, Membro[]>();
+  for (const m of todos) {
+    if (!m.gerente_id) continue;
+    const arr = filhosPorGerente.get(m.gerente_id) ?? [];
+    arr.push(m);
+    filhosPorGerente.set(m.gerente_id, arr);
+  }
+  const out: Membro[] = [];
+  const visitados = new Set<string>([uid]);
+  const fila = [uid];
+  while (fila.length) {
+    const atual = fila.shift()!;
+    for (const f of filhosPorGerente.get(atual) ?? []) {
+      if (visitados.has(f.id)) continue;
+      visitados.add(f.id);
+      out.push(f);
+      fila.push(f.id);
+    }
+  }
+  return out;
+}
+
 /** Carrega o time visível para o gestor logado. */
 export function useEquipe(uid?: string, role?: string) {
   return useQuery({
@@ -73,7 +97,8 @@ export function useEquipe(uid?: string, role?: string) {
       }));
 
       if (role === "gerente") {
-        return todos.filter((m) => m.gerente_id === uid && m.role === "consultor");
+        // toda a cadeia abaixo do gerente (consultores + gerentes subordinados e seus times)
+        return descendentesDe(todos, uid!);
       }
       // regional / admin
       return todos.filter((m) => m.id !== uid);
@@ -83,22 +108,20 @@ export function useEquipe(uid?: string, role?: string) {
 
 export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
   let list = membros;
-  if (role !== "gerente") {
-    if (f.unidade !== "all") {
-      list =
-        f.unidade === "pap"
-          ? list.filter((m) => m.canal === "pap")
-          : list.filter((m) => m.loja_unidade === f.unidade);
-    }
-    if (f.pessoa !== "all") {
-      // pessoa = gerente selecionado → gerente + seus consultores
-      list = list.filter((m) => m.id === f.pessoa || m.gerente_id === f.pessoa);
-    }
-  } else if (f.pessoa !== "all") {
-    list = list.filter((m) => m.id === f.pessoa);
+  if (f.unidade !== "all") {
+    list =
+      f.unidade === "pap"
+        ? list.filter((m) => m.canal === "pap")
+        : list.filter((m) => m.loja_unidade === f.unidade);
+  }
+  if (f.pessoa !== "all") {
+    // pessoa = gestor selecionado → ele + toda a sua cadeia
+    const cadeia = new Set([f.pessoa, ...descendentesDe(membros, f.pessoa).map((m) => m.id)]);
+    list = list.filter((m) => cadeia.has(m.id));
   }
   return list;
 }
+
 
 export function FiltrosBar({
   role,
@@ -120,13 +143,18 @@ export function FiltrosBar({
     [membros],
   );
   const isRegional = role !== "gerente";
-  const pessoas = isRegional ? gerentes : consultores;
+  // Gerente que tem gerentes na equipe pode filtrar por esses gerentes também
+  const pessoas = useMemo(
+    () => (isRegional ? gerentes : [...gerentes, ...consultores]),
+    [isRegional, gerentes, consultores],
+  );
+  const labelPessoa = isRegional ? "Gerente" : gerentes.length ? "Gerente / Consultor" : "Consultor";
 
   return (
     <Card>
       <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">{isRegional ? "Gerente" : "Consultor"}</Label>
+          <Label className="text-xs">{labelPessoa}</Label>
           <Select value={filtros.pessoa} onValueChange={(v) => onChange({ ...filtros, pessoa: v })}>
             <SelectTrigger>
               <SelectValue />
@@ -142,23 +170,22 @@ export function FiltrosBar({
           </Select>
         </div>
 
-        {isRegional && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Loja / Canal</Label>
-            <Select value={filtros.unidade} onValueChange={(v) => onChange({ ...filtros, unidade: v })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="norte">Loja Norte</SelectItem>
-                <SelectItem value="sul">Loja Sul</SelectItem>
-                <SelectItem value="shopping">Loja Shopping</SelectItem>
-                <SelectItem value="pap">PAP</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <Label className="text-xs">Loja / Canal</Label>
+          <Select value={filtros.unidade} onValueChange={(v) => onChange({ ...filtros, unidade: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="norte">Loja Norte</SelectItem>
+              <SelectItem value="sul">Loja Sul</SelectItem>
+              <SelectItem value="shopping">Loja Shopping</SelectItem>
+              <SelectItem value="pap">PAP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
 
         <div className="space-y-1.5">
           <Label className="text-xs">Mês</Label>
@@ -234,22 +261,22 @@ export function RankingEquipe({
           .in("vendedor_id", ids),
       ]);
 
-      // agrupamento: regional agrupa por gerente, gerente agrupa por consultor
+      // agrupamento: sobe a hierarquia até o topo visível dentro do escopo
       const membroPorId = new Map(escopo.map((m) => [m.id, m]));
       const chaveDe = (userId: string) => {
-        const m = membroPorId.get(userId);
+        let m = membroPorId.get(userId);
         if (!m) return null;
-        if (!isRegional) return m.id;
-        if (m.role === "gerente") return m.id;
-        return m.gerente_id ?? "sem-gerente";
+        const visto = new Set<string>();
+        while (m.gerente_id && membroPorId.has(m.gerente_id) && !visto.has(m.id)) {
+          visto.add(m.id);
+          m = membroPorId.get(m.gerente_id)!;
+        }
+        return m.id;
       };
       const nomes = new Map<string, string>();
-      for (const m of escopo) {
-        if (isRegional) {
-          if (m.role === "gerente") nomes.set(m.id, m.nome);
-        } else nomes.set(m.id, m.nome);
-      }
+      for (const m of escopo) nomes.set(m.id, m.nome);
       nomes.set("sem-gerente", "Sem gerente");
+
 
       const linhas = new Map<string, Linha>();
       const get = (k: string) => {
@@ -290,8 +317,12 @@ export function RankingEquipe({
         get(k).leads++;
       }
 
-      // garante que todos apareçam mesmo zerados
-      for (const [k, nome] of nomes) if (k !== "sem-gerente") get(k).nome = nome;
+      // garante que todos os "topos" apareçam mesmo zerados
+      for (const m of escopo) {
+        const k = chaveDe(m.id);
+        if (k && k === m.id) get(k).nome = m.nome;
+      }
+
 
       return [...linhas.values()];
     },
