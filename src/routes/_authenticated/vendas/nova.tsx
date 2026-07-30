@@ -677,6 +677,16 @@ export function FormPap({
     const { error } = editingId
       ? await supabase.from("vendas_pap").update(payload).eq("id", editingId)
       : await supabase.from("vendas_pap").insert(payload);
+    if (!error && editingId && precisaJustificar) {
+      await registrarReagendamento({
+        tabela: "vendas_pap",
+        vendaId: editingId,
+        vendedorId: uid,
+        dataAnterior: agendamentoOriginal,
+        dataNova: parsed.data.data_agendamento || null,
+        motivo: motivoReagendamento,
+      });
+    }
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
