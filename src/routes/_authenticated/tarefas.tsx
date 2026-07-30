@@ -559,6 +559,41 @@ function NovaTarefa({
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Recorrência</Label>
+            <Select value={recorrencia} onValueChange={(v) => setRecorrencia(v as Recorrencia)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(RECORRENCIA_LABEL) as Recorrencia[]).map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {RECORRENCIA_LABEL[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {recorrencia !== "nenhuma" && (
+            <div className="space-y-1.5">
+              <Label>Repetições</Label>
+              <Input
+                type="number"
+                min={1}
+                max={52}
+                value={repeticoes}
+                onChange={(e) => setRepeticoes(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Serão criadas {Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52)} ocorrências
+                a partir da data escolhida.
+              </p>
+            </div>
+          )}
+
+
+
           <div className="flex items-end gap-2 md:col-span-2">
             <Button type="submit" disabled={criar.isPending}>
               Salvar tarefa
