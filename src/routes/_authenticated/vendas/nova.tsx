@@ -118,6 +118,7 @@ const lojaSchema = z.object({
   protocolo: z.string().trim().max(60).optional().or(z.literal("")),
   data_abertura: z.string().min(1, "Informe a data de abertura"),
   data_ativacao: z.string().optional().or(z.literal("")),
+  data_agendamento: z.string().optional().or(z.literal("")),
   classe_protocolo: z.enum(CLASSES_PROTOCOLO),
   tecnologia: z.enum(TECNOLOGIAS),
   contem_movel: z.boolean(),
@@ -157,6 +158,7 @@ const papSchema = z.object({
   produto: z.enum(PRODUTOS_PAP),
   data: z.string().min(1, "Informe a data da venda"),
   data_instalacao: z.string().optional().or(z.literal("")),
+  data_agendamento: z.string().optional().or(z.literal("")),
   valor: z.coerce.number().positive("Valor deve ser maior que zero"),
   qtd_linhas: z.coerce.number().int().min(0),
   instalado: z.boolean(),
@@ -183,6 +185,7 @@ function NovaVenda() {
         observacoes: obsLead ? `Origem: Lead. ${obsLead}` : "",
         data_abertura: today(),
         data_ativacao: "",
+        data_agendamento: "",
         classe_protocolo: "Novo Acesso",
         tecnologia: "01.04 - Internet - Banda Larga - Fibra",
         contem_movel: false,
@@ -205,6 +208,7 @@ function NovaVenda() {
         produto: produtoPap ?? "Banda Larga",
         data: today(),
         data_instalacao: "",
+        data_agendamento: "",
         valor: "",
         qtd_linhas: "0",
         instalado: false,
@@ -247,6 +251,7 @@ export type FormLojaState = {
   observacoes: string;
   data_abertura: string;
   data_ativacao: string;
+  data_agendamento: string;
   classe_protocolo: (typeof CLASSES_PROTOCOLO)[number];
   tecnologia: (typeof TECNOLOGIAS)[number];
   contem_movel: boolean;
@@ -276,6 +281,7 @@ export function FormLoja({
       observacoes: "",
       data_abertura: today(),
       data_ativacao: "",
+      data_agendamento: "",
       classe_protocolo: "Novo Acesso",
       tecnologia: "01.04 - Internet - Banda Larga - Fibra",
       contem_movel: false,
@@ -352,6 +358,7 @@ export function FormLoja({
       cpf_cnpj: parsed.data.cpf_cnpj || null,
       data_abertura: parsed.data.data_abertura,
       data_ativacao: parsed.data.data_ativacao || null,
+      data_agendamento: parsed.data.data_agendamento || null,
       classe_protocolo: parsed.data.classe_protocolo,
       mes_ref: mesRef,
       valor_novo: parsed.data.valor_novo,
@@ -436,6 +443,16 @@ export function FormLoja({
                 type="date"
                 value={form.data_ativacao}
                 onChange={(e) => setForm({ ...form, data_ativacao: e.target.value })}
+              />
+            </Field>
+            <Field
+              label="Data do agendamento"
+              hint="Data prevista da instalação. Se vencer sem marcar Instalado, um alerta é exibido."
+            >
+              <Input
+                type="date"
+                value={form.data_agendamento}
+                onChange={(e) => setForm({ ...form, data_agendamento: e.target.value })}
               />
             </Field>
             <Field label="Tecnologia" required>
@@ -544,6 +561,7 @@ export type FormPapState = {
   produto: (typeof PRODUTOS_PAP)[number];
   data: string;
   data_instalacao: string;
+  data_agendamento: string;
   valor: string;
   qtd_linhas: string;
   instalado: boolean;
@@ -569,6 +587,7 @@ export function FormPap({
       produto: "Banda Larga",
       data: today(),
       data_instalacao: "",
+      data_agendamento: "",
       valor: "",
       qtd_linhas: "0",
       instalado: false,
@@ -603,6 +622,7 @@ export function FormPap({
       nome_cliente: parsed.data.nome_cliente,
       data_venda: parsed.data.data,
       data_ativacao: parsed.data.data_instalacao || null,
+      data_agendamento: parsed.data.data_agendamento || null,
       mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
       valor: parsed.data.valor,
       qtd_linhas: parsed.data.qtd_linhas,
@@ -688,6 +708,16 @@ export function FormPap({
                 type="date"
                 value={form.data_instalacao}
                 onChange={(e) => setForm({ ...form, data_instalacao: e.target.value })}
+              />
+            </Field>
+            <Field
+              label="Data do agendamento"
+              hint="Data prevista da instalação. Se vencer sem marcar Instalado, um alerta é exibido."
+            >
+              <Input
+                type="date"
+                value={form.data_agendamento}
+                onChange={(e) => setForm({ ...form, data_agendamento: e.target.value })}
               />
             </Field>
             <Field label="Valor da venda (R$)" required>

@@ -15,6 +15,7 @@ import {
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
+import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -190,6 +191,12 @@ function Dashboard() {
       {isGestor && membros && (
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
+
+      <AgendamentosVencidos
+        escopoIds={isGestor ? escopoIds : undefined}
+        uid={isGestor ? undefined : roleInfo?.uid}
+        nomes={Object.fromEntries((membros ?? []).map((m) => [m.id, m.nome]))}
+      />
 
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
