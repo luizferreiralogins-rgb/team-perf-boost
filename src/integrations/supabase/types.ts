@@ -116,6 +116,86 @@ export type Database = {
         }
         Relationships: []
       }
+      contestacao_importacoes: {
+        Row: {
+          arquivo_nome: string
+          canal: Database["public"]["Enums"]["canal_venda"]
+          created_at: string
+          criado_por: string
+          id: string
+          mes_ref: string
+          total_linhas: number
+        }
+        Insert: {
+          arquivo_nome: string
+          canal: Database["public"]["Enums"]["canal_venda"]
+          created_at?: string
+          criado_por: string
+          id?: string
+          mes_ref: string
+          total_linhas?: number
+        }
+        Update: {
+          arquivo_nome?: string
+          canal?: Database["public"]["Enums"]["canal_venda"]
+          created_at?: string
+          criado_por?: string
+          id?: string
+          mes_ref?: string
+          total_linhas?: number
+        }
+        Relationships: []
+      }
+      contestacao_vendas_nativas: {
+        Row: {
+          canal: Database["public"]["Enums"]["canal_venda"]
+          consultor_nome: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          data_instalacao: string | null
+          id: string
+          importacao_id: string
+          mes_ref: string
+          nome_cliente: string
+          protocolo: string | null
+          valor: number
+        }
+        Insert: {
+          canal: Database["public"]["Enums"]["canal_venda"]
+          consultor_nome?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_instalacao?: string | null
+          id?: string
+          importacao_id: string
+          mes_ref: string
+          nome_cliente: string
+          protocolo?: string | null
+          valor?: number
+        }
+        Update: {
+          canal?: Database["public"]["Enums"]["canal_venda"]
+          consultor_nome?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_instalacao?: string | null
+          id?: string
+          importacao_id?: string
+          mes_ref?: string
+          nome_cliente?: string
+          protocolo?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contestacao_vendas_nativas_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "contestacao_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_contatos: {
         Row: {
           created_at: string
