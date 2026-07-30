@@ -303,11 +303,20 @@ function TarefasPage() {
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {t.alvo === "cliente"
-                            ? `Cliente: ${t.cliente_nome ?? "—"}${
-                                t.cliente_contato ? ` (${t.cliente_contato})` : ""
-                              }`
-                            : `Responsável: ${nomePessoa(t.responsavel_id)}`}
+                          {t.alvo === "cliente" ? (
+                            <>
+                              {`Cliente: ${t.cliente_nome ?? "—"}`}
+                              {t.cliente_contato && (
+                                <>
+                                  {" ("}
+                                  <WhatsAppLink numero={t.cliente_contato} className="text-xs" />
+                                  {")"}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            `Responsável: ${nomePessoa(t.responsavel_id)}`
+                          )}
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
                           {STATUS_LABEL[t.status]}
