@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
+import { CadenciaLead } from "@/components/leads/cadencia-contato";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,8 @@ type Lead = {
   latitude: number | null;
   longitude: number | null;
   localizacao: string | null;
+  etapa_contato: number;
+  proximo_contato_em: string | null;
 };
 
 
@@ -121,6 +124,7 @@ function LeadsPage() {
   const leadsQ = useQuery({
     queryKey: ["leads"],
     queryFn: async () => {
+      await supabase.rpc("expirar_leads_sem_contato");
       const { data, error } = await supabase
         .from("leads")
         .select("*")
@@ -402,6 +406,15 @@ function LeadsPage() {
                     >
                       <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
                     </Button>
+                  )}
+                  {!["desistiu", "fechou", "nao_perturbar", "transferido"].includes(lead.status) && (
+                    <CadenciaLead
+                      leadId={lead.id}
+                      etapa={lead.etapa_contato ?? 0}
+                      proximoContatoEm={lead.proximo_contato_em}
+                      podeRegistrar={lead.vendedor_id === me.data?.userId}
+                      onRegistrado={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+                    />
                   )}
                 </div>
 
