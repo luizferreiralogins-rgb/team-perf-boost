@@ -478,9 +478,11 @@ export type Database = {
           nome_cliente: string
           observacoes: string | null
           produto: string | null
+          protocolo: string | null
           status: Database["public"]["Enums"]["venda_status"]
           tecnologia: string | null
           telefone: string | null
+          tipo_protocolo: string | null
           updated_at: string
           valor: number
           vendedor_id: string
@@ -499,9 +501,11 @@ export type Database = {
           nome_cliente: string
           observacoes?: string | null
           produto?: string | null
+          protocolo?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
           telefone?: string | null
+          tipo_protocolo?: string | null
           updated_at?: string
           valor?: number
           vendedor_id: string
@@ -520,9 +524,11 @@ export type Database = {
           nome_cliente?: string
           observacoes?: string | null
           produto?: string | null
+          protocolo?: string | null
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
           telefone?: string | null
+          tipo_protocolo?: string | null
           updated_at?: string
           valor?: number
           vendedor_id?: string
