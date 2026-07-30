@@ -201,11 +201,14 @@ export type FormLojaState = {
 export function FormLoja({
   editingId,
   initial,
+  ownerId,
 }: {
   editingId?: string;
   initial?: FormLojaState;
+  ownerId?: string;
 } = {}) {
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormLojaState>(
     initial ?? {
@@ -234,7 +237,8 @@ export function FormLoja({
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user!.id;
+    const uid = ownerId ?? sess.user!.id;
+
     const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
     const valorAntigoNum =
       typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
@@ -304,7 +308,7 @@ export function FormLoja({
     };
 
     const { error } = editingId
-      ? await supabase.from("vendas_loja").update(payload).eq("id", editingId).eq("vendedor_id", uid)
+      ? await supabase.from("vendas_loja").update(payload).eq("id", editingId)
       : await supabase.from("vendas_loja").insert(payload);
     setLoading(false);
     if (error) {
@@ -312,7 +316,8 @@ export function FormLoja({
       return;
     }
     toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
-    navigate({ to: "/vendas" });
+    navigate({ to: editingId ? "/historico" : "/vendas" });
+
   }
 
   return (
@@ -488,10 +493,13 @@ export type FormPapState = {
 export function FormPap({
   editingId,
   initial,
+  ownerId,
 }: {
   editingId?: string;
   initial?: FormPapState;
+  ownerId?: string;
 } = {}) {
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormPapState>(
@@ -516,7 +524,8 @@ export function FormPap({
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user!.id;
+    const uid = ownerId ?? sess.user!.id;
+
 
     let comissao = 0;
     if (parsed.data.instalado) {
@@ -541,7 +550,7 @@ export function FormPap({
       comissao,
     };
     const { error } = editingId
-      ? await supabase.from("vendas_pap").update(payload).eq("id", editingId).eq("vendedor_id", uid)
+      ? await supabase.from("vendas_pap").update(payload).eq("id", editingId)
       : await supabase.from("vendas_pap").insert(payload);
     setLoading(false);
     if (error) {
@@ -549,7 +558,8 @@ export function FormPap({
       return;
     }
     toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
-    navigate({ to: "/vendas" });
+    navigate({ to: editingId ? "/historico" : "/vendas" });
+
   }
 
   return (

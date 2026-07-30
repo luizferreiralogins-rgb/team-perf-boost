@@ -636,9 +636,21 @@ export type Database = {
         Args: { _consultant: string; _manager: string }
         Returns: boolean
       }
+      listar_destinatarios_venda: {
+        Args: never
+        Returns: {
+          canal: Database["public"]["Enums"]["canal_venda"]
+          id: string
+          nome: string
+        }[]
+      }
       pode_gerenciar: {
         Args: { _manager: string; _target: string }
         Returns: boolean
+      }
+      transferir_venda: {
+        Args: { _para: string; _tabela: string; _venda_id: string }
+        Returns: undefined
       }
     }
     Enums: {

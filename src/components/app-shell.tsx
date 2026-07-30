@@ -14,6 +14,7 @@ import {
   MessageCircle,
   CalendarCheck,
   Activity,
+  History,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +122,7 @@ function Sidebar({
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
+    { to: "/historico", label: "Histórico", icon: History, show: true },
     { to: "/chat", label: "Chat Telegram", icon: MessageCircle, show: true },
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
