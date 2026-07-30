@@ -18,6 +18,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AtalhosExternos } from "@/components/atalhos-externos";
+
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
 type Role = "consultor" | "gerente" | "regional" | "admin";
