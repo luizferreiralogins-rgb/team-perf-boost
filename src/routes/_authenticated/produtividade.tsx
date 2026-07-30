@@ -72,6 +72,7 @@ function Produtividade() {
   const [tipo, setTipo] = useState<Tipo>("suporte");
   const [contato, setContato] = useState("");
   const [data, setData] = useState(iso(hoje));
+  const diasDecorridos = Math.max(1, hoje.getDate());
 
   const { data: prod, isLoading } = useQuery({
     queryKey: ["produtividade", inicioMes],
