@@ -32,6 +32,8 @@ type Item = {
   status: string;
   valor: number;
   data: string | null;
+  agendamento: string | null;
+  adiamentos: number;
 };
 
 export function NaoInstaladasDialog({
@@ -58,12 +60,12 @@ export function NaoInstaladasDialog({
       const vazio = ["00000000-0000-0000-0000-000000000000"];
       let lojaQ = supabase
         .from("vendas_loja")
-        .select("id, vendedor_id, protocolo, nome_cliente, tecnologia, status, valor_novo, data_abertura")
+        .select("id, vendedor_id, protocolo, nome_cliente, tecnologia, status, valor_novo, data_abertura, data_agendamento, agendamento_adiamentos")
         .eq("mes_ref", mesRefISO)
         .not("status", "in", "(instalado,cancelado)");
       let papQ = supabase
         .from("vendas_pap")
-        .select("id, vendedor_id, protocolo, nome_cliente, produto, status, valor, data_venda")
+        .select("id, vendedor_id, protocolo, nome_cliente, produto, status, valor, data_venda, data_agendamento, agendamento_adiamentos")
         .eq("mes_ref", mesRefISO)
         .not("status", "in", "(instalado,cancelado)");
 
@@ -94,6 +96,8 @@ export function NaoInstaladasDialog({
             status: v.status,
             valor: Number(v.valor_novo ?? 0),
             data: v.data_abertura,
+            agendamento: v.data_agendamento,
+            adiamentos: Number(v.agendamento_adiamentos ?? 0),
           }),
         );
       }
@@ -109,6 +113,8 @@ export function NaoInstaladasDialog({
             status: v.status,
             valor: Number(v.valor ?? 0),
             data: v.data_venda,
+            agendamento: v.data_agendamento,
+            adiamentos: Number(v.agendamento_adiamentos ?? 0),
           }),
         );
       }
@@ -155,6 +161,8 @@ export function NaoInstaladasDialog({
                   <TableHead>Canal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Agendamento</TableHead>
+                  <TableHead className="text-right">Adiamentos</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
