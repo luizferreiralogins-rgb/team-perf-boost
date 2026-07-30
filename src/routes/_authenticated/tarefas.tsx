@@ -379,15 +379,17 @@ function TarefasPage() {
 function NovaTarefa({
   meId,
   pessoas,
+  responsavelInicial,
   onCriada,
 }: {
   meId: string | null;
   pessoas: { id: string; nome: string; email: string | null }[];
+  responsavelInicial?: string;
   onCriada: () => void;
 }) {
-  const [aberto, setAberto] = useState(false);
-  const [alvo, setAlvo] = useState<Alvo>("propria");
-  const [responsavel, setResponsavel] = useState("");
+  const [aberto, setAberto] = useState(Boolean(responsavelInicial));
+  const [alvo, setAlvo] = useState<Alvo>(responsavelInicial ? "usuario" : "propria");
+  const [responsavel, setResponsavel] = useState(responsavelInicial ?? "");
   const [clienteNome, setClienteNome] = useState("");
   const [clienteContato, setClienteContato] = useState("");
   const [titulo, setTitulo] = useState("");
