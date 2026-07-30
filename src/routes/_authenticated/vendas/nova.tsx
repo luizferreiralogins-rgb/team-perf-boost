@@ -524,7 +524,8 @@ export function FormPap({
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user!.id;
+    const uid = ownerId ?? sess.user!.id;
+
 
     let comissao = 0;
     if (parsed.data.instalado) {
