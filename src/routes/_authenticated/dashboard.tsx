@@ -260,6 +260,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
             fator={fatorProj}
+            projecaoEm="rs"
           />
 
         </div>
