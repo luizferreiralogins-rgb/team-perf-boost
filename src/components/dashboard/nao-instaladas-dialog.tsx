@@ -180,6 +180,16 @@ export function NaoInstaladasDialog({
                     </TableCell>
                     <TableCell className="capitalize">{i.status.replace("_", " ")}</TableCell>
                     <TableCell>{fmtDate(i.data)}</TableCell>
+                    <TableCell
+                      className={
+                        i.agendamento && i.agendamento < new Date().toISOString().slice(0, 10)
+                          ? "font-medium text-destructive"
+                          : undefined
+                      }
+                    >
+                      {fmtDate(i.agendamento)}
+                    </TableCell>
+                    <TableCell className="text-right">{i.adiamentos}</TableCell>
                     <TableCell className="text-right">{brl(i.valor)}</TableCell>
                   </TableRow>
                 ))}
