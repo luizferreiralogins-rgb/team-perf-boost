@@ -23,6 +23,11 @@ import {
   ProjecaoComissaoPap,
 } from "@/components/vendas/projecao";
 import {
+  MotivoReagendamentoField,
+  MOTIVO_MIN,
+  registrarReagendamento,
+} from "@/components/vendas/reagendamento";
+import {
   comissaoLoja,
   comissaoPap,
   faixaEfetivaLoja,
@@ -291,12 +296,22 @@ export function FormLoja({
       instalado: false,
     },
   );
+  const [agendamentoOriginal] = useState(initial?.data_agendamento ?? "");
+  const [motivoReagendamento, setMotivoReagendamento] = useState("");
+  const precisaJustificar =
+    !!editingId && !!agendamentoOriginal && form.data_agendamento !== agendamentoOriginal;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = lojaSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    if (precisaJustificar && motivoReagendamento.trim().length < MOTIVO_MIN) {
+      toast.error(
+        `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
+      );
       return;
     }
     setLoading(true);
@@ -375,6 +390,16 @@ export function FormLoja({
     const { error } = editingId
       ? await supabase.from("vendas_loja").update(payload).eq("id", editingId)
       : await supabase.from("vendas_loja").insert(payload);
+    if (!error && editingId && precisaJustificar) {
+      await registrarReagendamento({
+        tabela: "vendas_loja",
+        vendaId: editingId,
+        vendedorId: uid,
+        dataAnterior: agendamentoOriginal,
+        dataNova: parsed.data.data_agendamento || null,
+        motivo: motivoReagendamento,
+      });
+    }
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
@@ -531,7 +556,16 @@ export function FormLoja({
               onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
             />
           </Field>
+          {precisaJustificar && (
+            <MotivoReagendamentoField
+              value={motivoReagendamento}
+              onChange={setMotivoReagendamento}
+              dataAnterior={agendamentoOriginal}
+              dataNova={form.data_agendamento}
+            />
+          )}
           <div className="flex justify-end gap-2 pt-2">
+
             <Button type="button" variant="outline" asChild>
               <Link to="/vendas">Cancelar</Link>
             </Button>
@@ -593,12 +627,22 @@ export function FormPap({
       instalado: false,
     },
   );
+  const [agendamentoOriginal] = useState(initial?.data_agendamento ?? "");
+  const [motivoReagendamento, setMotivoReagendamento] = useState("");
+  const precisaJustificar =
+    !!editingId && !!agendamentoOriginal && form.data_agendamento !== agendamentoOriginal;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = papSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    if (precisaJustificar && motivoReagendamento.trim().length < MOTIVO_MIN) {
+      toast.error(
+        `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
+      );
       return;
     }
     setLoading(true);
@@ -633,6 +677,16 @@ export function FormPap({
     const { error } = editingId
       ? await supabase.from("vendas_pap").update(payload).eq("id", editingId)
       : await supabase.from("vendas_pap").insert(payload);
+    if (!error && editingId && precisaJustificar) {
+      await registrarReagendamento({
+        tabela: "vendas_pap",
+        vendaId: editingId,
+        vendedorId: uid,
+        dataAnterior: agendamentoOriginal,
+        dataNova: parsed.data.data_agendamento || null,
+        motivo: motivoReagendamento,
+      });
+    }
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
@@ -752,7 +806,16 @@ export function FormPap({
               </Select>
             </Field>
           </div>
+          {precisaJustificar && (
+            <MotivoReagendamentoField
+              value={motivoReagendamento}
+              onChange={setMotivoReagendamento}
+              dataAnterior={agendamentoOriginal}
+              dataNova={form.data_agendamento}
+            />
+          )}
           <div className="flex justify-end gap-2 pt-2">
+
             <Button type="button" variant="outline" asChild>
               <Link to="/vendas">Cancelar</Link>
             </Button>
