@@ -6,6 +6,7 @@ import { Bell, CalendarDays, Check, Plus, Trash2, X } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppLink } from "@/components/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -303,11 +304,20 @@ function TarefasPage() {
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          {t.alvo === "cliente"
-                            ? `Cliente: ${t.cliente_nome ?? "—"}${
-                                t.cliente_contato ? ` (${t.cliente_contato})` : ""
-                              }`
-                            : `Responsável: ${nomePessoa(t.responsavel_id)}`}
+                          {t.alvo === "cliente" ? (
+                            <>
+                              {`Cliente: ${t.cliente_nome ?? "—"}`}
+                              {t.cliente_contato && (
+                                <>
+                                  {" ("}
+                                  <WhatsAppLink numero={t.cliente_contato} className="text-xs" />
+                                  {")"}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            `Responsável: ${nomePessoa(t.responsavel_id)}`
+                          )}
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
                           {STATUS_LABEL[t.status]}

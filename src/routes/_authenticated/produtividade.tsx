@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Activity, ClipboardList, ShoppingBag, Users } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppLink } from "@/components/whatsapp-link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -309,7 +310,7 @@ function Produtividade() {
               <span className="font-medium">{a.nome_cliente}</span>
               <Badge variant="secondary">{tipoLabel(a.tipo)}</Badge>
               {a.contato_cliente && (
-                <span className="text-xs text-muted-foreground">{a.contato_cliente}</span>
+                <WhatsAppLink numero={a.contato_cliente} className="text-xs" />
               )}
               <Button
                 variant="ghost"

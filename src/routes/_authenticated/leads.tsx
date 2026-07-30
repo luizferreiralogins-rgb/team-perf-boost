@@ -14,6 +14,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppLink } from "@/components/whatsapp-link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -361,7 +362,11 @@ function LeadsPage() {
                   <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                     {lead.cidade && <div>{lead.cidade}</div>}
                     {lead.produto_interesse && <div>Interesse: {lead.produto_interesse}</div>}
-                    {lead.whatsapp && <div>WhatsApp: {lead.whatsapp}</div>}
+                    {lead.whatsapp && (
+                      <div>
+                        WhatsApp: <WhatsAppLink numero={lead.whatsapp} />
+                      </div>
+                    )}
                     {lead.fonte && <div>Fonte: {lead.fonte}</div>}
                     {(lead.latitude != null || lead.localizacao) && (
                       <a
