@@ -143,13 +143,18 @@ export function FiltrosBar({
     [membros],
   );
   const isRegional = role !== "gerente";
-  const pessoas = isRegional ? gerentes : consultores;
+  // Gerente que tem gerentes na equipe pode filtrar por esses gerentes também
+  const pessoas = useMemo(
+    () => (isRegional ? gerentes : [...gerentes, ...consultores]),
+    [isRegional, gerentes, consultores],
+  );
+  const labelPessoa = isRegional ? "Gerente" : gerentes.length ? "Gerente / Consultor" : "Consultor";
 
   return (
     <Card>
       <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">{isRegional ? "Gerente" : "Consultor"}</Label>
+          <Label className="text-xs">{labelPessoa}</Label>
           <Select value={filtros.pessoa} onValueChange={(v) => onChange({ ...filtros, pessoa: v })}>
             <SelectTrigger>
               <SelectValue />
@@ -165,23 +170,22 @@ export function FiltrosBar({
           </Select>
         </div>
 
-        {isRegional && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Loja / Canal</Label>
-            <Select value={filtros.unidade} onValueChange={(v) => onChange({ ...filtros, unidade: v })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="norte">Loja Norte</SelectItem>
-                <SelectItem value="sul">Loja Sul</SelectItem>
-                <SelectItem value="shopping">Loja Shopping</SelectItem>
-                <SelectItem value="pap">PAP</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <Label className="text-xs">Loja / Canal</Label>
+          <Select value={filtros.unidade} onValueChange={(v) => onChange({ ...filtros, unidade: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="norte">Loja Norte</SelectItem>
+              <SelectItem value="sul">Loja Sul</SelectItem>
+              <SelectItem value="shopping">Loja Shopping</SelectItem>
+              <SelectItem value="pap">PAP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
 
         <div className="space-y-1.5">
           <Label className="text-xs">Mês</Label>
