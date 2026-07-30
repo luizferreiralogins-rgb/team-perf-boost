@@ -229,7 +229,9 @@ Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
 
 const aplicarInput = z.object({
   proposta: propostaSchema,
+  fontes: z.string().max(1000).default(""),
 });
+
 
 export const aplicarRegras = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
