@@ -269,8 +269,10 @@ function TarefasPage() {
         )}
 
         <NovaTarefa
+          key={responsavelInicial ?? "novo"}
           meId={me.data ?? null}
           pessoas={pessoas.data ?? []}
+          responsavelInicial={responsavelInicial}
           onCriada={() => qc.invalidateQueries({ queryKey: ["tarefas"] })}
         />
 
