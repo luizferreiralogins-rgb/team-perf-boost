@@ -1,9 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, ArrowRightLeft, Check, X, Users, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  ArrowRightLeft,
+  Check,
+  X,
+  Users,
+  Pencil,
+  Trash2,
+  MapPin,
+  ShoppingCart,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +67,11 @@ type Lead = {
   status: LeadStatus;
   observacoes: string | null;
   created_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  localizacao: string | null;
 };
+
 
 const COLUMNS: { key: LeadStatus; label: string; tone: string }[] = [
   { key: "contato_feito", label: "Contato Feito", tone: "bg-sky-100 text-sky-800 border-sky-200" },
@@ -69,24 +84,31 @@ const COLUMNS: { key: LeadStatus; label: string; tone: string }[] = [
 
 function useMe() {
   return useQuery({
-    queryKey: ["me-basic"],
+    queryKey: ["me-basic-canal"],
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user?.id ?? null;
       if (!uid) return null;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      const [{ data: roles }, { data: prof }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", uid),
+        supabase.from("profiles").select("canal").eq("id", uid).maybeSingle(),
+      ]);
       return {
         userId: uid,
         roles: (roles ?? []).map((r) => r.role as string),
+        canal: (prof?.canal ?? "loja") as "loja" | "pap",
       };
     },
     staleTime: 30_000,
   });
 }
 
+
 function LeadsPage() {
   const me = useMe();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [transferFor, setTransferFor] = useState<Lead | null>(null);
@@ -340,10 +362,44 @@ function LeadsPage() {
                     {lead.cidade && <div>{lead.cidade}</div>}
                     {lead.produto_interesse && <div>Interesse: {lead.produto_interesse}</div>}
                     {lead.whatsapp && <div>WhatsApp: {lead.whatsapp}</div>}
-                    {lead.email && <div className="truncate">{lead.email}</div>}
                     {lead.fonte && <div>Fonte: {lead.fonte}</div>}
+                    {(lead.latitude != null || lead.localizacao) && (
+                      <a
+                        className="flex items-center gap-1 text-primary hover:underline"
+                        href={
+                          lead.latitude != null
+                            ? `https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`
+                            : `https://www.google.com/maps?q=${encodeURIComponent(lead.localizacao ?? "")}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <MapPin className="h-3 w-3" /> Localização
+                      </a>
+                    )}
                   </div>
+                  {isConsultor && lead.vendedor_id === me.data?.userId && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-2 w-full"
+                      onClick={() =>
+                        navigate({
+                          to: "/vendas/nova",
+                          search: {
+                            lead_nome: lead.nome,
+                            lead_produto: lead.produto_interesse ?? undefined,
+                            lead_whatsapp: lead.whatsapp ?? undefined,
+                            lead_cidade: lead.cidade ?? undefined,
+                          },
+                        })
+                      }
+                    >
+                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
+                    </Button>
+                  )}
                 </div>
+
               ))}
               {grouped[col.key].length === 0 && (
                 <div className="py-8 text-center text-xs text-muted-foreground">Vazio</div>
@@ -362,15 +418,18 @@ function LeadsPage() {
 
       <LeadFormDialog
         open={newOpen}
+        isPap={me.data?.canal === "pap"}
         onClose={() => setNewOpen(false)}
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
       <LeadFormDialog
         open={!!editing}
         lead={editing ?? undefined}
+        isPap={me.data?.canal === "pap"}
         onClose={() => setEditing(null)}
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
+
       <TransferDialog
         lead={transferFor}
         onClose={() => setTransferFor(null)}
@@ -383,11 +442,13 @@ function LeadsPage() {
 function LeadFormDialog({
   open,
   lead,
+  isPap,
   onClose,
   onSaved,
 }: {
   open: boolean;
   lead?: Lead;
+  isPap?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -395,16 +456,19 @@ function LeadFormDialog({
     nome: "",
     cidade: "",
     fonte: "",
-    email: "",
     whatsapp: "",
     produto_interesse: "",
     status: "contato_feito" as LeadStatus,
     observacoes: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    localizacao: "" as string,
   });
   const [duplicates, setDuplicates] = useState<
     { lead_id: string; vendedor_id: string; vendedor_nome: string; nome: string }[]
   >([]);
   const [saving, setSaving] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   // reset when opening
   useMemo(() => {
@@ -413,29 +477,60 @@ function LeadFormDialog({
         nome: lead?.nome ?? "",
         cidade: lead?.cidade ?? "",
         fonte: lead?.fonte ?? "",
-        email: lead?.email ?? "",
         whatsapp: lead?.whatsapp ?? "",
         produto_interesse: lead?.produto_interesse ?? "",
         status: lead?.status ?? "contato_feito",
         observacoes: lead?.observacoes ?? "",
+        latitude: lead?.latitude ?? null,
+        longitude: lead?.longitude ?? null,
+        localizacao: lead?.localizacao ?? "",
       });
       setDuplicates([]);
     }
   }, [open, lead]);
 
+  const capturarLocalizacao = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocalização não suportada neste dispositivo.");
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setForm((f) => ({
+          ...f,
+          latitude: lat,
+          longitude: lng,
+          localizacao: `${lat}, ${lng}`,
+        }));
+        setGeoLoading(false);
+        toast.success("Localização capturada.");
+      },
+      (err) => {
+        setGeoLoading(false);
+        toast.error(err.message || "Não foi possível obter a localização.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
   const checkDup = async () => {
     if (lead) return; // só na criação
-    if (!form.email && !form.whatsapp) {
+    if (!form.whatsapp) {
       setDuplicates([]);
       return;
     }
     const { data } = await supabase.rpc("buscar_lead_duplicado", {
-      _email: form.email || "",
+      _email: "",
       _whatsapp: form.whatsapp || "",
     });
 
     setDuplicates((data ?? []) as any);
   };
+
+
 
   const submit = async () => {
     if (!form.nome.trim()) {
@@ -450,12 +545,15 @@ function LeadFormDialog({
         nome: form.nome.trim(),
         cidade: form.cidade.trim() || null,
         fonte: form.fonte.trim() || null,
-        email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         produto_interesse: form.produto_interesse.trim() || null,
         status: form.status,
         observacoes: form.observacoes.trim() || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        localizacao: form.localizacao.trim() || null,
       };
+
       if (lead) {
         const { error } = await supabase.from("leads").update(payload).eq("id", lead.id);
         if (error) throw error;
@@ -496,7 +594,7 @@ function LeadFormDialog({
         <DialogHeader>
           <DialogTitle>{lead ? "Editar lead" : "Novo lead"}</DialogTitle>
           <DialogDescription>
-            Cadastro simples para gestão no CRM. Ao informar e-mail ou WhatsApp, verificamos se outro
+            Cadastro simples para gestão no CRM. Ao informar o WhatsApp, verificamos se outro
             consultor já cadastrou.
           </DialogDescription>
         </DialogHeader>
@@ -519,25 +617,41 @@ function LeadFormDialog({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>E-mail</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                onBlur={checkDup}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>WhatsApp</Label>
-              <Input
-                value={form.whatsapp}
-                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                onBlur={checkDup}
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <Label>WhatsApp</Label>
+            <Input
+              value={form.whatsapp}
+              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+              onBlur={checkDup}
+            />
           </div>
+          {isPap && (
+            <div className="grid gap-1.5">
+              <Label>Localização (opcional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nenhuma localização registrada"
+                  value={form.localizacao}
+                  onChange={(e) => setForm({ ...form, localizacao: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={capturarLocalizacao}
+                  disabled={geoLoading}
+                >
+                  <MapPin className="mr-1.5 h-4 w-4" />
+                  {geoLoading ? "Obtendo..." : "Coletar"}
+                </Button>
+              </div>
+              {form.latitude != null && (
+                <p className="text-xs text-muted-foreground">
+                  Coordenadas: {form.latitude}, {form.longitude}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <Label>Produto de interesse</Label>
             <Input
