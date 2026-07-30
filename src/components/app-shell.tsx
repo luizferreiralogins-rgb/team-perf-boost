@@ -15,6 +15,7 @@ import {
   CalendarCheck,
   Activity,
   History,
+  Scale,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -123,6 +124,7 @@ function Sidebar({
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
     { to: "/historico", label: "Histórico", icon: History, show: true },
+    { to: "/contestacoes", label: "Contestações", icon: Scale, show: true },
     { to: "/chat", label: "Chat Telegram", icon: MessageCircle, show: true },
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
