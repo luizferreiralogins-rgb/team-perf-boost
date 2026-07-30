@@ -71,6 +71,8 @@ type Lead = {
   latitude: number | null;
   longitude: number | null;
   localizacao: string | null;
+  etapa_contato: number;
+  proximo_contato_em: string | null;
 };
 
 
