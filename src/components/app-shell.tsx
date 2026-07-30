@@ -132,7 +132,7 @@ function Sidebar({
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
     { to: "/historico", label: "Histórico", icon: History, show: true },
-    { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
+    { to: "/contestacoes", label: "Contestações", icon: Scale, show: isGestor, badge: alertas?.contestacoes },
     { to: "/chat", label: "Chat", icon: MessageCircle, show: true, badge: alertas?.chat },
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true, badge: alertas?.tarefas },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
