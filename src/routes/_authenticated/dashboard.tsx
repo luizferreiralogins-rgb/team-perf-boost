@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw } from "lucide-react";
@@ -5,6 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  FiltrosBar,
+  RankingEquipe,
+  aplicarFiltros,
+  mesAtual,
+  useEquipe,
+  type Filtros,
+} from "@/components/dashboard/filtros-ranking";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -25,21 +34,46 @@ function Dashboard() {
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user?.id;
-      if (!uid) return { isGestor: false };
+      if (!uid) return { isGestor: false, role: "consultor", uid: undefined as string | undefined };
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
       const list = (roles ?? []).map((r) => r.role);
-      return { isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin") };
+      const role = list.includes("admin")
+        ? "admin"
+        : list.includes("regional")
+          ? "regional"
+          : list.includes("gerente")
+            ? "gerente"
+            : "consultor";
+      return {
+        isGestor: role !== "consultor",
+        role,
+        uid,
+      };
     },
     staleTime: 30_000,
   });
   const isGestor = roleInfo?.isGestor ?? false;
+  const role = roleInfo?.role ?? "consultor";
+
+  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
+  const { data: membros } = useEquipe(roleInfo?.uid, isGestor ? role : undefined);
+  const escopoIds = useMemo(
+    () => (membros ? aplicarFiltros(membros, filtros, role).map((m) => m.id) : []),
+    [membros, filtros, role],
+  );
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-mes", isGestor],
+    queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(",")],
+    enabled: !isGestor || !!membros,
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
-      const hoje = new Date();
-      const mesRefISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+      const mesRefISO = isGestor
+        ? `${filtros.mes}-01`
+        : (() => {
+            const hoje = new Date();
+            return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+          })();
 
       const lojaQ = supabase
         .from("vendas_loja")
@@ -52,7 +86,11 @@ function Dashboard() {
       if (!isGestor) {
         lojaQ.eq("vendedor_id", uid);
         papQ.eq("vendedor_id", uid);
+      } else {
+        lojaQ.in("vendedor_id", escopoIds.length ? escopoIds : ["00000000-0000-0000-0000-000000000000"]);
+        papQ.in("vendedor_id", escopoIds.length ? escopoIds : ["00000000-0000-0000-0000-000000000000"]);
       }
+
 
       const [{ data: profile }, loja, pap] = await Promise.all([
         supabase.from("profiles").select("canal, nome").eq("id", uid).maybeSingle(),
