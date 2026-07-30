@@ -91,7 +91,7 @@ function formatarData(d: string) {
 
 function TarefasPage() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<"pendentes" | "todas">("pendentes");
+  const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
 
   const me = useQuery({
     queryKey: ["tarefas-me"],
