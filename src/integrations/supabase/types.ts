@@ -644,6 +644,13 @@ export type Database = {
           nome: string
         }[]
       }
+      listar_usuarios_tarefas: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
       pode_gerenciar: {
         Args: { _manager: string; _target: string }
         Returns: boolean

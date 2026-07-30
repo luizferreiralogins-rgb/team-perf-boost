@@ -91,7 +91,7 @@ function formatarData(d: string) {
 
 function TarefasPage() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<"pendentes" | "todas">("pendentes");
+  const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
 
   const me = useQuery({
     queryKey: ["tarefas-me"],
@@ -102,15 +102,13 @@ function TarefasPage() {
   const pessoas = useQuery({
     queryKey: ["tarefas-pessoas"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, nome, email")
-        .order("nome");
+      const { data, error } = await supabase.rpc("listar_usuarios_tarefas");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((p) => ({ id: p.id, nome: p.nome, email: null as string | null }));
     },
     staleTime: 60_000,
   });
+
 
   const tarefas = useQuery({
     queryKey: ["tarefas"],
@@ -128,8 +126,11 @@ function TarefasPage() {
 
   const lista = useMemo(() => {
     const t = tarefas.data ?? [];
-    return filtro === "pendentes" ? t.filter((x) => emAberto(x.status)) : t;
+    if (filtro === "pendentes") return t.filter((x) => emAberto(x.status));
+    if (filtro === "historico") return t.filter((x) => !emAberto(x.status));
+    return t;
   }, [tarefas.data, filtro]);
+
 
   const grupos = useMemo(() => {
     const map = new Map<string, Tarefa[]>();
@@ -191,12 +192,20 @@ function TarefasPage() {
               Pendentes
             </Button>
             <Button
+              variant={filtro === "historico" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFiltro("historico")}
+            >
+              Histórico
+            </Button>
+            <Button
               variant={filtro === "todas" ? "default" : "outline"}
               size="sm"
               onClick={() => setFiltro("todas")}
             >
               Todas
             </Button>
+
           </div>
         </header>
 
