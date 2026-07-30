@@ -120,14 +120,38 @@ const lojaSchema = z.object({
   instalado: z.boolean(),
 });
 
+const TIPOS_PROTOCOLO_PAP = [
+  "Novo Acesso",
+  "Adicional de Serviço",
+  "Renovação Contratual",
+  "Upgrade",
+  "Venda Indireta",
+] as const;
+
+const PRODUTOS_PAP = [
+  "Banda Larga",
+  "Telefonia Fixa",
+  "Câmeras",
+  "Casa Inteligente",
+  "Telefonia Unifique Móvel",
+  "Pré-Pago Móvel",
+  "Retenção Móvel",
+  "Planos de TV",
+  "Telemedicina PF",
+  "Telemedicina PJ",
+  "Unifique Seguro Residencial",
+  "Wifi Business",
+] as const;
+
 const papSchema = z.object({
-  ...commonBase,
-  data: z.string().min(1, "Informe a data"),
-  status: statusEnum,
+  nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
+  protocolo: z.string().trim().max(60).optional().or(z.literal("")),
+  tipo_protocolo: z.enum(TIPOS_PROTOCOLO_PAP),
+  produto: z.enum(PRODUTOS_PAP),
+  data: z.string().min(1, "Informe a data da venda"),
+  data_instalacao: z.string().optional().or(z.literal("")),
   valor: z.coerce.number().positive("Valor deve ser maior que zero"),
-  cidade: z.string().trim().max(80).optional().or(z.literal("")),
-  bairro: z.string().trim().max(80).optional().or(z.literal("")),
-  produto: z.string().trim().max(60).optional().or(z.literal("")),
+  instalado: z.boolean(),
 });
 
 function NovaVenda() {
