@@ -156,8 +156,21 @@ function HistoricoPage() {
   const consultoresFiltrados = useMemo(() => {
     const pessoas = pessoasQ.data ?? [];
     if (!isRegional || gerente === "todos") return pessoas;
-    return pessoas.filter((p) => p.gerente_id === gerente || p.id === gerente);
+    // inclui toda a cadeia abaixo do gerente (gerentes subordinados e seus times)
+    const ids = new Set<string>([gerente]);
+    let mudou = true;
+    while (mudou) {
+      mudou = false;
+      for (const p of pessoas) {
+        if (!ids.has(p.id) && p.gerente_id && ids.has(p.gerente_id)) {
+          ids.add(p.id);
+          mudou = true;
+        }
+      }
+    }
+    return pessoas.filter((p) => ids.has(p.id));
   }, [pessoasQ.data, gerente, isRegional]);
+
 
   const idsDoGerente = useMemo(() => {
     if (!isRegional || gerente === "todos") return null;
