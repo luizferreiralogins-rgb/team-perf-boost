@@ -261,22 +261,22 @@ export function RankingEquipe({
           .in("vendedor_id", ids),
       ]);
 
-      // agrupamento: regional agrupa por gerente, gerente agrupa por consultor
+      // agrupamento: sobe a hierarquia até o topo visível dentro do escopo
       const membroPorId = new Map(escopo.map((m) => [m.id, m]));
       const chaveDe = (userId: string) => {
-        const m = membroPorId.get(userId);
+        let m = membroPorId.get(userId);
         if (!m) return null;
-        if (!isRegional) return m.id;
-        if (m.role === "gerente") return m.id;
-        return m.gerente_id ?? "sem-gerente";
+        const visto = new Set<string>();
+        while (m.gerente_id && membroPorId.has(m.gerente_id) && !visto.has(m.id)) {
+          visto.add(m.id);
+          m = membroPorId.get(m.gerente_id)!;
+        }
+        return m.id;
       };
       const nomes = new Map<string, string>();
-      for (const m of escopo) {
-        if (isRegional) {
-          if (m.role === "gerente") nomes.set(m.id, m.nome);
-        } else nomes.set(m.id, m.nome);
-      }
+      for (const m of escopo) nomes.set(m.id, m.nome);
       nomes.set("sem-gerente", "Sem gerente");
+
 
       const linhas = new Map<string, Linha>();
       const get = (k: string) => {
