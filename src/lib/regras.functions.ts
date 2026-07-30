@@ -146,13 +146,31 @@ export const analisarCircular = createServerFn({ method: "POST" })
 
     const isLoja = data.tipo === "loja";
     const schema = isLoja ? SCHEMA_LOJA : SCHEMA_PAP;
-    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique. Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia com atenção tabelas em imagens.\n\n`;
+    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique (documento "DC-MER-008 — Diretriz Consultor de Vendas" e circulares equivalentes). Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia célula a célula as tabelas, inclusive as que estão em imagens/prints, e não invente linhas.\n\n`;
     const instrucao = isLoja
       ? `${preambulo}Trata-se do comissionamento de LOJA. Extraia:
 - A tabela de comissão por diferença de ticket (Valor Novo - Valor Antigo) com 4 colunas de faixa efetiva (0,1,2,3), em Reais por protocolo.
 - As metas para atingir cada faixa efetiva (1, 2 e 3): meta de receita mensal (R$) e meta de renovações com móvel (percentual decimal).
 Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
-      : `${preambulo}Trata-se do comissionamento de PAP. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+      : `${preambulo}Trata-se do comissionamento de PAP (Consultor de Vendas porta a porta).
+Localize o anexo "8.1 TABELA DE COMISSIONAMENTO" (cabeçalho "METAS"), que tem exatamente estas colunas:
+"Faixa de Ativações Mensal" | "De" | "Até" | "% Comissão Ativações" | "Meta de Índice Máximo de Cancelamentos (D+5)" | "Acelerador por Baixo Índice de Cancelamento" | "Bonus de Venda Indireta".
+
+Mapeie cada linha para um item de faixas_pap, na ordem da tabela:
+- faixa: número da faixa (1, 2, 3, ...);
+- receita_de = coluna "De" e receita_ate = coluna "Até" (valores em R$, números puros; use 999999999 quando a coluna "Até" for "∞", "acima" ou vazia na última faixa);
+- pct_comissao = "% Comissão Ativações" em decimal (28% => 0.28);
+- meta_max_cancel = "Meta de Índice Máximo de Cancelamentos (D+5)" em decimal (8% => 0.08);
+- acelerador_baixo_cancel = "Acelerador por Baixo Índice de Cancelamento" em decimal (5% => 0.05);
+- bonus_venda_indireta = "Bonus de Venda Indireta" em decimal (14,00% => 0.14).
+
+Regras obrigatórias:
+- Extraia TODAS as linhas da tabela (normalmente 11 faixas), sem pular nenhuma;
+- Use vírgula decimal brasileira corretamente (R$1.500,01 => 1500.01; 2,50% => 0.025);
+- Não converta percentuais em Reais nem o contrário;
+- Se a leitura de uma célula estiver ambígua, use a coerência da tabela (os percentuais crescem conforme a faixa) para decidir;
+- Não deixe nenhum campo vazio: quando a coluna repete o mesmo valor em todas as linhas (ex.: 8% e 5%), replique em todas as faixas.`;
+
 
 
     type Bloco =
@@ -193,41 +211,81 @@ Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
       }
     }
 
-    const body = {
-      model: "google/gemini-3.1-pro-preview",
-      messages: [{ role: "user", content: blocos }],
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: "regras", strict: true, schema },
-      },
+    const chamar = async (model: string) => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: blocos }],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "regras", strict: true, schema },
+          },
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        if (res.status === 429)
+          throw new Error("Limite de requisições da IA atingido. Tente novamente em instantes.");
+        if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+        throw new Error(`Falha na IA (${res.status}): ${t.slice(0, 300)}`);
+      }
+      const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const raw = json.choices?.[0]?.message?.content ?? "";
+      if (!raw.trim()) throw new Error("A IA não conseguiu ler os arquivos enviados.");
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error("A IA retornou uma resposta inválida.");
+      }
+      return normalizar(data.tipo, parsed);
     };
 
-
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      if (res.status === 429) throw new Error("Limite de requisições da IA atingido. Tente novamente em instantes.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
-      throw new Error(`Falha na IA (${res.status}): ${t.slice(0, 300)}`);
-    }
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = json.choices?.[0]?.message?.content ?? "{}";
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error("A IA retornou uma resposta inválida.");
+      return await chamar("google/gemini-3.6-flash");
+    } catch (e) {
+      // Segunda tentativa com o modelo de raciocínio mais forte.
+      try {
+        return await chamar("google/gemini-3.1-pro-preview");
+      } catch {
+        throw e instanceof Error ? e : new Error("Falha ao interpretar as regras.");
+      }
     }
-    const shaped = { tipo: data.tipo, ...(parsed as object) };
-    return propostaSchema.parse(shaped);
   });
+
+/** Corrige percentuais vindos como 28 em vez de 0.28 e ordena as faixas. */
+function pct(v: number) {
+  return v > 1 ? v / 100 : v;
+}
+
+function normalizar(tipo: "loja" | "pap", parsed: unknown): PropostaRegras {
+  const shaped = { tipo, ...(parsed as object) } as Record<string, unknown>;
+  const base = propostaSchema.parse(shaped);
+  if (base.tipo === "pap" && base.faixas_pap?.length) {
+    const faixas = [...base.faixas_pap]
+      .map((f) => ({
+        ...f,
+        pct_comissao: pct(f.pct_comissao),
+        meta_max_cancel: pct(f.meta_max_cancel),
+        acelerador_baixo_cancel: pct(f.acelerador_baixo_cancel),
+        bonus_venda_indireta: pct(f.bonus_venda_indireta),
+        receita_ate: f.receita_ate <= 0 ? 999999999 : f.receita_ate,
+      }))
+      .sort((a, b) => a.receita_de - b.receita_de)
+      .map((f, i) => ({ ...f, faixa: i + 1 }));
+    return { ...base, faixas_pap: faixas };
+  }
+  if (base.tipo === "loja" && base.metas_loja?.length) {
+    return {
+      ...base,
+      metas_loja: base.metas_loja.map((m) => ({ ...m, meta_renov_movel: pct(m.meta_renov_movel) })),
+    };
+  }
+  return base;
+}
+
 
 const aplicarInput = z.object({
   proposta: propostaSchema,
