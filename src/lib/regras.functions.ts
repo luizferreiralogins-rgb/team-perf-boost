@@ -2,11 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const analisarInput = z.object({
-  tipo: z.enum(["loja", "pap"]),
-  pdfBase64: z.string().min(50),
-  filename: z.string().default("circular.pdf"),
+const anexoSchema = z.object({
+  filename: z.string().min(1).max(200),
+  mime: z.string().min(3).max(100),
+  base64: z.string().min(20),
 });
+export type AnexoRegra = z.infer<typeof anexoSchema>;
+
+const analisarInput = z
+  .object({
+    tipo: z.enum(["loja", "pap"]),
+    anexos: z.array(anexoSchema).max(8).default([]),
+    texto: z.string().max(20000).default(""),
+  })
+  .refine((v) => v.anexos.length > 0 || v.texto.trim().length > 0, {
+    message: "Envie ao menos um arquivo ou digite as regras em texto.",
+  });
+
 
 const faixaLojaSchema = z.object({
   diff_de: z.number(),
