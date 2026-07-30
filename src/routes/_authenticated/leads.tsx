@@ -391,6 +391,108 @@ function LeadsPage() {
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
 
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          {(() => {
+            const lead = (leadsQ.data ?? []).find((l) => l.id === detail?.id) ?? detail;
+            if (!lead) return null;
+            const meu = lead.vendedor_id === me.data?.userId;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{lead.nome}</DialogTitle>
+                  <DialogDescription>
+                    {nomesVendedores[lead.vendedor_id] ?? "Consultor"}
+                    {lead.produto_interesse ? ` · ${lead.produto_interesse}` : ""}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {lead.cidade && <div>Cidade: {lead.cidade}</div>}
+                  {lead.whatsapp && (
+                    <div>
+                      WhatsApp: <WhatsAppLink numero={lead.whatsapp} />
+                    </div>
+                  )}
+                  {lead.fonte && <div>Fonte: {lead.fonte}</div>}
+                  {lead.observacoes && <div className="whitespace-pre-wrap">Obs.: {lead.observacoes}</div>}
+                  {(lead.latitude != null || lead.localizacao) && (
+                    <a
+                      className="flex items-center gap-1 text-primary hover:underline"
+                      href={
+                        lead.latitude != null
+                          ? `https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`
+                          : `https://www.google.com/maps?q=${encodeURIComponent(lead.localizacao ?? "")}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MapPin className="h-3.5 w-3.5" /> Localização
+                    </a>
+                  )}
+                </div>
+
+                {meu && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setDetail(null); setEditing(lead); }}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setDetail(null); setTransferFor(lead); }}>
+                      <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Transferir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive"
+                      onClick={() => {
+                        if (confirm("Remover este lead?")) {
+                          deleteMut.mutate(lead.id);
+                          setDetail(null);
+                        }
+                      }}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir
+                    </Button>
+                  </div>
+                )}
+
+                {isConsultor && meu && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() =>
+                      navigate({
+                        to: "/vendas/nova",
+                        search: {
+                          lead_nome: lead.nome,
+                          lead_produto: lead.produto_interesse ?? undefined,
+                          lead_whatsapp: lead.whatsapp ?? undefined,
+                          lead_cidade: lead.cidade ?? undefined,
+                        },
+                      })
+                    }
+                  >
+                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
+                  </Button>
+                )}
+
+                {!["desistiu", "fechou", "nao_perturbar", "transferido"].includes(lead.status) && (
+                  <CadenciaLead
+                    leadId={lead.id}
+                    etapa={lead.etapa_contato ?? 0}
+                    proximoContatoEm={lead.proximo_contato_em}
+                    podeRegistrar={meu}
+                    onRegistrado={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+                  />
+                )}
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+
       <TransferDialog
         lead={transferFor}
         onClose={() => setTransferFor(null)}
