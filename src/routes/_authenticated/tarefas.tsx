@@ -121,6 +121,7 @@ function formatarData(d: string) {
 
 function TarefasPage() {
   const qc = useQueryClient();
+  const { responsavel: responsavelInicial } = Route.useSearch();
   const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
 
   const me = useQuery({
