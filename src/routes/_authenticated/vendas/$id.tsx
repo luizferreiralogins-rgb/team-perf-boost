@@ -10,6 +10,7 @@ import {
   type FormLojaState,
   type FormPapState,
 } from "./nova";
+import { HistoricoReagendamentos } from "@/components/vendas/reagendamento";
 
 export const Route = createFileRoute("/_authenticated/vendas/$id")({
   head: () => ({
