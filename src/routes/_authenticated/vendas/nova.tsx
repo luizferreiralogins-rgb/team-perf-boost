@@ -23,6 +23,11 @@ import {
   ProjecaoComissaoPap,
 } from "@/components/vendas/projecao";
 import {
+  MotivoReagendamentoField,
+  MOTIVO_MIN,
+  registrarReagendamento,
+} from "@/components/vendas/reagendamento";
+import {
   comissaoLoja,
   comissaoPap,
   faixaEfetivaLoja,
