@@ -31,6 +31,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Fator de projeção: dias totais do mês / dias decorridos (1 se mês passado/futuro). */
+function fatorProjecao(mesISO: string) {
+  const [y, m] = mesISO.split("-").map(Number);
+  const hoje = new Date();
+  const diasTotais = new Date(y, m, 0).getDate();
+  if (y !== hoje.getFullYear() || m !== hoje.getMonth() + 1) return 1;
+  const diasAtuais = Math.max(1, hoje.getDate());
+  return diasTotais / diasAtuais;
+}
+
+
 function Dashboard() {
   const { data: roleInfo } = useQuery({
     queryKey: ["me-roles"],
