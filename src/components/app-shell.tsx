@@ -13,6 +13,7 @@ import {
   FileText,
   MessageCircle,
   CalendarCheck,
+  Activity,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";

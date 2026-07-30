@@ -175,6 +175,8 @@ function Dashboard() {
         </div>
       </div>
 
+      {isGestor && <ProdutividadeTime />}
+
       {!isGestor && (
         <Card>
           <CardHeader>
