@@ -317,8 +317,12 @@ export function RankingEquipe({
         get(k).leads++;
       }
 
-      // garante que todos apareçam mesmo zerados
-      for (const [k, nome] of nomes) if (k !== "sem-gerente") get(k).nome = nome;
+      // garante que todos os "topos" apareçam mesmo zerados
+      for (const m of escopo) {
+        const k = chaveDe(m.id);
+        if (k && k === m.id) get(k).nome = m.nome;
+      }
+
 
       return [...linhas.values()];
     },
