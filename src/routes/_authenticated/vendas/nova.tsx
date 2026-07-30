@@ -627,12 +627,22 @@ export function FormPap({
       instalado: false,
     },
   );
+  const [agendamentoOriginal] = useState(initial?.data_agendamento ?? "");
+  const [motivoReagendamento, setMotivoReagendamento] = useState("");
+  const precisaJustificar =
+    !!editingId && !!agendamentoOriginal && form.data_agendamento !== agendamentoOriginal;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = papSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    if (precisaJustificar && motivoReagendamento.trim().length < MOTIVO_MIN) {
+      toast.error(
+        `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
+      );
       return;
     }
     setLoading(true);
