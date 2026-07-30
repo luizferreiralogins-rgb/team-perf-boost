@@ -180,7 +180,12 @@ function Dashboard() {
         )}
       </div>
 
+      {isGestor && membros && (
+        <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
+      )}
+
       <div className="grid gap-4 md:grid-cols-4">
+
         <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
         <StatCard title="Instaladas" value={isLoading ? null : String(data?.instaladas ?? 0)} icon={Award} />
         <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
