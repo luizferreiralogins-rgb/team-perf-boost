@@ -248,6 +248,16 @@ export const aplicarRegras = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { proposta } = data;
 
+    const registrarVersao = async (snapshot: object) => {
+      await supabaseAdmin.from("parametros_versoes").insert({
+        canal: proposta.tipo,
+        resumo: proposta.resumo,
+        fontes: data.fontes,
+        snapshot: snapshot as never,
+        aplicado_por: context.userId,
+      });
+    };
+
     if (proposta.tipo === "loja") {
       if (!proposta.faixas_loja?.length || !proposta.metas_loja?.length) {
         throw new Error("Proposta Loja incompleta.");
@@ -260,6 +270,7 @@ export const aplicarRegras = createServerFn({ method: "POST" })
       if (del2.error) throw new Error(del2.error.message);
       const ins2 = await supabaseAdmin.from("parametros_loja_metas").insert(proposta.metas_loja);
       if (ins2.error) throw new Error(ins2.error.message);
+      await registrarVersao({ faixas_loja: proposta.faixas_loja, metas_loja: proposta.metas_loja });
       return { ok: true, atualizadas: proposta.faixas_loja.length + proposta.metas_loja.length };
     } else {
       if (!proposta.faixas_pap?.length) throw new Error("Proposta PAP incompleta.");
@@ -269,6 +280,8 @@ export const aplicarRegras = createServerFn({ method: "POST" })
         .from("parametros_pap_faixas")
         .insert(proposta.faixas_pap.map((r) => ({ ...r })));
       if (ins.error) throw new Error(ins.error.message);
+      await registrarVersao({ faixas_pap: proposta.faixas_pap });
       return { ok: true, atualizadas: proposta.faixas_pap.length };
     }
+
   });
