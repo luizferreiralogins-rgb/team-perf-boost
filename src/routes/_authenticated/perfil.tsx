@@ -218,9 +218,83 @@ function Perfil() {
           </form>
         </CardContent>
       </Card>
+
+      {(data?.roles?.includes("regional") || data?.roles?.includes("admin")) && <AtalhosConfig />}
     </div>
   );
 }
+
+function AtalhosConfig() {
+  const qc = useQueryClient();
+  const { data: atalhos, isLoading } = useAtalhos();
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (atalhos) {
+      setUrls(Object.fromEntries(atalhos.map((a) => [a.id, a.url ?? ""])));
+    }
+  }, [atalhos]);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      for (const a of atalhos ?? []) {
+        const nova = (urls[a.id] ?? "").trim();
+        if (nova === (a.url ?? "")) continue;
+        if (nova && !/^https?:\/\//i.test(nova)) {
+          throw new Error(`O link de ${a.nome} deve começar com http:// ou https://`);
+        }
+        const { error } = await supabase
+          .from("atalhos_externos")
+          .update({ url: nova || null })
+          .eq("id", a.id);
+        if (error) throw error;
+      }
+      toast.success("Atalhos atualizados.");
+      qc.invalidateQueries({ queryKey: ["atalhos-externos"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao salvar atalhos.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Atalhos de sistemas externos</CardTitle>
+        <CardDescription>
+          Configure os links dos botões exibidos no topo do sistema para toda a equipe.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={salvar} className="grid gap-4">
+          {isLoading && <Skeleton className="h-24 w-full" />}
+          {(atalhos ?? []).map((a) => (
+            <div key={a.id}>
+              <Label htmlFor={`atalho-${a.chave}`}>{a.nome}</Label>
+              <Input
+                id={`atalho-${a.chave}`}
+                type="url"
+                placeholder="https://..."
+                value={urls[a.id] ?? ""}
+                onChange={(e) => setUrls((p) => ({ ...p, [a.id]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={saving || isLoading}>
+              {saving ? "Salvando..." : "Salvar atalhos"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function Info({
   label,
