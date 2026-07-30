@@ -126,8 +126,11 @@ function TarefasPage() {
 
   const lista = useMemo(() => {
     const t = tarefas.data ?? [];
-    return filtro === "pendentes" ? t.filter((x) => emAberto(x.status)) : t;
+    if (filtro === "pendentes") return t.filter((x) => emAberto(x.status));
+    if (filtro === "historico") return t.filter((x) => !emAberto(x.status));
+    return t;
   }, [tarefas.data, filtro]);
+
 
   const grupos = useMemo(() => {
     const map = new Map<string, Tarefa[]>();
