@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AtalhosExternos } from "@/components/atalhos-externos";
+import { useAlertas } from "@/hooks/use-alertas";
 
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
@@ -118,15 +119,16 @@ function Sidebar({
 }) {
   const isGestor = roles.includes("gerente") || roles.includes("regional") || roles.includes("admin");
   const isConsultor = roles.includes("consultor") && !isGestor;
+  const alertas = useAlertas().data;
   const items = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
-    { to: "/leads", label: "Leads", icon: KanbanSquare, show: true },
-    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
+    { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
+    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
     { to: "/historico", label: "Histórico", icon: History, show: true },
-    { to: "/contestacoes", label: "Contestações", icon: Scale, show: true },
-    { to: "/chat", label: "Chat", icon: MessageCircle, show: true },
-    { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true },
+    { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
+    { to: "/chat", label: "Chat", icon: MessageCircle, show: true, badge: alertas?.chat },
+    { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true, badge: alertas?.tarefas },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/regras-comissionamento", label: "Regras de Comissionamento", icon: FileText, show: isGestor },
     { to: "/perfil", label: "Perfil", icon: UserCircle, show: true },
@@ -169,8 +171,16 @@ function Sidebar({
                 className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-sidebar-accent-foreground"
                 activeProps={{ "data-status": "active" } as never}
               >
-                <i.icon className="h-4 w-4" />
-                {i.label}
+                <i.icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1 truncate">{i.label}</span>
+                {!!i.badge && i.badge > 0 && (
+                  <span
+                    className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold text-destructive-foreground"
+                    aria-label={`${i.badge} pendência(s)`}
+                  >
+                    {i.badge > 99 ? "99+" : i.badge}
+                  </span>
+                )}
               </Link>
             ))}
         </nav>
