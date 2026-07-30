@@ -201,11 +201,14 @@ export type FormLojaState = {
 export function FormLoja({
   editingId,
   initial,
+  ownerId,
 }: {
   editingId?: string;
   initial?: FormLojaState;
+  ownerId?: string;
 } = {}) {
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormLojaState>(
     initial ?? {
