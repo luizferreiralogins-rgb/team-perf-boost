@@ -2,11 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const analisarInput = z.object({
-  tipo: z.enum(["loja", "pap"]),
-  pdfBase64: z.string().min(50),
-  filename: z.string().default("circular.pdf"),
+const anexoSchema = z.object({
+  filename: z.string().min(1).max(200),
+  mime: z.string().min(3).max(100),
+  base64: z.string().min(20),
 });
+export type AnexoRegra = z.infer<typeof anexoSchema>;
+
+const analisarInput = z
+  .object({
+    tipo: z.enum(["loja", "pap"]),
+    anexos: z.array(anexoSchema).max(8).default([]),
+    texto: z.string().max(20000).default(""),
+  })
+  .refine((v) => v.anexos.length > 0 || v.texto.trim().length > 0, {
+    message: "Envie ao menos um arquivo ou digite as regras em texto.",
+  });
+
 
 const faixaLojaSchema = z.object({
   diff_de: z.number(),
@@ -134,35 +146,62 @@ export const analisarCircular = createServerFn({ method: "POST" })
 
     const isLoja = data.tipo === "loja";
     const schema = isLoja ? SCHEMA_LOJA : SCHEMA_PAP;
+    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique. Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia com atenção tabelas em imagens.\n\n`;
     const instrucao = isLoja
-      ? `Você recebe a Circular de Comissionamento de LOJA da Unifique. Extraia:
+      ? `${preambulo}Trata-se do comissionamento de LOJA. Extraia:
 - A tabela de comissão por diferença de ticket (Valor Novo - Valor Antigo) com 4 colunas de faixa efetiva (0,1,2,3), em Reais por protocolo.
 - As metas para atingir cada faixa efetiva (1, 2 e 3): meta de receita mensal (R$) e meta de renovações com móvel (percentual decimal).
 Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
-      : `Você recebe a Circular de Comissionamento de PAP da Unifique. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+      : `${preambulo}Trata-se do comissionamento de PAP. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+
+
+    type Bloco =
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string } }
+      | { type: "file"; file: { filename: string; file_data: string } };
+
+    const blocos: Bloco[] = [{ type: "text", text: instrucao }];
+
+    if (data.texto.trim()) {
+      blocos.push({
+        type: "text",
+        text: `Regras/observações informadas em texto pelo gestor:\n${data.texto.trim()}`,
+      });
+    }
+
+    for (const a of data.anexos) {
+      if (a.mime.startsWith("image/")) {
+        blocos.push({ type: "image_url", image_url: { url: `data:${a.mime};base64,${a.base64}` } });
+      } else if (a.mime === "application/pdf" || a.filename.toLowerCase().endsWith(".pdf")) {
+        blocos.push({
+          type: "file",
+          file: { filename: a.filename, file_data: `data:application/pdf;base64,${a.base64}` },
+        });
+      } else {
+        // Texto simples (txt, csv, md...) enviado como conteúdo textual.
+        let conteudo = "";
+        try {
+          conteudo = new TextDecoder().decode(
+            Uint8Array.from(atob(a.base64), (c) => c.charCodeAt(0)),
+          );
+        } catch {
+          conteudo = "";
+        }
+        if (conteudo.trim()) {
+          blocos.push({ type: "text", text: `Conteúdo do arquivo ${a.filename}:\n${conteudo.slice(0, 20000)}` });
+        }
+      }
+    }
 
     const body = {
-      model: "google/gemini-2.5-pro",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: instrucao },
-            {
-              type: "file",
-              file: {
-                filename: data.filename,
-                file_data: `data:application/pdf;base64,${data.pdfBase64}`,
-              },
-            },
-          ],
-        },
-      ],
+      model: "google/gemini-3.1-pro-preview",
+      messages: [{ role: "user", content: blocos }],
       response_format: {
         type: "json_schema",
         json_schema: { name: "regras", strict: true, schema },
       },
     };
+
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -192,7 +231,9 @@ Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
 
 const aplicarInput = z.object({
   proposta: propostaSchema,
+  fontes: z.string().max(1000).default(""),
 });
+
 
 export const aplicarRegras = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -209,6 +250,16 @@ export const aplicarRegras = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { proposta } = data;
 
+    const registrarVersao = async (snapshot: object) => {
+      await supabaseAdmin.from("parametros_versoes").insert({
+        canal: proposta.tipo,
+        resumo: proposta.resumo,
+        fontes: data.fontes,
+        snapshot: snapshot as never,
+        aplicado_por: context.userId,
+      });
+    };
+
     if (proposta.tipo === "loja") {
       if (!proposta.faixas_loja?.length || !proposta.metas_loja?.length) {
         throw new Error("Proposta Loja incompleta.");
@@ -221,6 +272,7 @@ export const aplicarRegras = createServerFn({ method: "POST" })
       if (del2.error) throw new Error(del2.error.message);
       const ins2 = await supabaseAdmin.from("parametros_loja_metas").insert(proposta.metas_loja);
       if (ins2.error) throw new Error(ins2.error.message);
+      await registrarVersao({ faixas_loja: proposta.faixas_loja, metas_loja: proposta.metas_loja });
       return { ok: true, atualizadas: proposta.faixas_loja.length + proposta.metas_loja.length };
     } else {
       if (!proposta.faixas_pap?.length) throw new Error("Proposta PAP incompleta.");
@@ -230,6 +282,8 @@ export const aplicarRegras = createServerFn({ method: "POST" })
         .from("parametros_pap_faixas")
         .insert(proposta.faixas_pap.map((r) => ({ ...r })));
       if (ins.error) throw new Error(ins.error.message);
+      await registrarVersao({ faixas_pap: proposta.faixas_pap });
       return { ok: true, atualizadas: proposta.faixas_pap.length };
     }
+
   });

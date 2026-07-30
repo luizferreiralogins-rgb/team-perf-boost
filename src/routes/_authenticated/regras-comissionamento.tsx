@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -7,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, Upload, Sparkles, CheckCircle2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Upload, Sparkles, CheckCircle2, X, History, Info } from "lucide-react";
 import { analisarCircular, aplicarRegras, type PropostaRegras } from "@/lib/regras.functions";
 import { brl } from "@/lib/comissao";
 
@@ -26,7 +28,18 @@ export const Route = createFileRoute("/_authenticated/regras-comissionamento")({
   head: () => ({
     meta: [
       { title: "Regras de Comissionamento | Unifique" },
-      { name: "description", content: "Analise circulares de comissionamento com IA e atualize parâmetros." },
+      {
+        name: "description",
+        content:
+          "Envie PDFs, fotos e textos das circulares: a IA interpreta e atualiza as regras válidas para as próximas vendas.",
+      },
+      { property: "og:title", content: "Regras de Comissionamento | Unifique" },
+      {
+        property: "og:description",
+        content: "Atualize as regras de comissão a partir de PDFs, fotos e textos interpretados por IA.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -37,41 +50,72 @@ function RegrasPage() {
       <div>
         <h1 className="text-2xl font-semibold">Regras de Comissionamento</h1>
         <p className="text-sm text-muted-foreground">
-          Envie a circular em PDF. A IA interpreta o documento e propõe a atualização das faixas —
-          você revisa antes de aplicar.
+          Anexe PDFs, fotos/prints de tabelas e/ou digite as regras em texto. A IA lê todas as fontes
+          juntas e propõe a atualização — você revisa antes de aplicar.
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <CircularCard tipo="loja" titulo="Circular Loja" />
-        <CircularCard tipo="pap" titulo="Circular PAP" />
+
+      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          As regras aplicadas passam a valer <b>somente para novas vendas</b>. As vendas já
+          registradas mantêm a comissão calculada pelas regras vigentes na data do registro.
+        </span>
       </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <CircularCard tipo="loja" titulo="Regras Loja" />
+        <CircularCard tipo="pap" titulo="Regras PAP" />
+      </div>
+
+      <HistoricoVersoes />
     </div>
   );
+}
+
+const ACCEPT = "application/pdf,image/*,text/plain,text/csv,.md";
+
+async function toBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let bin = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
 }
 
 function CircularCard({ tipo, titulo }: { tipo: "loja" | "pap"; titulo: string }) {
   const analisar = useServerFn(analisarCircular);
   const aplicar = useServerFn(aplicarRegras);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [texto, setTexto] = useState("");
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [proposta, setProposta] = useState<PropostaRegras | null>(null);
 
+  const fontes = [
+    ...files.map((f) => f.name),
+    ...(texto.trim() ? ["texto digitado"] : []),
+  ].join(", ");
+
   async function handleAnalisar() {
-    if (!file) return;
+    if (!files.length && !texto.trim()) return;
     setLoading(true);
     setProposta(null);
     try {
-      const buf = await file.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let bin = "";
-      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-      const b64 = btoa(bin);
-      const res = await analisar({ data: { tipo, pdfBase64: b64, filename: file.name } });
+      const anexos = await Promise.all(
+        files.map(async (f) => ({
+          filename: f.name,
+          mime: f.type || "application/octet-stream",
+          base64: await toBase64(f),
+        })),
+      );
+      const res = await analisar({ data: { tipo, anexos, texto } });
       setProposta(res);
-      toast.success("Circular interpretada com sucesso. Revise antes de aplicar.");
+      toast.success("Fontes interpretadas com sucesso. Revise antes de aplicar.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao analisar circular.");
+      toast.error(e instanceof Error ? e.message : "Falha ao analisar as regras.");
     } finally {
       setLoading(false);
     }
@@ -81,10 +125,11 @@ function CircularCard({ tipo, titulo }: { tipo: "loja" | "pap"; titulo: string }
     if (!proposta) return;
     setApplying(true);
     try {
-      const r = await aplicar({ data: { proposta } });
-      toast.success(`${r.atualizadas} regra(s) atualizada(s).`);
+      const r = await aplicar({ data: { proposta, fontes } });
+      toast.success(`${r.atualizadas} regra(s) em vigor para novas vendas.`);
       setProposta(null);
-      setFile(null);
+      setFiles([]);
+      setTexto("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao aplicar regras.");
     } finally {
@@ -100,21 +145,70 @@ function CircularCard({ tipo, titulo }: { tipo: "loja" | "pap"; titulo: string }
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => {
-            const f = e.target.files?.[0] ?? null;
-            setFile(f);
-            setProposta(null);
-          }}
-        />
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">
+            Anexos (PDF, fotos/prints, txt) — pode selecionar vários
+          </label>
+          <Input
+            type="file"
+            multiple
+            accept={ACCEPT}
+            onChange={(e) => {
+              const novos = Array.from(e.target.files ?? []);
+              if (novos.length) setFiles((prev) => [...prev, ...novos].slice(0, 8));
+              e.target.value = "";
+              setProposta(null);
+            }}
+          />
+          {files.length > 0 && (
+            <ul className="space-y-1">
+              {files.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center justify-between rounded-md border border-border px-2 py-1 text-xs"
+                >
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remover ${f.name}`}
+                    onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                    className="ml-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">
+            Regras em texto (opcional)
+          </label>
+          <Textarea
+            rows={4}
+            maxLength={20000}
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              setProposta(null);
+            }}
+            placeholder="Cole aqui trechos da circular, complementos ou exceções que a IA deve considerar…"
+          />
+        </div>
+
         <div className="flex gap-2">
-          <Button onClick={handleAnalisar} disabled={!file || loading} className="w-full">
+          <Button
+            onClick={handleAnalisar}
+            disabled={(!files.length && !texto.trim()) || loading}
+            className="w-full"
+          >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             Analisar com IA
           </Button>
         </div>
+
 
         {proposta && (
           <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
@@ -196,3 +290,51 @@ function PreviewTable({ title, headers, rows }: { title: string; headers: string
     </div>
   );
 }
+
+function HistoricoVersoes() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["parametros_versoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parametros_versoes")
+        .select("id, canal, resumo, fontes, vigencia_inicio")
+        .order("vigencia_inicio", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-4 w-4" /> Histórico de vigências
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : !data?.length ? (
+          <p className="text-sm text-muted-foreground">Nenhuma atualização de regras registrada ainda.</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.map((v) => (
+              <li key={v.id} className="rounded-md border border-border p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium uppercase">{v.canal}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Vigente desde {new Date(v.vigencia_inicio).toLocaleString("pt-BR")}
+                  </span>
+                </div>
+                <p className="mt-1 text-muted-foreground">{v.resumo}</p>
+                {v.fontes && <p className="mt-1 text-xs text-muted-foreground">Fontes: {v.fontes}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+

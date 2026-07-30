@@ -310,6 +310,39 @@ export type Database = {
         }
         Relationships: []
       }
+      parametros_versoes: {
+        Row: {
+          aplicado_por: string
+          canal: Database["public"]["Enums"]["canal_venda"]
+          created_at: string
+          fontes: string
+          id: string
+          resumo: string
+          snapshot: Json
+          vigencia_inicio: string
+        }
+        Insert: {
+          aplicado_por: string
+          canal: Database["public"]["Enums"]["canal_venda"]
+          created_at?: string
+          fontes?: string
+          id?: string
+          resumo?: string
+          snapshot: Json
+          vigencia_inicio?: string
+        }
+        Update: {
+          aplicado_por?: string
+          canal?: Database["public"]["Enums"]["canal_venda"]
+          created_at?: string
+          fontes?: string
+          id?: string
+          resumo?: string
+          snapshot?: Json
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
