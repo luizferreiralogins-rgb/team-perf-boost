@@ -390,6 +390,16 @@ export function FormLoja({
     const { error } = editingId
       ? await supabase.from("vendas_loja").update(payload).eq("id", editingId)
       : await supabase.from("vendas_loja").insert(payload);
+    if (!error && editingId && precisaJustificar) {
+      await registrarReagendamento({
+        tabela: "vendas_loja",
+        vendaId: editingId,
+        vendedorId: uid,
+        dataAnterior: agendamentoOriginal,
+        dataNova: parsed.data.data_agendamento || null,
+        motivo: motivoReagendamento,
+      });
+    }
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
