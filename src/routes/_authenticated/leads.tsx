@@ -107,6 +107,8 @@ function useMe() {
 function LeadsPage() {
   const me = useMe();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [transferFor, setTransferFor] = useState<Lead | null>(null);
