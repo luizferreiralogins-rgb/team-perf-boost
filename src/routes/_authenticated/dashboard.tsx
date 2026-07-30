@@ -260,6 +260,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
             fator={fatorProj}
+            projecaoEm="rs"
           />
 
         </div>
@@ -355,12 +356,14 @@ function KpiCard({
   valor,
   icon: Icon,
   fator = 1,
+  projecaoEm = "qtd",
 }: {
   title: string;
   qtd: number | null;
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
+  projecaoEm?: "qtd" | "rs";
 }) {
   return (
     <Card>
@@ -384,13 +387,17 @@ function KpiCard({
         )}
         {qtd !== null && valor !== null && (
           <p className="pt-1 text-xs font-medium text-muted-foreground">
-            Projeção: {Math.round(qtd * fator)} · {brl(valor * fator)}
+            Projeção:{" "}
+            {projecaoEm === "qtd"
+              ? `${Math.round(qtd * fator)} vendas`
+              : brl(valor * fator)}
           </p>
         )}
       </CardContent>
     </Card>
   );
 }
+
 
 
 function ProdutividadeTime() {
