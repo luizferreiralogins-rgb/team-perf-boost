@@ -226,31 +226,54 @@ function Perfil() {
   );
 }
 
+function slugify(s: string) {
+  return (
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || `atalho-${Date.now()}`
+  );
+}
+
 function AtalhosConfig() {
   const qc = useQueryClient();
   const { data: atalhos, isLoading } = useAtalhos();
-  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [campos, setCampos] = useState<Record<string, { nome: string; url: string }>>({});
   const [saving, setSaving] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novaUrl, setNovaUrl] = useState("");
 
   useEffect(() => {
     if (atalhos) {
-      setUrls(Object.fromEntries(atalhos.map((a) => [a.id, a.url ?? ""])));
+      setCampos(
+        Object.fromEntries(atalhos.map((a) => [a.id, { nome: a.nome, url: a.url ?? "" }])),
+      );
     }
   }, [atalhos]);
+
+  function validarUrl(url: string, nome: string) {
+    if (url && !/^https?:\/\//i.test(url)) {
+      throw new Error(`O link de ${nome} deve começar com http:// ou https://`);
+    }
+  }
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
       for (const a of atalhos ?? []) {
-        const nova = (urls[a.id] ?? "").trim();
-        if (nova === (a.url ?? "")) continue;
-        if (nova && !/^https?:\/\//i.test(nova)) {
-          throw new Error(`O link de ${a.nome} deve começar com http:// ou https://`);
-        }
+        const c = campos[a.id];
+        if (!c) continue;
+        const nome = c.nome.trim();
+        const url = c.url.trim();
+        if (!nome) throw new Error("O nome do botão não pode ficar vazio.");
+        validarUrl(url, nome);
+        if (nome === a.nome && url === (a.url ?? "")) continue;
         const { error } = await supabase
           .from("atalhos_externos")
-          .update({ url: nova || null })
+          .update({ nome, url: url || null })
           .eq("id", a.id);
         if (error) throw error;
       }
@@ -263,35 +286,122 @@ function AtalhosConfig() {
     }
   }
 
+  async function adicionar() {
+    const nome = novoNome.trim();
+    const url = novaUrl.trim();
+    if (!nome) {
+      toast.error("Informe o nome do botão.");
+      return;
+    }
+    setSaving(true);
+    try {
+      validarUrl(url, nome);
+      const ordem = Math.max(0, ...(atalhos ?? []).map((a) => a.ordem)) + 1;
+      const { error } = await supabase.from("atalhos_externos").insert({
+        chave: slugify(nome),
+        nome,
+        url: url || null,
+        ordem,
+      });
+      if (error) throw error;
+      setNovoNome("");
+      setNovaUrl("");
+      toast.success("Atalho criado.");
+      qc.invalidateQueries({ queryKey: ["atalhos-externos"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao criar atalho.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function excluir(id: string, nome: string) {
+    if (!window.confirm(`Excluir o botão "${nome}"?`)) return;
+    const { error } = await supabase.from("atalhos_externos").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Atalho excluído.");
+    qc.invalidateQueries({ queryKey: ["atalhos-externos"] });
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Atalhos de sistemas externos</CardTitle>
         <CardDescription>
-          Configure os links dos botões exibidos no topo do sistema para toda a equipe.
+          Crie, edite ou exclua os botões exibidos no topo do sistema. Todos abrem em nova aba.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <form onSubmit={salvar} className="grid gap-4">
           {isLoading && <Skeleton className="h-24 w-full" />}
           {(atalhos ?? []).map((a) => (
-            <div key={a.id}>
-              <Label htmlFor={`atalho-${a.chave}`}>{a.nome}</Label>
-              <Input
-                id={`atalho-${a.chave}`}
-                type="url"
-                placeholder="https://..."
-                value={urls[a.id] ?? ""}
-                onChange={(e) => setUrls((p) => ({ ...p, [a.id]: e.target.value }))}
-              />
+            <div key={a.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+              <div>
+                <Label htmlFor={`nome-${a.id}`}>Nome</Label>
+                <Input
+                  id={`nome-${a.id}`}
+                  value={campos[a.id]?.nome ?? ""}
+                  onChange={(e) =>
+                    setCampos((p) => ({ ...p, [a.id]: { ...p[a.id], nome: e.target.value } }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`url-${a.id}`}>Link</Label>
+                <Input
+                  id={`url-${a.id}`}
+                  type="url"
+                  placeholder="https://..."
+                  value={campos[a.id]?.url ?? ""}
+                  onChange={(e) =>
+                    setCampos((p) => ({ ...p, [a.id]: { ...p[a.id], url: e.target.value } }))
+                  }
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => excluir(a.id, a.nome)}
+                disabled={saving}
+              >
+                Excluir
+              </Button>
             </div>
           ))}
           <div className="flex justify-end">
             <Button type="submit" disabled={saving || isLoading}>
-              {saving ? "Salvando..." : "Salvar atalhos"}
+              {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
           </div>
         </form>
+
+        <div className="grid gap-2 border-t pt-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+          <div>
+            <Label htmlFor="novo-atalho-nome">Novo botão</Label>
+            <Input
+              id="novo-atalho-nome"
+              placeholder="Nome do sistema"
+              value={novoNome}
+              onChange={(e) => setNovoNome(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="novo-atalho-url">Link</Label>
+            <Input
+              id="novo-atalho-url"
+              type="url"
+              placeholder="https://..."
+              value={novaUrl}
+              onChange={(e) => setNovaUrl(e.target.value)}
+            />
+          </div>
+          <Button type="button" onClick={adicionar} disabled={saving}>
+            Adicionar
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
