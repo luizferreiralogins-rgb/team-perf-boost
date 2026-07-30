@@ -135,6 +135,24 @@ function LeadsPage() {
     },
   });
 
+  const vendedorIds = Array.from(new Set((leadsQ.data ?? []).map((l) => l.vendedor_id)));
+  const vendedoresQ = useQuery({
+    queryKey: ["profiles-lead-vendedores", vendedorIds.join(",")],
+    queryFn: async () => {
+      if (!vendedorIds.length) return [] as { id: string; nome: string }[];
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", vendedorIds);
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: vendedorIds.length > 0,
+  });
+  const nomesVendedores = useMemo(() => {
+    const m: Record<string, string> = {};
+    (vendedoresQ.data ?? []).forEach((p) => (m[p.id] = p.nome));
+    return m;
+  }, [vendedoresQ.data]);
+
+
+
   const transfersQ = useQuery({
     queryKey: ["lead-transfers-inbox"],
     queryFn: async () => {
