@@ -116,6 +116,7 @@ function LeadsPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [transferFor, setTransferFor] = useState<Lead | null>(null);
+  const [detail, setDetail] = useState<Lead | null>(null);
 
   const isConsultor =
     !!me.data && me.data.roles.includes("consultor") &&
@@ -133,6 +134,24 @@ function LeadsPage() {
       return (data ?? []) as Lead[];
     },
   });
+
+  const vendedorIds = Array.from(new Set((leadsQ.data ?? []).map((l) => l.vendedor_id)));
+  const vendedoresQ = useQuery({
+    queryKey: ["profiles-lead-vendedores", vendedorIds.join(",")],
+    queryFn: async () => {
+      if (!vendedorIds.length) return [] as { id: string; nome: string }[];
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", vendedorIds);
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: vendedorIds.length > 0,
+  });
+  const nomesVendedores = useMemo(() => {
+    const m: Record<string, string> = {};
+    (vendedoresQ.data ?? []).forEach((p) => (m[p.id] = p.nome));
+    return m;
+  }, [vendedoresQ.data]);
+
+
 
   const transfersQ = useQuery({
     queryKey: ["lead-transfers-inbox"],
@@ -327,98 +346,22 @@ function LeadsPage() {
               }}
             >
               {grouped[col.key].map((lead) => (
-                <div
+                <button
                   key={lead.id}
+                  type="button"
                   draggable={isConsultor && lead.vendedor_id === me.data?.userId}
                   onDragStart={(e) => e.dataTransfer.setData("text/plain", lead.id)}
-                  className="cursor-grab rounded-lg border bg-background p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+                  onClick={() => setDetail(lead)}
+                  className="w-full cursor-pointer rounded-lg border bg-background p-3 text-left shadow-sm transition hover:shadow-md active:cursor-grabbing"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-medium">{lead.nome}</div>
-                    {lead.vendedor_id === me.data?.userId && (
-                      <div className="flex gap-1">
-                        <button
-                          className="rounded p-1 hover:bg-accent"
-                          onClick={() => setEditing(lead)}
-                          aria-label="Editar"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          className="rounded p-1 hover:bg-accent"
-                          onClick={() => setTransferFor(lead)}
-                          aria-label="Transferir"
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          className="rounded p-1 hover:bg-accent text-destructive"
-                          onClick={() => {
-                            if (confirm("Remover este lead?")) deleteMut.mutate(lead.id);
-                          }}
-                          aria-label="Excluir"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <div className="font-medium">{lead.nome}</div>
                   <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {lead.cidade && <div>{lead.cidade}</div>}
-                    {lead.produto_interesse && <div>Interesse: {lead.produto_interesse}</div>}
-                    {lead.whatsapp && (
-                      <div>
-                        WhatsApp: <WhatsAppLink numero={lead.whatsapp} />
-                      </div>
-                    )}
-                    {lead.fonte && <div>Fonte: {lead.fonte}</div>}
-                    {(lead.latitude != null || lead.localizacao) && (
-                      <a
-                        className="flex items-center gap-1 text-primary hover:underline"
-                        href={
-                          lead.latitude != null
-                            ? `https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`
-                            : `https://www.google.com/maps?q=${encodeURIComponent(lead.localizacao ?? "")}`
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <MapPin className="h-3 w-3" /> Localização
-                      </a>
-                    )}
+                    <div>{nomesVendedores[lead.vendedor_id] ?? "Consultor"}</div>
+                    {lead.produto_interesse && <div>{lead.produto_interesse}</div>}
                   </div>
-                  {isConsultor && lead.vendedor_id === me.data?.userId && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="mt-2 w-full"
-                      onClick={() =>
-                        navigate({
-                          to: "/vendas/nova",
-                          search: {
-                            lead_nome: lead.nome,
-                            lead_produto: lead.produto_interesse ?? undefined,
-                            lead_whatsapp: lead.whatsapp ?? undefined,
-                            lead_cidade: lead.cidade ?? undefined,
-                          },
-                        })
-                      }
-                    >
-                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
-                    </Button>
-                  )}
-                  {!["desistiu", "fechou", "nao_perturbar", "transferido"].includes(lead.status) && (
-                    <CadenciaLead
-                      leadId={lead.id}
-                      etapa={lead.etapa_contato ?? 0}
-                      proximoContatoEm={lead.proximo_contato_em}
-                      podeRegistrar={lead.vendedor_id === me.data?.userId}
-                      onRegistrado={() => qc.invalidateQueries({ queryKey: ["leads"] })}
-                    />
-                  )}
-                </div>
-
+                </button>
               ))}
+
               {grouped[col.key].length === 0 && (
                 <div className="py-8 text-center text-xs text-muted-foreground">Vazio</div>
               )}
@@ -447,6 +390,108 @@ function LeadsPage() {
         onClose={() => setEditing(null)}
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
+
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          {(() => {
+            const lead = (leadsQ.data ?? []).find((l) => l.id === detail?.id) ?? detail;
+            if (!lead) return null;
+            const meu = lead.vendedor_id === me.data?.userId;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{lead.nome}</DialogTitle>
+                  <DialogDescription>
+                    {nomesVendedores[lead.vendedor_id] ?? "Consultor"}
+                    {lead.produto_interesse ? ` · ${lead.produto_interesse}` : ""}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {lead.cidade && <div>Cidade: {lead.cidade}</div>}
+                  {lead.whatsapp && (
+                    <div>
+                      WhatsApp: <WhatsAppLink numero={lead.whatsapp} />
+                    </div>
+                  )}
+                  {lead.fonte && <div>Fonte: {lead.fonte}</div>}
+                  {lead.observacoes && <div className="whitespace-pre-wrap">Obs.: {lead.observacoes}</div>}
+                  {(lead.latitude != null || lead.localizacao) && (
+                    <a
+                      className="flex items-center gap-1 text-primary hover:underline"
+                      href={
+                        lead.latitude != null
+                          ? `https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`
+                          : `https://www.google.com/maps?q=${encodeURIComponent(lead.localizacao ?? "")}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MapPin className="h-3.5 w-3.5" /> Localização
+                    </a>
+                  )}
+                </div>
+
+                {meu && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setDetail(null); setEditing(lead); }}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setDetail(null); setTransferFor(lead); }}>
+                      <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Transferir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive"
+                      onClick={() => {
+                        if (confirm("Remover este lead?")) {
+                          deleteMut.mutate(lead.id);
+                          setDetail(null);
+                        }
+                      }}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir
+                    </Button>
+                  </div>
+                )}
+
+                {isConsultor && meu && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() =>
+                      navigate({
+                        to: "/vendas/nova",
+                        search: {
+                          lead_nome: lead.nome,
+                          lead_produto: lead.produto_interesse ?? undefined,
+                          lead_whatsapp: lead.whatsapp ?? undefined,
+                          lead_cidade: lead.cidade ?? undefined,
+                        },
+                      })
+                    }
+                  >
+                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
+                  </Button>
+                )}
+
+                {!["desistiu", "fechou", "nao_perturbar", "transferido"].includes(lead.status) && (
+                  <CadenciaLead
+                    leadId={lead.id}
+                    etapa={lead.etapa_contato ?? 0}
+                    proximoContatoEm={lead.proximo_contato_em}
+                    podeRegistrar={meu}
+                    onRegistrado={() => qc.invalidateQueries({ queryKey: ["leads"] })}
+                  />
+                )}
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
 
       <TransferDialog
         lead={transferFor}
