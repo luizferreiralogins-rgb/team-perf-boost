@@ -1,9 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, ArrowRightLeft, Check, X, Users, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  ArrowRightLeft,
+  Check,
+  X,
+  Users,
+  Pencil,
+  Trash2,
+  MapPin,
+  ShoppingCart,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -349,10 +360,44 @@ function LeadsPage() {
                     {lead.cidade && <div>{lead.cidade}</div>}
                     {lead.produto_interesse && <div>Interesse: {lead.produto_interesse}</div>}
                     {lead.whatsapp && <div>WhatsApp: {lead.whatsapp}</div>}
-                    {lead.email && <div className="truncate">{lead.email}</div>}
                     {lead.fonte && <div>Fonte: {lead.fonte}</div>}
+                    {(lead.latitude != null || lead.localizacao) && (
+                      <a
+                        className="flex items-center gap-1 text-primary hover:underline"
+                        href={
+                          lead.latitude != null
+                            ? `https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`
+                            : `https://www.google.com/maps?q=${encodeURIComponent(lead.localizacao ?? "")}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <MapPin className="h-3 w-3" /> Localização
+                      </a>
+                    )}
                   </div>
+                  {isConsultor && lead.vendedor_id === me.data?.userId && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-2 w-full"
+                      onClick={() =>
+                        navigate({
+                          to: "/vendas/nova",
+                          search: {
+                            lead_nome: lead.nome,
+                            lead_produto: lead.produto_interesse ?? undefined,
+                            lead_whatsapp: lead.whatsapp ?? undefined,
+                            lead_cidade: lead.cidade ?? undefined,
+                          },
+                        })
+                      }
+                    >
+                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Transformar em venda
+                    </Button>
+                  )}
                 </div>
+
               ))}
               {grouped[col.key].length === 0 && (
                 <div className="py-8 text-center text-xs text-muted-foreground">Vazio</div>
