@@ -700,6 +700,15 @@ export function FormPap({
                 required
               />
             </Field>
+            <Field label="Qtd. linhas móveis" hint="Informe 0 se não houver linha móvel.">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.qtd_linhas}
+                onChange={(e) => setForm({ ...form, qtd_linhas: e.target.value })}
+              />
+            </Field>
             <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
               <Select
                 value={form.instalado ? "sim" : "nao"}
