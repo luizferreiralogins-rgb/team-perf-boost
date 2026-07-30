@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      atalhos_externos: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       lead_transferencias: {
         Row: {
           created_at: string
