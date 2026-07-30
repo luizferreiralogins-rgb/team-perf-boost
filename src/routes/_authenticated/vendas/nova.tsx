@@ -38,7 +38,14 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
       { name: "description", content: "Registre uma nova venda Unifique (Loja ou PAP)." },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    lead_nome: typeof search.lead_nome === "string" ? search.lead_nome : undefined,
+    lead_produto: typeof search.lead_produto === "string" ? search.lead_produto : undefined,
+    lead_whatsapp: typeof search.lead_whatsapp === "string" ? search.lead_whatsapp : undefined,
+    lead_cidade: typeof search.lead_cidade === "string" ? search.lead_cidade : undefined,
+  }),
   beforeLoad: async () => {
+
     const { redirect } = await import("@tanstack/react-router");
     const { data: sess } = await supabase.auth.getUser();
     const uid = sess.user?.id;
