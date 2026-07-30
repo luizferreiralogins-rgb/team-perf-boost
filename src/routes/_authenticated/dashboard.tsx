@@ -14,6 +14,7 @@ import {
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
+import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -55,6 +56,7 @@ function Dashboard() {
   const isGestor = roleInfo?.isGestor ?? false;
   const role = roleInfo?.role ?? "consultor";
 
+  const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
   const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
   const { data: membros } = useEquipe(roleInfo?.uid, isGestor ? role : undefined);
   const escopoIds = useMemo(
@@ -196,6 +198,7 @@ function Dashboard() {
           title="Não instaladas"
           value={isLoading ? null : String(data?.naoInstaladas ?? 0)}
           icon={Clock}
+          onClick={() => setVerNaoInstaladas(true)}
         />
         <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
         <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
@@ -234,6 +237,20 @@ function Dashboard() {
 
       {isGestor && <ProdutividadeTime />}
 
+      <NaoInstaladasDialog
+        open={verNaoInstaladas}
+        onOpenChange={setVerNaoInstaladas}
+        isGestor={isGestor}
+        uid={roleInfo?.uid}
+        canalConsultor={data?.canal}
+        escopoIds={escopoIds}
+        mesRefISO={
+          isGestor
+            ? `${filtros.mes}-01`
+            : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`
+        }
+      />
+
 
       {!isGestor && (
         <Card>
@@ -255,13 +272,26 @@ function StatCard({
   title,
   value,
   icon: Icon,
+  onClick,
 }: {
   title: string;
   value: string | null;
   icon: React.ComponentType<{ className?: string }>;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={onClick ? "cursor-pointer transition-colors hover:border-primary/50 hover:bg-accent/40" : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-primary" />
