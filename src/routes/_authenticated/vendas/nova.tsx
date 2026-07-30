@@ -556,7 +556,16 @@ export function FormLoja({
               onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
             />
           </Field>
+          {precisaJustificar && (
+            <MotivoReagendamentoField
+              value={motivoReagendamento}
+              onChange={setMotivoReagendamento}
+              dataAnterior={agendamentoOriginal}
+              dataNova={form.data_agendamento}
+            />
+          )}
           <div className="flex justify-end gap-2 pt-2">
+
             <Button type="button" variant="outline" asChild>
               <Link to="/vendas">Cancelar</Link>
             </Button>
