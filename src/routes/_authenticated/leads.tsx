@@ -123,6 +123,7 @@ function LeadsPage() {
   const leadsQ = useQuery({
     queryKey: ["leads"],
     queryFn: async () => {
+      await supabase.rpc("expirar_leads_sem_contato");
       const { data, error } = await supabase
         .from("leads")
         .select("*")
