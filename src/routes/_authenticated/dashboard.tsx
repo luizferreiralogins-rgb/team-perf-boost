@@ -218,7 +218,12 @@ function Dashboard() {
         </div>
       </div>
 
+      {isGestor && membros && (
+        <RankingEquipe role={role} membros={membros} filtros={filtros} />
+      )}
+
       {isGestor && <ProdutividadeTime />}
+
 
       {!isGestor && (
         <Card>
