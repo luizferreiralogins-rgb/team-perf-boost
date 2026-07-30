@@ -107,6 +107,7 @@ function useMe() {
       return {
         uid,
         isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin"),
+        isRegional: list.some((r) => r === "regional" || r === "admin"),
       };
     },
     staleTime: 60_000,
@@ -117,10 +118,12 @@ function HistoricoPage() {
   const meQ = useMe();
   const qc = useQueryClient();
   const isGestor = !!meQ.data?.isGestor;
+  const isRegional = !!meQ.data?.isRegional;
 
   const [de, setDe] = useState(firstDayOfMonth());
   const [ate, setAte] = useState(todayStr());
   const [canal, setCanal] = useState<"todos" | Canal>("todos");
+  const [gerente, setGerente] = useState<string>("todos");
   const [vendedor, setVendedor] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
@@ -131,10 +134,35 @@ function HistoricoPage() {
     enabled: !!meQ.data,
     queryKey: ["historico-pessoas", meQ.data?.uid],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, canal").order("nome");
-      return (data ?? []) as { id: string; nome: string; canal: Canal }[];
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, nome, canal, gerente_id")
+        .order("nome");
+      return (data ?? []) as {
+        id: string;
+        nome: string;
+        canal: Canal;
+        gerente_id: string | null;
+      }[];
     },
   });
+
+  const gerentes = useMemo(() => {
+    const pessoas = pessoasQ.data ?? [];
+    const ids = new Set(pessoas.map((p) => p.gerente_id).filter(Boolean) as string[]);
+    return pessoas.filter((p) => ids.has(p.id));
+  }, [pessoasQ.data]);
+
+  const consultoresFiltrados = useMemo(() => {
+    const pessoas = pessoasQ.data ?? [];
+    if (!isRegional || gerente === "todos") return pessoas;
+    return pessoas.filter((p) => p.gerente_id === gerente || p.id === gerente);
+  }, [pessoasQ.data, gerente, isRegional]);
+
+  const idsDoGerente = useMemo(() => {
+    if (!isRegional || gerente === "todos") return null;
+    return consultoresFiltrados.map((p) => p.id);
+  }, [consultoresFiltrados, gerente, isRegional]);
 
   const nomePorId = useMemo(() => {
     const m: Record<string, string> = {};
@@ -144,10 +172,11 @@ function HistoricoPage() {
 
   const registrosQ = useQuery({
     enabled: !!meQ.data,
-    queryKey: ["historico", meQ.data?.uid, de, ate, canal, vendedor],
+    queryKey: ["historico", meQ.data?.uid, de, ate, canal, vendedor, gerente, idsDoGerente],
     queryFn: async (): Promise<Registro[]> => {
       const uid = meQ.data!.uid;
       const alvo = isGestor ? (vendedor === "todos" ? null : vendedor) : uid;
+      const equipe = !alvo && idsDoGerente ? idsDoGerente : null;
 
       const out: Registro[] = [];
 
@@ -163,6 +192,7 @@ function HistoricoPage() {
           .lte("data_ativacao", ate)
           .order("data_ativacao", { ascending: false });
         if (alvo) q = q.eq("vendedor_id", alvo);
+        else if (equipe) q = q.in("vendedor_id", equipe.length ? equipe : ["00000000-0000-0000-0000-000000000000"]);
         const { data, error } = await q;
         if (error) throw error;
         (data ?? []).forEach((v) =>
@@ -193,6 +223,7 @@ function HistoricoPage() {
           .lte("data_ativacao", ate)
           .order("data_ativacao", { ascending: false });
         if (alvo) q = q.eq("vendedor_id", alvo);
+        else if (equipe) q = q.in("vendedor_id", equipe.length ? equipe : ["00000000-0000-0000-0000-000000000000"]);
         const { data, error } = await q;
         if (error) throw error;
         (data ?? []).forEach((v) =>
@@ -263,7 +294,7 @@ function HistoricoPage() {
         <CardHeader>
           <CardTitle className="text-base">Filtros</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
           <div className="space-y-1.5">
             <Label htmlFor="de">Instalação de</Label>
             <Input id="de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
@@ -285,6 +316,30 @@ function HistoricoPage() {
               </SelectContent>
             </Select>
           </div>
+          {isRegional && (
+            <div className="space-y-1.5">
+              <Label>Gerente</Label>
+              <Select
+                value={gerente}
+                onValueChange={(v) => {
+                  setGerente(v);
+                  setVendedor("todos");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os gerentes</SelectItem>
+                  {gerentes.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {isGestor && (
             <div className="space-y-1.5">
               <Label>Consultor</Label>
@@ -294,7 +349,7 @@ function HistoricoPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todo o time</SelectItem>
-                  {(pessoasQ.data ?? []).map((p) => (
+                  {consultoresFiltrados.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.nome}
                     </SelectItem>
