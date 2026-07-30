@@ -114,6 +114,10 @@ function Dashboard() {
 
       const total = vendas.length;
       const instaladas = vendas.filter((v) => v.status === "instalado").length;
+      const naoInstaladas = vendas.filter(
+        (v) => v.status !== "instalado" && v.status !== "cancelado",
+      ).length;
+
       const receita = vendas.reduce((s, v) => s + v.valor, 0);
       const comissao = vendas.reduce((s, v) => s + v.comissao, 0);
 
