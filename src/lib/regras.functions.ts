@@ -146,13 +146,31 @@ export const analisarCircular = createServerFn({ method: "POST" })
 
     const isLoja = data.tipo === "loja";
     const schema = isLoja ? SCHEMA_LOJA : SCHEMA_PAP;
-    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique. Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia com atenção tabelas em imagens.\n\n`;
+    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique (documento "DC-MER-008 — Diretriz Consultor de Vendas" e circulares equivalentes). Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia célula a célula as tabelas, inclusive as que estão em imagens/prints, e não invente linhas.\n\n`;
     const instrucao = isLoja
       ? `${preambulo}Trata-se do comissionamento de LOJA. Extraia:
 - A tabela de comissão por diferença de ticket (Valor Novo - Valor Antigo) com 4 colunas de faixa efetiva (0,1,2,3), em Reais por protocolo.
 - As metas para atingir cada faixa efetiva (1, 2 e 3): meta de receita mensal (R$) e meta de renovações com móvel (percentual decimal).
 Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
-      : `${preambulo}Trata-se do comissionamento de PAP. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+      : `${preambulo}Trata-se do comissionamento de PAP (Consultor de Vendas porta a porta).
+Localize o anexo "8.1 TABELA DE COMISSIONAMENTO" (cabeçalho "METAS"), que tem exatamente estas colunas:
+"Faixa de Ativações Mensal" | "De" | "Até" | "% Comissão Ativações" | "Meta de Índice Máximo de Cancelamentos (D+5)" | "Acelerador por Baixo Índice de Cancelamento" | "Bonus de Venda Indireta".
+
+Mapeie cada linha para um item de faixas_pap, na ordem da tabela:
+- faixa: número da faixa (1, 2, 3, ...);
+- receita_de = coluna "De" e receita_ate = coluna "Até" (valores em R$, números puros; use 999999999 quando a coluna "Até" for "∞", "acima" ou vazia na última faixa);
+- pct_comissao = "% Comissão Ativações" em decimal (28% => 0.28);
+- meta_max_cancel = "Meta de Índice Máximo de Cancelamentos (D+5)" em decimal (8% => 0.08);
+- acelerador_baixo_cancel = "Acelerador por Baixo Índice de Cancelamento" em decimal (5% => 0.05);
+- bonus_venda_indireta = "Bonus de Venda Indireta" em decimal (14,00% => 0.14).
+
+Regras obrigatórias:
+- Extraia TODAS as linhas da tabela (normalmente 11 faixas), sem pular nenhuma;
+- Use vírgula decimal brasileira corretamente (R$1.500,01 => 1500.01; 2,50% => 0.025);
+- Não converta percentuais em Reais nem o contrário;
+- Se a leitura de uma célula estiver ambígua, use a coerência da tabela (os percentuais crescem conforme a faixa) para decidir;
+- Não deixe nenhum campo vazio: quando a coluna repete o mesmo valor em todas as linhas (ex.: 8% e 5%), replique em todas as faixas.`;
+
 
 
     type Bloco =
