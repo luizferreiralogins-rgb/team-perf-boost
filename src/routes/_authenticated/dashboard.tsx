@@ -76,6 +76,12 @@ function Dashboard() {
     () => (membros ? aplicarFiltros(membros, filtros, role).map((m) => m.id) : []),
     [membros, filtros, role],
   );
+  const fatorProj = useMemo(
+    () => fatorProjecao(isGestor ? filtros.mes : mesAtual()),
+    [isGestor, filtros.mes],
+  );
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(",")],
