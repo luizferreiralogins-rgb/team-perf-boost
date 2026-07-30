@@ -38,7 +38,7 @@ export function AgendamentosVencidos({
     queryKey: ["agendamentos-vencidos", ids.join(",")],
     queryFn: async (): Promise<Item[]> => {
       const limite = hoje();
-      const abertos = ["pendente", "em_analise"];
+      const abertos = ["pendente", "em_analise"] as const;
 
       const [loja, pap] = await Promise.all([
         supabase
