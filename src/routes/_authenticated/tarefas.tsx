@@ -488,6 +488,7 @@ function NovaTarefa({
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={TODOS}>Todos os usuários</SelectItem>
                   {pessoas.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.nome || p.email}
