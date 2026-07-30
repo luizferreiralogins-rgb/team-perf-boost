@@ -69,7 +69,7 @@ function TopBar({ onMenu, nome }: { onMenu: () => void; nome: string }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur md:px-8">
+    <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-3 border-b border-border bg-background/80 px-4 py-2 backdrop-blur md:px-8">
       <button
         onClick={onMenu}
         className="lg:hidden -ml-2 grid h-9 w-9 place-items-center rounded-md hover:bg-accent"
@@ -77,7 +77,9 @@ function TopBar({ onMenu, nome }: { onMenu: () => void; nome: string }) {
       >
         <Menu className="h-5 w-5" />
       </button>
+      <AtalhosExternos />
       <div className="ml-auto flex items-center gap-3">
+
         <span className="hidden text-sm text-muted-foreground md:inline">
           Olá, <span className="font-medium text-foreground">{nome || "Consultor"}</span>
         </span>
