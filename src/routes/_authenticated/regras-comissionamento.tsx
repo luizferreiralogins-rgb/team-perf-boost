@@ -290,3 +290,51 @@ function PreviewTable({ title, headers, rows }: { title: string; headers: string
     </div>
   );
 }
+
+function HistoricoVersoes() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["parametros_versoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parametros_versoes")
+        .select("id, canal, resumo, fontes, vigencia_inicio")
+        .order("vigencia_inicio", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-4 w-4" /> Histórico de vigências
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : !data?.length ? (
+          <p className="text-sm text-muted-foreground">Nenhuma atualização de regras registrada ainda.</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.map((v) => (
+              <li key={v.id} className="rounded-md border border-border p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium uppercase">{v.canal}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Vigente desde {new Date(v.vigencia_inicio).toLocaleString("pt-BR")}
+                  </span>
+                </div>
+                <p className="mt-1 text-muted-foreground">{v.resumo}</p>
+                {v.fontes && <p className="mt-1 text-xs text-muted-foreground">Fontes: {v.fontes}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
