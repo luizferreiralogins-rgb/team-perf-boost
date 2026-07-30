@@ -451,10 +451,15 @@ function ProdutividadeTime() {
     },
   });
 
+  const diasDecorridos = Math.max(1, hoje.getDate());
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Produtividade do time — mês atual</CardTitle>
+        <CardDescription>
+          Total do mês e média diária (dividida pelos {diasDecorridos} dias decorridos).
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading && <Skeleton className="h-24 w-full" />}
@@ -467,7 +472,12 @@ function ProdutividadeTime() {
             <span className="ml-auto text-xs text-muted-foreground">
               {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
             </span>
-            <span className="w-10 text-right text-lg font-bold">{l.total}</span>
+            <span className="w-20 text-right">
+              <span className="block text-lg font-bold leading-none">{l.total}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {(l.total / diasDecorridos).toFixed(1)}/dia
+              </span>
+            </span>
           </div>
         ))}
       </CardContent>
