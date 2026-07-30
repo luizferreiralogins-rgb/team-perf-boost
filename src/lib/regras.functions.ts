@@ -146,12 +146,14 @@ export const analisarCircular = createServerFn({ method: "POST" })
 
     const isLoja = data.tipo === "loja";
     const schema = isLoja ? SCHEMA_LOJA : SCHEMA_PAP;
+    const preambulo = `Você recebe MÚLTIPLAS fontes (PDFs, fotos/prints de tabelas e texto digitado) descrevendo as regras de comissionamento da Unifique. Considere TODAS as fontes em conjunto; quando houver conflito, prevaleça a informação mais específica e mais recente. Leia com atenção tabelas em imagens.\n\n`;
     const instrucao = isLoja
-      ? `Você recebe a Circular de Comissionamento de LOJA da Unifique. Extraia:
+      ? `${preambulo}Trata-se do comissionamento de LOJA. Extraia:
 - A tabela de comissão por diferença de ticket (Valor Novo - Valor Antigo) com 4 colunas de faixa efetiva (0,1,2,3), em Reais por protocolo.
 - As metas para atingir cada faixa efetiva (1, 2 e 3): meta de receita mensal (R$) e meta de renovações com móvel (percentual decimal).
 Retorne números puros (sem "R$" ou "%"). Percentuais como decimais.`
-      : `Você recebe a Circular de Comissionamento de PAP da Unifique. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+      : `${preambulo}Trata-se do comissionamento de PAP. Extraia a tabela de faixas de receita de ativação com percentual de comissão, meta máxima de cancelamento, acelerador para baixo cancelamento e bônus de venda indireta. Percentuais como decimais.`;
+
 
     type Bloco =
       | { type: "text"; text: string }
