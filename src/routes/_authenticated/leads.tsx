@@ -442,11 +442,13 @@ function LeadsPage() {
 function LeadFormDialog({
   open,
   lead,
+  isPap,
   onClose,
   onSaved,
 }: {
   open: boolean;
   lead?: Lead;
+  isPap?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -454,16 +456,19 @@ function LeadFormDialog({
     nome: "",
     cidade: "",
     fonte: "",
-    email: "",
     whatsapp: "",
     produto_interesse: "",
     status: "contato_feito" as LeadStatus,
     observacoes: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
+    localizacao: "" as string,
   });
   const [duplicates, setDuplicates] = useState<
     { lead_id: string; vendedor_id: string; vendedor_nome: string; nome: string }[]
   >([]);
   const [saving, setSaving] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   // reset when opening
   useMemo(() => {
@@ -472,29 +477,60 @@ function LeadFormDialog({
         nome: lead?.nome ?? "",
         cidade: lead?.cidade ?? "",
         fonte: lead?.fonte ?? "",
-        email: lead?.email ?? "",
         whatsapp: lead?.whatsapp ?? "",
         produto_interesse: lead?.produto_interesse ?? "",
         status: lead?.status ?? "contato_feito",
         observacoes: lead?.observacoes ?? "",
+        latitude: lead?.latitude ?? null,
+        longitude: lead?.longitude ?? null,
+        localizacao: lead?.localizacao ?? "",
       });
       setDuplicates([]);
     }
   }, [open, lead]);
 
+  const capturarLocalizacao = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocalização não suportada neste dispositivo.");
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setForm((f) => ({
+          ...f,
+          latitude: lat,
+          longitude: lng,
+          localizacao: `${lat}, ${lng}`,
+        }));
+        setGeoLoading(false);
+        toast.success("Localização capturada.");
+      },
+      (err) => {
+        setGeoLoading(false);
+        toast.error(err.message || "Não foi possível obter a localização.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
   const checkDup = async () => {
     if (lead) return; // só na criação
-    if (!form.email && !form.whatsapp) {
+    if (!form.whatsapp) {
       setDuplicates([]);
       return;
     }
     const { data } = await supabase.rpc("buscar_lead_duplicado", {
-      _email: form.email || "",
+      _email: "",
       _whatsapp: form.whatsapp || "",
     });
 
     setDuplicates((data ?? []) as any);
   };
+
+
 
   const submit = async () => {
     if (!form.nome.trim()) {
