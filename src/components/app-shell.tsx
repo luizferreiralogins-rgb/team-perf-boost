@@ -119,6 +119,7 @@ function Sidebar({
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor },
+    { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
     { to: "/chat", label: "Chat Telegram", icon: MessageCircle, show: true },
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
