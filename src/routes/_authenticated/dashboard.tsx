@@ -31,6 +31,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Fator de projeção: dias totais do mês / dias decorridos (1 se mês passado/futuro). */
+function fatorProjecao(mesISO: string) {
+  const [y, m] = mesISO.split("-").map(Number);
+  const hoje = new Date();
+  const diasTotais = new Date(y, m, 0).getDate();
+  if (y !== hoje.getFullYear() || m !== hoje.getMonth() + 1) return 1;
+  const diasAtuais = Math.max(1, hoje.getDate());
+  return diasTotais / diasAtuais;
+}
+
+
 function Dashboard() {
   const { data: roleInfo } = useQuery({
     queryKey: ["me-roles"],
@@ -65,6 +76,12 @@ function Dashboard() {
     () => (membros ? aplicarFiltros(membros, filtros, role).map((m) => m.id) : []),
     [membros, filtros, role],
   );
+  const fatorProj = useMemo(
+    () => fatorProjecao(isGestor ? filtros.mes : mesAtual()),
+    [isGestor, filtros.mes],
+  );
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(",")],
@@ -209,7 +226,12 @@ function Dashboard() {
           onClick={() => setVerNaoInstaladas(true)}
         />
         <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
-        <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
+        <StatCard
+          title="Comissão estimada"
+          value={isLoading ? null : brl(data?.comissao ?? 0)}
+          icon={Target}
+          projecao={isLoading ? null : `Projeção: ${brl((data?.comissao ?? 0) * fatorProj)}`}
+        />
       </div>
 
 
@@ -223,19 +245,23 @@ function Dashboard() {
             qtd={isLoading ? null : data?.blQtd ?? 0}
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
+            fator={fatorProj}
           />
           <KpiCard
             title="Móvel"
             qtd={isLoading ? null : data?.mvQtd ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
+            fator={fatorProj}
           />
           <KpiCard
             title="Renovações"
             qtd={isLoading ? null : data?.rvQtd ?? 0}
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
+            fator={fatorProj}
           />
+
         </div>
       </div>
 
@@ -283,11 +309,13 @@ function StatCard({
   value,
   icon: Icon,
   onClick,
+  projecao,
 }: {
   title: string;
   value: string | null;
   icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
+  projecao?: string | null;
 }) {
   return (
     <Card
@@ -308,21 +336,31 @@ function StatCard({
       </CardHeader>
       <CardContent>
         {value === null ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">{value}</div>}
+        {projecao !== undefined && (
+          projecao === null ? (
+            <Skeleton className="mt-2 h-4 w-28" />
+          ) : (
+            <p className="mt-2 text-xs font-medium text-muted-foreground">{projecao}</p>
+          )
+        )}
       </CardContent>
     </Card>
   );
 }
+
 
 function KpiCard({
   title,
   qtd,
   valor,
   icon: Icon,
+  fator = 1,
 }: {
   title: string;
   qtd: number | null;
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
+  fator?: number;
 }) {
   return (
     <Card>
@@ -341,13 +379,19 @@ function KpiCard({
           <Skeleton className="mt-2 h-5 w-24" />
         ) : (
           <div className="pt-1 text-sm font-semibold text-primary">
-            {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            {brl(valor)}
           </div>
+        )}
+        {qtd !== null && valor !== null && (
+          <p className="pt-1 text-xs font-medium text-muted-foreground">
+            Projeção: {Math.round(qtd * fator)} · {brl(valor * fator)}
+          </p>
         )}
       </CardContent>
     </Card>
   );
 }
+
 
 function ProdutividadeTime() {
   const hoje = new Date();
