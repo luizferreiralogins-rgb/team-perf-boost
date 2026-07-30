@@ -640,6 +640,10 @@ export type Database = {
         Args: { _manager: string; _target: string }
         Returns: boolean
       }
+      transferir_venda: {
+        Args: { _para: string; _tabela: string; _venda_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "consultor" | "gerente" | "regional" | "admin"
