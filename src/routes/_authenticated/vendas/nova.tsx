@@ -550,7 +550,7 @@ export function FormPap({
       comissao,
     };
     const { error } = editingId
-      ? await supabase.from("vendas_pap").update(payload).eq("id", editingId).eq("vendedor_id", uid)
+      ? await supabase.from("vendas_pap").update(payload).eq("id", editingId)
       : await supabase.from("vendas_pap").insert(payload);
     setLoading(false);
     if (error) {
@@ -558,7 +558,8 @@ export function FormPap({
       return;
     }
     toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
-    navigate({ to: "/vendas" });
+    navigate({ to: editingId ? "/historico" : "/vendas" });
+
   }
 
   return (
