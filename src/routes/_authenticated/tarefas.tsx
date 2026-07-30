@@ -102,15 +102,13 @@ function TarefasPage() {
   const pessoas = useQuery({
     queryKey: ["tarefas-pessoas"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, nome, email")
-        .order("nome");
+      const { data, error } = await supabase.rpc("listar_usuarios_tarefas");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((p) => ({ id: p.id, nome: p.nome, email: null as string | null }));
     },
     staleTime: 60_000,
   });
+
 
   const tarefas = useQuery({
     queryKey: ["tarefas"],
