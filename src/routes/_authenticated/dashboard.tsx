@@ -309,11 +309,13 @@ function StatCard({
   value,
   icon: Icon,
   onClick,
+  projecao,
 }: {
   title: string;
   value: string | null;
   icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
+  projecao?: string | null;
 }) {
   return (
     <Card
@@ -334,10 +336,18 @@ function StatCard({
       </CardHeader>
       <CardContent>
         {value === null ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">{value}</div>}
+        {projecao !== undefined && (
+          projecao === null ? (
+            <Skeleton className="mt-2 h-4 w-28" />
+          ) : (
+            <p className="mt-2 text-xs font-medium text-muted-foreground">{projecao}</p>
+          )
+        )}
       </CardContent>
     </Card>
   );
 }
+
 
 function KpiCard({
   title,
