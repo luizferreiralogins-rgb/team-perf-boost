@@ -238,6 +238,8 @@ function Dashboard() {
         </div>
       </div>
 
+      <LeadsResumo isGestor={isGestor} uid={roleInfo?.uid} escopoIds={escopoIds} />
+
       {isGestor && membros && (
         <RankingEquipe role={role} membros={membros} filtros={filtros} />
       )}
