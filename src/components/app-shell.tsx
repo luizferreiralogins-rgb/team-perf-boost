@@ -121,7 +121,13 @@ function Sidebar({
   const isConsultor = roles.includes("consultor") && !isGestor;
   const alertas = useAlertas().data;
   const items = [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
+    {
+      to: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      show: true,
+      badge: isGestor ? alertas?.vendas : undefined,
+    },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor },
