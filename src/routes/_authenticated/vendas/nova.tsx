@@ -163,6 +163,52 @@ const papSchema = z.object({
 
 function NovaVenda() {
   const canalQ = useCanal();
+  const search = Route.useSearch();
+
+  const veioDeLead = !!(search.lead_nome || search.lead_produto || search.lead_whatsapp);
+  const obsLead = [
+    search.lead_whatsapp ? `WhatsApp: ${search.lead_whatsapp}` : "",
+    search.lead_cidade ? `Cidade: ${search.lead_cidade}` : "",
+    search.lead_produto ? `Interesse: ${search.lead_produto}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  const initialLoja: FormLojaState | undefined = veioDeLead
+    ? {
+        protocolo: "",
+        nome_cliente: search.lead_nome ?? "",
+        cpf_cnpj: "",
+        observacoes: obsLead ? `Origem: Lead. ${obsLead}` : "",
+        data_abertura: today(),
+        data_ativacao: "",
+        classe_protocolo: "Novo Acesso",
+        tecnologia: "01.04 - Internet - Banda Larga - Fibra",
+        contem_movel: false,
+        qtd_linhas: "0",
+        valor_novo: "",
+        valor_antigo: "",
+        instalado: false,
+      }
+    : undefined;
+
+  const produtoPap = PRODUTOS_PAP.find(
+    (p) => p.toLowerCase() === (search.lead_produto ?? "").trim().toLowerCase(),
+  );
+
+  const initialPap: FormPapState | undefined = veioDeLead
+    ? {
+        protocolo: "",
+        tipo_protocolo: "Novo Acesso",
+        nome_cliente: search.lead_nome ?? "",
+        produto: produtoPap ?? "Banda Larga",
+        data: today(),
+        data_instalacao: "",
+        valor: "",
+        instalado: false,
+      }
+    : undefined;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
@@ -173,7 +219,9 @@ function NovaVenda() {
         </Button>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Nova venda</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Preencha os dados abaixo. A comissão só é contabilizada quando marcado como Instalado.
+          {veioDeLead
+            ? "Dados do lead carregados automaticamente. Complete as demais informações."
+            : "Preencha os dados abaixo. A comissão só é contabilizada quando marcado como Instalado."}
         </p>
       </div>
       {canalQ.isLoading ? (
@@ -181,13 +229,14 @@ function NovaVenda() {
           <CardContent className="p-8 text-sm text-muted-foreground">Carregando...</CardContent>
         </Card>
       ) : canalQ.data === "pap" ? (
-        <FormPap />
+        <FormPap initial={initialPap} />
       ) : (
-        <FormLoja />
+        <FormLoja initial={initialLoja} />
       )}
     </div>
   );
 }
+
 
 export type FormLojaState = {
   protocolo: string;
