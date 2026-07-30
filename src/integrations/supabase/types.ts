@@ -461,6 +461,30 @@ export type Database = {
         }
         Relationships: []
       }
+      parametros_pap_novos_produtos: {
+        Row: {
+          codigo: string
+          limitado: boolean
+          limite: number
+          nome: string
+          percentual: number
+        }
+        Insert: {
+          codigo: string
+          limitado?: boolean
+          limite?: number
+          nome: string
+          percentual?: number
+        }
+        Update: {
+          codigo?: string
+          limitado?: boolean
+          limite?: number
+          nome?: string
+          percentual?: number
+        }
+        Relationships: []
+      }
       parametros_versoes: {
         Row: {
           aplicado_por: string
@@ -819,6 +843,7 @@ export type Database = {
         Args: { _consultant: string; _manager: string }
         Returns: boolean
       }
+      is_gestor_regras: { Args: { _uid: string }; Returns: boolean }
       listar_destinatarios_venda: {
         Args: never
         Returns: {
