@@ -545,12 +545,15 @@ function LeadFormDialog({
         nome: form.nome.trim(),
         cidade: form.cidade.trim() || null,
         fonte: form.fonte.trim() || null,
-        email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         produto_interesse: form.produto_interesse.trim() || null,
         status: form.status,
         observacoes: form.observacoes.trim() || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        localizacao: form.localizacao.trim() || null,
       };
+
       if (lead) {
         const { error } = await supabase.from("leads").update(payload).eq("id", lead.id);
         if (error) throw error;
@@ -591,7 +594,7 @@ function LeadFormDialog({
         <DialogHeader>
           <DialogTitle>{lead ? "Editar lead" : "Novo lead"}</DialogTitle>
           <DialogDescription>
-            Cadastro simples para gestão no CRM. Ao informar e-mail ou WhatsApp, verificamos se outro
+            Cadastro simples para gestão no CRM. Ao informar o WhatsApp, verificamos se outro
             consultor já cadastrou.
           </DialogDescription>
         </DialogHeader>
@@ -614,25 +617,41 @@ function LeadFormDialog({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>E-mail</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                onBlur={checkDup}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>WhatsApp</Label>
-              <Input
-                value={form.whatsapp}
-                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                onBlur={checkDup}
-              />
-            </div>
+          <div className="grid gap-1.5">
+            <Label>WhatsApp</Label>
+            <Input
+              value={form.whatsapp}
+              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+              onBlur={checkDup}
+            />
           </div>
+          {isPap && (
+            <div className="grid gap-1.5">
+              <Label>Localização (opcional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nenhuma localização registrada"
+                  value={form.localizacao}
+                  onChange={(e) => setForm({ ...form, localizacao: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={capturarLocalizacao}
+                  disabled={geoLoading}
+                >
+                  <MapPin className="mr-1.5 h-4 w-4" />
+                  {geoLoading ? "Obtendo..." : "Coletar"}
+                </Button>
+              </div>
+              {form.latitude != null && (
+                <p className="text-xs text-muted-foreground">
+                  Coordenadas: {form.latitude}, {form.longitude}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <Label>Produto de interesse</Label>
             <Input
