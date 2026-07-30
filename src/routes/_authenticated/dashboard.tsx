@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw } from "lucide-react";
+import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,10 @@ function Dashboard() {
 
       const total = vendas.length;
       const instaladas = vendas.filter((v) => v.status === "instalado").length;
+      const naoInstaladas = vendas.filter(
+        (v) => v.status !== "instalado" && v.status !== "cancelado",
+      ).length;
+
       const receita = vendas.reduce((s, v) => s + v.valor, 0);
       const comissao = vendas.reduce((s, v) => s + v.comissao, 0);
 
@@ -141,9 +145,10 @@ function Dashboard() {
       }
 
       return {
-        canal, total, instaladas, receita, comissao, nome: profile?.nome ?? "",
+        canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
         blQtd, blRs, mvQtd, mvRs, rvQtd, rvRs,
       };
+
     },
   });
 
@@ -184,13 +189,18 @@ function Dashboard() {
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
         <StatCard title="Instaladas" value={isLoading ? null : String(data?.instaladas ?? 0)} icon={Award} />
+        <StatCard
+          title="Não instaladas"
+          value={isLoading ? null : String(data?.naoInstaladas ?? 0)}
+          icon={Clock}
+        />
         <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
         <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
       </div>
+
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
