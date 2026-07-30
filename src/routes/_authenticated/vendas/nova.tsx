@@ -237,7 +237,8 @@ export function FormLoja({
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user!.id;
+    const uid = ownerId ?? sess.user!.id;
+
     const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
     const valorAntigoNum =
       typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
