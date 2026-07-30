@@ -356,11 +356,13 @@ function Produtividade() {
 function Stat({
   title,
   value,
+  media,
   loading,
   icon: Icon,
 }: {
   title: string;
   value?: number;
+  media?: number;
   loading: boolean;
   icon: React.ComponentType<{ className?: string }>;
 }) {
@@ -371,7 +373,18 @@ function Stat({
         <Icon className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="h-8 w-16" /> : <div className="text-2xl font-bold">{value ?? 0}</div>}
+        {loading ? (
+          <Skeleton className="h-8 w-16" />
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value ?? 0}</div>
+            {media !== undefined && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Média diária: {media.toFixed(1)}
+              </p>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );
