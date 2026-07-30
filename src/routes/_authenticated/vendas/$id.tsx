@@ -74,21 +74,20 @@ function EditarVenda() {
     queryFn: async (): Promise<FormPapState | null> => {
       const { data, error } = await supabase
         .from("vendas_pap")
-        .select("nome_cliente, cpf_cnpj, cidade, bairro, data_venda, valor, produto, status, observacoes")
+        .select("nome_cliente, protocolo, tipo_protocolo, data_venda, data_ativacao, valor, produto, status")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
       return {
+        protocolo: data.protocolo ?? "",
+        tipo_protocolo: (data.tipo_protocolo ?? "Novo Acesso") as FormPapState["tipo_protocolo"],
         nome_cliente: data.nome_cliente,
-        cpf_cnpj: data.cpf_cnpj ?? "",
-        cidade: data.cidade ?? "",
-        bairro: data.bairro ?? "",
+        produto: (data.produto ?? "Banda Larga") as FormPapState["produto"],
         data: data.data_venda,
+        data_instalacao: data.data_ativacao ?? "",
         valor: String(data.valor ?? ""),
-        produto: data.produto ?? "",
-        status: data.status,
-        observacoes: data.observacoes ?? "",
+        instalado: data.status === "instalado",
       };
     },
   });
