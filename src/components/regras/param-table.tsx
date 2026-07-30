@@ -73,7 +73,13 @@ export function ParamTable({
 
   useEffect(() => {
     if (q.data) {
-      setRows(q.data.map((r) => ({ ...r })));
+      setRows(
+        q.data.map((r) => {
+          const out: Row = { ...r };
+          for (const c of cols) if (c.kind !== "bool") out[c.key] = toInput(r[c.key], c.kind);
+          return out;
+        }),
+      );
       setRemovidos([]);
     }
   }, [q.data]);
@@ -83,7 +89,10 @@ export function ParamTable({
   }
 
   function addRow() {
-    setRows((prev) => [...prev, { ...novoPadrao, __novo: true }]);
+    const base: Row = { __novo: true };
+    for (const c of cols)
+      base[c.key] = c.kind === "bool" ? !!novoPadrao[c.key] : toInput(novoPadrao[c.key], c.kind);
+    setRows((prev) => [...prev, base]);
   }
 
   function delRow(i: number) {
@@ -106,7 +115,8 @@ export function ParamTable({
       }
       const payload = rows.map((r) => {
         const out: Row = {};
-        for (const c of cols) out[c.key] = r[c.key] ?? novoPadrao[c.key];
+        for (const c of cols)
+          out[c.key] = c.kind === "bool" ? !!r[c.key] : fromInput(String(r[c.key] ?? ""), c.kind);
         if (r[pk] !== undefined && !cols.some((c) => c.key === pk)) out[pk] = r[pk];
         if (r.__novo && typeof r[pk] === "undefined") delete out[pk];
         return out;
@@ -184,8 +194,8 @@ export function ParamTable({
                             style={c.width ? { width: c.width } : undefined}
                             disabled={!editavel || (c.lockOnEdit && !r.__novo)}
                             inputMode={c.kind === "text" ? "text" : "decimal"}
-                            value={toInput(r[c.key], c.kind)}
-                            onChange={(e) => set(i, c.key, fromInput(e.target.value, c.kind))}
+                            value={String(r[c.key] ?? "")}
+                            onChange={(e) => set(i, c.key, e.target.value)}
                           />
                         )}
                       </td>
