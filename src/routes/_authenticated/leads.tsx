@@ -418,15 +418,18 @@ function LeadsPage() {
 
       <LeadFormDialog
         open={newOpen}
+        isPap={me.data?.canal === "pap"}
         onClose={() => setNewOpen(false)}
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
       <LeadFormDialog
         open={!!editing}
         lead={editing ?? undefined}
+        isPap={me.data?.canal === "pap"}
         onClose={() => setEditing(null)}
         onSaved={() => qc.invalidateQueries({ queryKey: ["leads"] })}
       />
+
       <TransferDialog
         lead={transferFor}
         onClose={() => setTransferFor(null)}
