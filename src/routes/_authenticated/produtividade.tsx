@@ -195,10 +195,34 @@ function Produtividade() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Stat title="Atendimentos" value={prod?.totais.atendimentos} loading={isLoading} icon={ClipboardList} />
-        <Stat title="Vendas" value={prod?.totais.vendas} loading={isLoading} icon={ShoppingBag} />
-        <Stat title="Leads" value={prod?.totais.leads} loading={isLoading} icon={Users} />
-        <Stat title="Produtividade total" value={prod?.totais.total} loading={isLoading} icon={Activity} />
+        <Stat
+          title="Atendimentos"
+          value={prod?.totais.atendimentos}
+          media={(prod?.totais.atendimentos ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={ClipboardList}
+        />
+        <Stat
+          title="Vendas"
+          value={prod?.totais.vendas}
+          media={(prod?.totais.vendas ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={ShoppingBag}
+        />
+        <Stat
+          title="Leads"
+          value={prod?.totais.leads}
+          media={(prod?.totais.leads ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={Users}
+        />
+        <Stat
+          title="Produtividade total"
+          value={prod?.totais.total}
+          media={(prod?.totais.total ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={Activity}
+        />
       </div>
 
       <Card>
