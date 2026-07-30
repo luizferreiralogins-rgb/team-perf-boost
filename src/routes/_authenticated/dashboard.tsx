@@ -226,7 +226,12 @@ function Dashboard() {
           onClick={() => setVerNaoInstaladas(true)}
         />
         <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
-        <StatCard title="Comissão estimada" value={isLoading ? null : brl(data?.comissao ?? 0)} icon={Target} />
+        <StatCard
+          title="Comissão estimada"
+          value={isLoading ? null : brl(data?.comissao ?? 0)}
+          icon={Target}
+          projecao={isLoading ? null : `Projeção: ${brl((data?.comissao ?? 0) * fatorProj)}`}
+        />
       </div>
 
 
@@ -240,19 +245,23 @@ function Dashboard() {
             qtd={isLoading ? null : data?.blQtd ?? 0}
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
+            fator={fatorProj}
           />
           <KpiCard
             title="Móvel"
             qtd={isLoading ? null : data?.mvQtd ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
+            fator={fatorProj}
           />
           <KpiCard
             title="Renovações"
             qtd={isLoading ? null : data?.rvQtd ?? 0}
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
+            fator={fatorProj}
           />
+
         </div>
       </div>
 
