@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   FormLoja,
   FormPap,
-  useCanal,
   type FormLojaState,
   type FormPapState,
 } from "./nova";
@@ -19,87 +18,83 @@ export const Route = createFileRoute("/_authenticated/vendas/$id")({
       { name: "description", content: "Edite uma venda registrada." },
     ],
   }),
-  beforeLoad: async () => {
-    const { redirect } = await import("@tanstack/react-router");
-    const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user?.id;
-    if (!uid) return;
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    const list = (roles ?? []).map((r) => r.role);
-    const isGestor = list.some((r) => r === "gerente" || r === "regional" || r === "admin");
-    if (isGestor) throw redirect({ to: "/dashboard" });
-  },
   component: EditarVenda,
 });
 
+type Loaded =
+  | { canal: "loja"; ownerId: string; state: FormLojaState }
+  | { canal: "pap"; ownerId: string; state: FormPapState }
+  | null;
+
 function EditarVenda() {
   const { id } = Route.useParams();
-  const canalQ = useCanal();
   const navigate = useNavigate();
 
-  const loja = useQuery({
-    enabled: canalQ.data === "loja",
-    queryKey: ["venda-loja", id],
-    queryFn: async (): Promise<FormLojaState | null> => {
-      const { data, error } = await supabase
+  const vendaQ = useQuery({
+    queryKey: ["venda-edicao", id],
+    queryFn: async (): Promise<Loaded> => {
+      const { data: loja } = await supabase
         .from("vendas_loja")
         .select(
-          "protocolo, nome_cliente, cpf_cnpj, observacoes, data_abertura, data_ativacao, classe_protocolo, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
+          "vendedor_id, protocolo, nome_cliente, cpf_cnpj, observacoes, data_abertura, data_ativacao, classe_protocolo, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
         )
         .eq("id", id)
         .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      return {
-        protocolo: data.protocolo ?? "",
-        nome_cliente: data.nome_cliente,
-        cpf_cnpj: data.cpf_cnpj ?? "",
-        observacoes: data.observacoes ?? "",
-        data_abertura: data.data_abertura ?? "",
-        data_ativacao: data.data_ativacao ?? "",
-        classe_protocolo: data.classe_protocolo as FormLojaState["classe_protocolo"],
-        tecnologia: (data.tecnologia ?? "01.04 - Internet - Banda Larga - Fibra") as FormLojaState["tecnologia"],
-        contem_movel: !!data.contem_movel,
-        qtd_linhas: String(data.qtd_linhas ?? 0),
-        valor_novo: String(data.valor_novo ?? ""),
-        valor_antigo: data.valor_antigo == null ? "" : String(data.valor_antigo),
-        instalado: data.status === "instalado",
-      };
-    },
-  });
+      if (loja) {
+        return {
+          canal: "loja",
+          ownerId: loja.vendedor_id,
+          state: {
+            protocolo: loja.protocolo ?? "",
+            nome_cliente: loja.nome_cliente,
+            cpf_cnpj: loja.cpf_cnpj ?? "",
+            observacoes: loja.observacoes ?? "",
+            data_abertura: loja.data_abertura ?? "",
+            data_ativacao: loja.data_ativacao ?? "",
+            classe_protocolo: loja.classe_protocolo as FormLojaState["classe_protocolo"],
+            tecnologia: (loja.tecnologia ??
+              "01.04 - Internet - Banda Larga - Fibra") as FormLojaState["tecnologia"],
+            contem_movel: !!loja.contem_movel,
+            qtd_linhas: String(loja.qtd_linhas ?? 0),
+            valor_novo: String(loja.valor_novo ?? ""),
+            valor_antigo: loja.valor_antigo == null ? "" : String(loja.valor_antigo),
+            instalado: loja.status === "instalado",
+          },
+        };
+      }
 
-  const pap = useQuery({
-    enabled: canalQ.data === "pap",
-    queryKey: ["venda-pap", id],
-    queryFn: async (): Promise<FormPapState | null> => {
-      const { data, error } = await supabase
+      const { data: pap } = await supabase
         .from("vendas_pap")
-        .select("nome_cliente, protocolo, tipo_protocolo, data_venda, data_ativacao, valor, produto, status")
+        .select(
+          "vendedor_id, nome_cliente, protocolo, tipo_protocolo, data_venda, data_ativacao, valor, produto, status",
+        )
         .eq("id", id)
         .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
+      if (!pap) return null;
       return {
-        protocolo: data.protocolo ?? "",
-        tipo_protocolo: (data.tipo_protocolo ?? "Novo Acesso") as FormPapState["tipo_protocolo"],
-        nome_cliente: data.nome_cliente,
-        produto: (data.produto ?? "Banda Larga") as FormPapState["produto"],
-        data: data.data_venda,
-        data_instalacao: data.data_ativacao ?? "",
-        valor: String(data.valor ?? ""),
-        instalado: data.status === "instalado",
+        canal: "pap",
+        ownerId: pap.vendedor_id,
+        state: {
+          protocolo: pap.protocolo ?? "",
+          tipo_protocolo: (pap.tipo_protocolo ?? "Novo Acesso") as FormPapState["tipo_protocolo"],
+          nome_cliente: pap.nome_cliente,
+          produto: (pap.produto ?? "Banda Larga") as FormPapState["produto"],
+          data: pap.data_venda,
+          data_instalacao: pap.data_ativacao ?? "",
+          valor: String(pap.valor ?? ""),
+          instalado: pap.status === "instalado",
+        },
       };
     },
   });
 
-  const loading = canalQ.isLoading || loja.isLoading || pap.isLoading;
-  const initial = canalQ.data === "loja" ? loja.data : pap.data;
+  const venda = vendaQ.data;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/vendas">
+          <Link to="/historico">
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Link>
         </Button>
@@ -109,21 +104,21 @@ function EditarVenda() {
         </p>
       </div>
 
-      {loading ? (
+      {vendaQ.isLoading ? (
         <Card>
           <CardContent className="p-8 text-sm text-muted-foreground">Carregando...</CardContent>
         </Card>
-      ) : !initial ? (
+      ) : !venda ? (
         <Card>
           <CardContent className="space-y-4 p-8 text-center text-sm text-muted-foreground">
             <p>Venda não encontrada ou você não tem permissão para editá-la.</p>
-            <Button onClick={() => navigate({ to: "/vendas" })}>Voltar às vendas</Button>
+            <Button onClick={() => navigate({ to: "/historico" })}>Voltar ao histórico</Button>
           </CardContent>
         </Card>
-      ) : canalQ.data === "pap" ? (
-        <FormPap editingId={id} initial={initial as FormPapState} />
+      ) : venda.canal === "pap" ? (
+        <FormPap editingId={id} ownerId={venda.ownerId} initial={venda.state} />
       ) : (
-        <FormLoja editingId={id} initial={initial as FormLojaState} />
+        <FormLoja editingId={id} ownerId={venda.ownerId} initial={venda.state} />
       )}
     </div>
   );
