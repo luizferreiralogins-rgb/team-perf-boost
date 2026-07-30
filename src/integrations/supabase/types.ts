@@ -468,12 +468,14 @@ export type Database = {
       }
       vendas_loja: {
         Row: {
+          agendamento_adiamentos: number
           classe_protocolo: string | null
           comissao: number
           contem_movel: boolean
           cpf_cnpj: string | null
           created_at: string
           data_abertura: string | null
+          data_agendamento: string | null
           data_ativacao: string | null
           id: string
           mes_ref: string
@@ -491,12 +493,14 @@ export type Database = {
           vendedor_id: string
         }
         Insert: {
+          agendamento_adiamentos?: number
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           data_abertura?: string | null
+          data_agendamento?: string | null
           data_ativacao?: string | null
           id?: string
           mes_ref?: string
@@ -514,12 +518,14 @@ export type Database = {
           vendedor_id: string
         }
         Update: {
+          agendamento_adiamentos?: number
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           data_abertura?: string | null
+          data_agendamento?: string | null
           data_ativacao?: string | null
           id?: string
           mes_ref?: string
@@ -540,11 +546,13 @@ export type Database = {
       }
       vendas_pap: {
         Row: {
+          agendamento_adiamentos: number
           bairro: string | null
           cidade: string | null
           comissao: number
           cpf_cnpj: string | null
           created_at: string
+          data_agendamento: string | null
           data_ativacao: string | null
           data_venda: string
           endereco: string | null
@@ -564,11 +572,13 @@ export type Database = {
           vendedor_id: string
         }
         Insert: {
+          agendamento_adiamentos?: number
           bairro?: string | null
           cidade?: string | null
           comissao?: number
           cpf_cnpj?: string | null
           created_at?: string
+          data_agendamento?: string | null
           data_ativacao?: string | null
           data_venda?: string
           endereco?: string | null
@@ -588,11 +598,13 @@ export type Database = {
           vendedor_id: string
         }
         Update: {
+          agendamento_adiamentos?: number
           bairro?: string | null
           cidade?: string | null
           comissao?: number
           cpf_cnpj?: string | null
           created_at?: string
+          data_agendamento?: string | null
           data_ativacao?: string | null
           data_venda?: string
           endereco?: string | null
