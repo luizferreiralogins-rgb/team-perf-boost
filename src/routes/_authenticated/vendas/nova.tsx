@@ -475,15 +475,14 @@ export function FormLoja({
 }
 
 export type FormPapState = {
+  protocolo: string;
+  tipo_protocolo: (typeof TIPOS_PROTOCOLO_PAP)[number];
   nome_cliente: string;
-  cpf_cnpj: string;
-  cidade: string;
-  bairro: string;
+  produto: (typeof PRODUTOS_PAP)[number];
   data: string;
+  data_instalacao: string;
   valor: string;
-  produto: string;
-  status: Status;
-  observacoes: string;
+  instalado: boolean;
 };
 
 export function FormPap({
@@ -497,15 +496,14 @@ export function FormPap({
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormPapState>(
     initial ?? {
+      protocolo: "",
+      tipo_protocolo: "Novo Acesso",
       nome_cliente: "",
-      cpf_cnpj: "",
-      cidade: "",
-      bairro: "",
+      produto: "Banda Larga",
       data: today(),
+      data_instalacao: "",
       valor: "",
-      produto: "",
-      status: "pendente",
-      observacoes: "",
+      instalado: false,
     },
   );
 
@@ -521,7 +519,7 @@ export function FormPap({
     const uid = sess.user!.id;
 
     let comissao = 0;
-    if (parsed.data.status === "instalado") {
+    if (parsed.data.instalado) {
       const { data: faixas } = await supabase
         .from("parametros_pap_faixas")
         .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel");
@@ -531,17 +529,16 @@ export function FormPap({
 
     const payload = {
       vendedor_id: uid,
+      protocolo: parsed.data.protocolo || null,
+      tipo_protocolo: parsed.data.tipo_protocolo,
       nome_cliente: parsed.data.nome_cliente,
-      cpf_cnpj: parsed.data.cpf_cnpj || null,
-      cidade: parsed.data.cidade || null,
-      bairro: parsed.data.bairro || null,
       data_venda: parsed.data.data,
-      mes_ref: mesRefFromDate(parsed.data.data),
+      data_ativacao: parsed.data.data_instalacao || null,
+      mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
       valor: parsed.data.valor,
-      produto: parsed.data.produto || null,
-      status: parsed.data.status,
+      produto: parsed.data.produto,
+      status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
-      observacoes: parsed.data.observacoes || null,
     };
     const { error } = editingId
       ? await supabase.from("vendas_pap").update(payload).eq("id", editingId).eq("vendedor_id", uid)
@@ -565,6 +562,28 @@ export function FormPap({
         <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Protocolo">
+              <Input
+                value={form.protocolo}
+                onChange={(e) => setForm({ ...form, protocolo: e.target.value })}
+                placeholder="Nº do protocolo"
+              />
+            </Field>
+            <Field label="Tipo de protocolo" required>
+              <Select
+                value={form.tipo_protocolo}
+                onValueChange={(v) =>
+                  setForm({ ...form, tipo_protocolo: v as (typeof TIPOS_PROTOCOLO_PAP)[number] })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TIPOS_PROTOCOLO_PAP.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Cliente" required>
               <Input
                 value={form.nome_cliente}
@@ -572,17 +591,18 @@ export function FormPap({
                 required
               />
             </Field>
-            <Field label="CPF/CNPJ">
-              <Input
-                value={form.cpf_cnpj}
-                onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
-              />
-            </Field>
-            <Field label="Cidade">
-              <Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} />
-            </Field>
-            <Field label="Bairro">
-              <Input value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} />
+            <Field label="Produto" required>
+              <Select
+                value={form.produto}
+                onValueChange={(v) => setForm({ ...form, produto: v as (typeof PRODUTOS_PAP)[number] })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PRODUTOS_PAP.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Data da venda" required>
               <Input
@@ -592,11 +612,11 @@ export function FormPap({
                 required
               />
             </Field>
-            <Field label="Produto">
+            <Field label="Data de instalação" hint="Preencha quando o serviço for instalado.">
               <Input
-                value={form.produto}
-                onChange={(e) => setForm({ ...form, produto: e.target.value })}
-                placeholder="Ex: Fibra 500Mb"
+                type="date"
+                value={form.data_instalacao}
+                onChange={(e) => setForm({ ...form, data_instalacao: e.target.value })}
               />
             </Field>
             <Field label="Valor da venda (R$)" required>
@@ -609,25 +629,19 @@ export function FormPap({
                 required
               />
             </Field>
-            <Field label="Status" required>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Status })}>
+            <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
+              <Select
+                value={form.instalado ? "sim" : "nao"}
+                onValueChange={(v) => setForm({ ...form, instalado: v === "sim" })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="em_analise">Em análise</SelectItem>
-                  <SelectItem value="instalado">Instalado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                  <SelectItem value="sim">Sim</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
           </div>
-          <Field label="Observações">
-            <Textarea
-              rows={3}
-              value={form.observacoes}
-              onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-            />
-          </Field>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" asChild>
               <Link to="/vendas">Cancelar</Link>
@@ -640,7 +654,7 @@ export function FormPap({
         </CardContent>
       </Card>
       <aside className="space-y-4">
-        <ProjecaoComissaoPap valor={form.valor} instalado={form.status === "instalado"} />
+        <ProjecaoComissaoPap valor={form.valor} instalado={form.instalado} />
         <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
       </aside>
     </div>
