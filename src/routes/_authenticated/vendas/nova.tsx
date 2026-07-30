@@ -545,6 +545,7 @@ export type FormPapState = {
   data: string;
   data_instalacao: string;
   valor: string;
+  qtd_linhas: string;
   instalado: boolean;
 };
 
@@ -569,6 +570,7 @@ export function FormPap({
       data: today(),
       data_instalacao: "",
       valor: "",
+      qtd_linhas: "0",
       instalado: false,
     },
   );
@@ -603,6 +605,7 @@ export function FormPap({
       data_ativacao: parsed.data.data_instalacao || null,
       mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
       valor: parsed.data.valor,
+      qtd_linhas: parsed.data.qtd_linhas,
       produto: parsed.data.produto,
       status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
