@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamento_historico: {
+        Row: {
+          created_at: string
+          criado_por: string
+          data_anterior: string | null
+          data_nova: string | null
+          id: string
+          motivo: string
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          id?: string
+          motivo: string
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          id?: string
+          motivo?: string
+          tabela?: string
+          venda_id?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       atalhos_externos: {
         Row: {
           chave: string
