@@ -493,10 +493,13 @@ export type FormPapState = {
 export function FormPap({
   editingId,
   initial,
+  ownerId,
 }: {
   editingId?: string;
   initial?: FormPapState;
+  ownerId?: string;
 } = {}) {
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormPapState>(
