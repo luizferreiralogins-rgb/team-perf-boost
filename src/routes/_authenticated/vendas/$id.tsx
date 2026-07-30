@@ -118,10 +118,18 @@ function EditarVenda() {
             <Button onClick={() => navigate({ to: "/historico" })}>Voltar ao histórico</Button>
           </CardContent>
         </Card>
-      ) : venda.canal === "pap" ? (
-        <FormPap editingId={id} ownerId={venda.ownerId} initial={venda.state} />
       ) : (
-        <FormLoja editingId={id} ownerId={venda.ownerId} initial={venda.state} />
+        <>
+          {venda.canal === "pap" ? (
+            <FormPap editingId={id} ownerId={venda.ownerId} initial={venda.state} />
+          ) : (
+            <FormLoja editingId={id} ownerId={venda.ownerId} initial={venda.state} />
+          )}
+          <HistoricoReagendamentos
+            tabela={venda.canal === "pap" ? "vendas_pap" : "vendas_loja"}
+            vendaId={id}
+          />
+        </>
       )}
     </div>
   );
