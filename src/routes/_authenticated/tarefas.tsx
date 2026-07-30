@@ -192,12 +192,20 @@ function TarefasPage() {
               Pendentes
             </Button>
             <Button
+              variant={filtro === "historico" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFiltro("historico")}
+            >
+              Histórico
+            </Button>
+            <Button
               variant={filtro === "todas" ? "default" : "outline"}
               size="sm"
               onClick={() => setFiltro("todas")}
             >
               Todas
             </Button>
+
           </div>
         </header>
 
