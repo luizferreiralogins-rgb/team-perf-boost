@@ -116,6 +116,44 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_contatos: {
+        Row: {
+          created_at: string
+          etapa: number
+          id: string
+          lead_id: string
+          observacao: string
+          prazo_dias_uteis: number
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          etapa: number
+          id?: string
+          lead_id: string
+          observacao: string
+          prazo_dias_uteis: number
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          etapa?: number
+          id?: string
+          lead_id?: string
+          observacao?: string
+          prazo_dias_uteis?: number
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contatos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_transferencias: {
         Row: {
           created_at: string
@@ -162,6 +200,7 @@ export type Database = {
           cidade: string | null
           created_at: string
           email: string | null
+          etapa_contato: number
           fonte: string | null
           id: string
           latitude: number | null
@@ -170,6 +209,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           produto_interesse: string | null
+          proximo_contato_em: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
           vendedor_id: string
@@ -179,6 +219,7 @@ export type Database = {
           cidade?: string | null
           created_at?: string
           email?: string | null
+          etapa_contato?: number
           fonte?: string | null
           id?: string
           latitude?: number | null
@@ -187,6 +228,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           produto_interesse?: string | null
+          proximo_contato_em?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
           vendedor_id: string
@@ -196,6 +238,7 @@ export type Database = {
           cidade?: string | null
           created_at?: string
           email?: string | null
+          etapa_contato?: number
           fonte?: string | null
           id?: string
           latitude?: number | null
@@ -204,6 +247,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           produto_interesse?: string | null
+          proximo_contato_em?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
           vendedor_id?: string
@@ -703,6 +747,10 @@ export type Database = {
         Args: { _transfer_id: string }
         Returns: undefined
       }
+      add_dias_uteis: {
+        Args: { _base: string; _dias: number }
+        Returns: string
+      }
       buscar_lead_duplicado: {
         Args: { _email: string; _whatsapp: string }
         Returns: {
@@ -714,6 +762,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      expirar_leads_sem_contato: { Args: never; Returns: number }
       get_canal: {
         Args: { _user: string }
         Returns: Database["public"]["Enums"]["canal_venda"]
