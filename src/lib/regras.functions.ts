@@ -211,41 +211,81 @@ Regras obrigatórias:
       }
     }
 
-    const body = {
-      model: "google/gemini-3.1-pro-preview",
-      messages: [{ role: "user", content: blocos }],
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: "regras", strict: true, schema },
-      },
+    const chamar = async (model: string) => {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: blocos }],
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "regras", strict: true, schema },
+          },
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        if (res.status === 429)
+          throw new Error("Limite de requisições da IA atingido. Tente novamente em instantes.");
+        if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+        throw new Error(`Falha na IA (${res.status}): ${t.slice(0, 300)}`);
+      }
+      const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const raw = json.choices?.[0]?.message?.content ?? "";
+      if (!raw.trim()) throw new Error("A IA não conseguiu ler os arquivos enviados.");
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error("A IA retornou uma resposta inválida.");
+      }
+      return normalizar(data.tipo, parsed);
     };
 
-
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      if (res.status === 429) throw new Error("Limite de requisições da IA atingido. Tente novamente em instantes.");
-      if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
-      throw new Error(`Falha na IA (${res.status}): ${t.slice(0, 300)}`);
-    }
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = json.choices?.[0]?.message?.content ?? "{}";
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error("A IA retornou uma resposta inválida.");
+      return await chamar("google/gemini-3.6-flash");
+    } catch (e) {
+      // Segunda tentativa com o modelo de raciocínio mais forte.
+      try {
+        return await chamar("google/gemini-3.1-pro-preview");
+      } catch {
+        throw e instanceof Error ? e : new Error("Falha ao interpretar as regras.");
+      }
     }
-    const shaped = { tipo: data.tipo, ...(parsed as object) };
-    return propostaSchema.parse(shaped);
   });
+
+/** Corrige percentuais vindos como 28 em vez de 0.28 e ordena as faixas. */
+function pct(v: number) {
+  return v > 1 ? v / 100 : v;
+}
+
+function normalizar(tipo: "loja" | "pap", parsed: unknown): PropostaRegras {
+  const shaped = { tipo, ...(parsed as object) } as Record<string, unknown>;
+  const base = propostaSchema.parse(shaped);
+  if (base.tipo === "pap" && base.faixas_pap?.length) {
+    const faixas = [...base.faixas_pap]
+      .map((f) => ({
+        ...f,
+        pct_comissao: pct(f.pct_comissao),
+        meta_max_cancel: pct(f.meta_max_cancel),
+        acelerador_baixo_cancel: pct(f.acelerador_baixo_cancel),
+        bonus_venda_indireta: pct(f.bonus_venda_indireta),
+        receita_ate: f.receita_ate <= 0 ? 999999999 : f.receita_ate,
+      }))
+      .sort((a, b) => a.receita_de - b.receita_de)
+      .map((f, i) => ({ ...f, faixa: i + 1 }));
+    return { ...base, faixas_pap: faixas };
+  }
+  if (base.tipo === "loja" && base.metas_loja?.length) {
+    return {
+      ...base,
+      metas_loja: base.metas_loja.map((m) => ({ ...m, meta_renov_movel: pct(m.meta_renov_movel) })),
+    };
+  }
+  return base;
+}
+
 
 const aplicarInput = z.object({
   proposta: propostaSchema,
