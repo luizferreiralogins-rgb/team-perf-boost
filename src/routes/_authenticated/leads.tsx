@@ -116,6 +116,7 @@ function LeadsPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [transferFor, setTransferFor] = useState<Lead | null>(null);
+  const [detail, setDetail] = useState<Lead | null>(null);
 
   const isConsultor =
     !!me.data && me.data.roles.includes("consultor") &&
