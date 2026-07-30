@@ -1,0 +1,1 @@
+ALTER TABLE public.vendas_pap ADD COLUMN IF NOT EXISTS qtd_linhas integer NOT NULL DEFAULT 0;

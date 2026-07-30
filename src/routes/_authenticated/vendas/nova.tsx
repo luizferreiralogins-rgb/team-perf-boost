@@ -158,6 +158,7 @@ const papSchema = z.object({
   data: z.string().min(1, "Informe a data da venda"),
   data_instalacao: z.string().optional().or(z.literal("")),
   valor: z.coerce.number().positive("Valor deve ser maior que zero"),
+  qtd_linhas: z.coerce.number().int().min(0),
   instalado: z.boolean(),
 });
 
@@ -205,6 +206,7 @@ function NovaVenda() {
         data: today(),
         data_instalacao: "",
         valor: "",
+        qtd_linhas: "0",
         instalado: false,
       }
     : undefined;
@@ -543,6 +545,7 @@ export type FormPapState = {
   data: string;
   data_instalacao: string;
   valor: string;
+  qtd_linhas: string;
   instalado: boolean;
 };
 
@@ -567,6 +570,7 @@ export function FormPap({
       data: today(),
       data_instalacao: "",
       valor: "",
+      qtd_linhas: "0",
       instalado: false,
     },
   );
@@ -601,6 +605,7 @@ export function FormPap({
       data_ativacao: parsed.data.data_instalacao || null,
       mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
       valor: parsed.data.valor,
+      qtd_linhas: parsed.data.qtd_linhas,
       produto: parsed.data.produto,
       status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
@@ -693,6 +698,15 @@ export function FormPap({
                 value={form.valor}
                 onChange={(e) => setForm({ ...form, valor: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Qtd. linhas móveis" hint="Informe 0 se não houver linha móvel.">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.qtd_linhas}
+                onChange={(e) => setForm({ ...form, qtd_linhas: e.target.value })}
               />
             </Field>
             <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>

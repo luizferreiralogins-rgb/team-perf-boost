@@ -554,6 +554,7 @@ export type Database = {
           observacoes: string | null
           produto: string | null
           protocolo: string | null
+          qtd_linhas: number
           status: Database["public"]["Enums"]["venda_status"]
           tecnologia: string | null
           telefone: string | null
@@ -577,6 +578,7 @@ export type Database = {
           observacoes?: string | null
           produto?: string | null
           protocolo?: string | null
+          qtd_linhas?: number
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
           telefone?: string | null
@@ -600,6 +602,7 @@ export type Database = {
           observacoes?: string | null
           produto?: string | null
           protocolo?: string | null
+          qtd_linhas?: number
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
           telefone?: string | null
