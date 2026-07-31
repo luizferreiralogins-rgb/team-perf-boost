@@ -107,15 +107,19 @@ function EquipePage() {
   const [q, setQ] = useState("");
 
   const isRegional = me.data?.roles.includes("regional") || me.data?.roles.includes("admin");
-  const isGerente = me.data?.roles.includes("gerente");
+  const isGerente = me.data?.roles.includes("gerente") || me.data?.roles.includes("lider_pap");
 
   const members = (membersQ.data ?? []) as Member[];
-  const gerentes = useMemo(() => members.filter((m) => m.roles.includes("gerente")), [members]);
+  const gerentes = useMemo(
+    () => members.filter((m) => m.roles.includes("gerente") || m.roles.includes("lider_pap")),
+    [members],
+  );
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
-      // gerente só vê consultores do seu time (RLS já limita, mas garantimos UI limpa)
-      if (isGerente && !isRegional && !m.roles.includes("consultor")) return false;
+      // gestor só vê sua equipe direta (RLS já limita, mas garantimos UI limpa)
+      if (isGerente && !isRegional && !(m.roles.includes("consultor") || m.roles.includes("lider_pap")))
+        return false;
       if (isGerente && !isRegional && m.gerente_id !== me.data?.uid) return false;
       if (filterRole !== "all" && !m.roles.includes(filterRole as Role)) return false;
       if (filterCanal !== "all" && m.canal !== filterCanal) return false;
