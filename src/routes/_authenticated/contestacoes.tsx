@@ -432,8 +432,7 @@ function Contestacoes() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Contestações</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Relatório matriz importado pelo Gerente Regional. Filtre o seu nome e clique em Verificar
-          para comparar com as suas vendas instaladas no mês.
+          Relatórios publicados pelos Gerentes para suas respectivas equipes.
         </p>
       </div>
 
@@ -441,11 +440,29 @@ function Contestacoes() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Filtros</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="mes">Mês</Label>
             <Input id="mes" type="month" value={mes} onChange={(e) => setMes(e.target.value || mesAtual())} />
           </div>
+          {me.data?.isRegional && (
+            <div className="space-y-1.5">
+              <Label>Gerente</Label>
+              <Select value={gerente} onValueChange={setGerente}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {(dados.data?.gestores ?? []).map((gestor) => (
+                    <SelectItem key={gestor.id} value={gestor.id}>
+                      {gestor.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Canal</Label>
             <Select
@@ -488,42 +505,58 @@ function Contestacoes() {
         </CardContent>
       </Card>
 
-      {me.data?.isRegional && (
+      {me.data?.isGerente && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <FileSpreadsheet className="h-4 w-4" /> Planilha de contestações (relatório matriz)
+              <ClipboardPaste className="h-4 w-4" /> Publicar relatório da equipe
             </CardTitle>
             <CardDescription>
-              Exclusivo do Gerente Regional. Envie a planilha (.xlsx, .xls ou .csv) do canal{" "}
-              {canalEfetivo === "pap" ? "PAP" : "Loja"} em {mes}. A IA extrai Protocolo, Vendedor,
-              Classe do Protocolo, Tecnologia, Preço Novo, Preço Antigo, Diferença, Faixa e Comissão
-              e substitui a importação anterior do mesmo mês.
+              Copie no Excel as nove colunas na ordem exibida e cole na primeira célula abaixo de
+              Protocolo. A publicação substitui o seu relatório anterior de {mes} para este canal.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) importar.mutate(f);
-              }}
-            />
-            <Button onClick={() => fileRef.current?.click()} disabled={importar.isPending}>
-              <Upload className="mr-2 h-4 w-4" />
-              {importar.isPending ? "Analisando planilha..." : "Anexar planilha"}
-            </Button>
-            {dados.data?.importacao && (
-              <p className="text-xs text-muted-foreground">
-                Última importação: <span className="font-medium">{dados.data.importacao.arquivo_nome}</span> —{" "}
-                {dados.data.importacao.total_linhas} vendas em{" "}
-                {new Date(dados.data.importacao.created_at).toLocaleString("pt-BR")}
-              </p>
-            )}
+          <CardContent className="space-y-4 overflow-x-auto">
+            <Table className="min-w-[1050px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Protocolo</TableHead><TableHead>Vendedor</TableHead>
+                  <TableHead>Classe</TableHead><TableHead>Tecnologia</TableHead>
+                  <TableHead className="text-right">Preço Novo</TableHead>
+                  <TableHead className="text-right">Preço Antigo</TableHead>
+                  <TableHead className="text-right">Diferença</TableHead>
+                  <TableHead className="text-right">Faixa</TableHead>
+                  <TableHead className="text-right">Comissão</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {linhasColadas.length === 0 ? (
+                  <TableRow>
+                    <TableCell>
+                      <Input aria-label="Colar tabela do Excel" placeholder="Clique e cole aqui" onPaste={colarTabela} />
+                    </TableCell>
+                    {Array.from({ length: 8 }).map((_, index) => <TableCell key={index}>—</TableCell>)}
+                  </TableRow>
+                ) : linhasColadas.map((linha, index) => (
+                  <TableRow key={`${linha.protocolo}-${index}`}>
+                    <TableCell>{linha.protocolo}</TableCell><TableCell>{linha.vendedor}</TableCell>
+                    <TableCell>{linha.classe || "—"}</TableCell><TableCell>{linha.tecnologia || "—"}</TableCell>
+                    <TableCell className="text-right">{brl(linha.valor_novo)}</TableCell>
+                    <TableCell className="text-right">{brl(linha.valor_antigo)}</TableCell>
+                    <TableCell className="text-right">{brl(linha.diferenca)}</TableCell>
+                    <TableCell className="text-right">{linha.faixa || "—"}</TableCell>
+                    <TableCell className="text-right">{brl(linha.comissao)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-muted-foreground">{linhasColadas.length} linha(s) pronta(s) para publicação.</span>
+              <Button onClick={() => salvar.mutate()} disabled={!linhasColadas.length || salvar.isPending}>
+                <Save className="mr-2 h-4 w-4" />
+                {salvar.isPending ? "Publicando..." : "Publicar relatório"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -535,7 +568,7 @@ function Contestacoes() {
           <Card>
             <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
               <div>
-                <CardTitle className="text-base">Relatório matriz</CardTitle>
+                <CardTitle className="text-base">Relatório de contestações</CardTitle>
                 <CardDescription>
                   {matrizFiltrada.length} protocolo(s) para o filtro selecionado.
                 </CardDescription>
