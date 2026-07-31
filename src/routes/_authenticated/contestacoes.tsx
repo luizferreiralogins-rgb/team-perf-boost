@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, ClipboardPaste, Save, ScanSearch } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { salvarRelatorioContestacao } from "@/lib/contestacao-manual.functions";
+import { salvarRelatorioContestacao, limparRelatorioContestacao } from "@/lib/contestacao-manual.functions";
 import {
   diferencaTicket,
   ehCorePap,
