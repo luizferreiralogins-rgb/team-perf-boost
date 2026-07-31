@@ -231,7 +231,7 @@ export function RankingEquipe({
   const mesRef = `${filtros.mes}-01`;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ranking-equipe", role, mesRef, ids.join(",")],
+    queryKey: ["ranking-equipe", role, isRegional, mesRef, ids.join(",")],
     enabled: ids.length > 0,
     queryFn: async (): Promise<Linha[]> => {
       const inicio = `${mesRef}T00:00:00`;
@@ -266,6 +266,8 @@ export function RankingEquipe({
       const chaveDe = (userId: string) => {
         let m = membroPorId.get(userId);
         if (!m) return null;
+        // Gerente/Líder: ranking individual apenas de consultores (sem acumular nos líderes)
+        if (!isRegional) return m.role === "consultor" ? m.id : null;
         const visto = new Set<string>();
         while (m.gerente_id && membroPorId.has(m.gerente_id) && !visto.has(m.id)) {
           visto.add(m.id);
