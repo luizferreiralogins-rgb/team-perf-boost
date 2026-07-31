@@ -9,37 +9,54 @@ import {
   brl,
   comissaoLoja,
   comissaoPap,
+  ehCorePap,
   parcelaMedia,
   type LojaFaixaTicket,
+  type LojaNovoProduto,
   type PapFaixa,
+  type PapNovoProduto,
 } from "@/lib/comissao";
 
-function useFaixasLoja() {
+export function useParametrosLoja() {
   return useQuery({
     queryKey: ["parametros-loja-faixas"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parametros_loja_faixas_ticket")
-        .select("diff_de,diff_ate,faixa_0,faixa_1,faixa_2,faixa_3")
-        .order("diff_de");
-      if (error) throw error;
-      return (data ?? []) as LojaFaixaTicket[];
+      const [{ data: faixas }, { data: novos }] = await Promise.all([
+        supabase
+          .from("parametros_loja_faixas_ticket")
+          .select("diff_de,diff_ate,faixa_0,faixa_1,faixa_2,faixa_3")
+          .order("diff_de"),
+        supabase.from("parametros_loja_novos_produtos").select("codigo,nome,percentual"),
+      ]);
+      return {
+        faixas: (faixas ?? []) as LojaFaixaTicket[],
+        novos: (novos ?? []) as LojaNovoProduto[],
+      };
     },
   });
 }
 
-function useFaixasPap() {
+export function useParametrosPap() {
   return useQuery({
     queryKey: ["parametros-pap-faixas"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parametros_pap_faixas")
-        .select("faixa,receita_de,receita_ate,pct_comissao,acelerador_baixo_cancel")
-        .order("receita_de");
-      if (error) throw error;
-      return (data ?? []) as PapFaixa[];
+      const [{ data: faixas }, { data: produtos }] = await Promise.all([
+        supabase
+          .from("parametros_pap_faixas")
+          .select(
+            "faixa,receita_de,receita_ate,pct_comissao,meta_max_cancel,acelerador_baixo_cancel,bonus_venda_indireta",
+          )
+          .order("receita_de"),
+        supabase
+          .from("parametros_pap_novos_produtos")
+          .select("codigo,nome,percentual,limitado,limite"),
+      ]);
+      return {
+        faixas: (faixas ?? []) as PapFaixa[],
+        produtos: (produtos ?? []) as PapNovoProduto[],
+      };
     },
   });
 }
@@ -48,17 +65,32 @@ export function ProjecaoComissaoLoja({
   valorNovo,
   valorAntigo,
   instalado,
+  classe,
+  tecnologia,
+  contemMovel,
 }: {
   valorNovo: string;
   valorAntigo: string;
   instalado: boolean;
+  classe: string;
+  tecnologia: string;
+  contemMovel: boolean;
 }) {
-  const q = useFaixasLoja();
-  const { diff, porFaixa } = useMemo(() => {
-    const vn = parseFloat(valorNovo) || 0;
-    const va = parseFloat(valorAntigo) || 0;
-    return comissaoLoja(q.data ?? [], vn, va, instalado);
-  }, [q.data, valorNovo, valorAntigo, instalado]);
+  const q = useParametrosLoja();
+  const { diff, tipo, porFaixa } = useMemo(
+    () =>
+      comissaoLoja({
+        classe,
+        tecnologia,
+        contemMovel,
+        valorNovo: parseFloat(valorNovo) || 0,
+        valorAntigo: parseFloat(valorAntigo) || 0,
+        instalado,
+        faixas: q.data?.faixas ?? [],
+        novos: q.data?.novos ?? [],
+      }),
+    [q.data, valorNovo, valorAntigo, instalado, classe, tecnologia, contemMovel],
+  );
 
   return (
     <Card>
@@ -66,6 +98,8 @@ export function ProjecaoComissaoLoja({
         <CardTitle className="text-base">Projeção de comissão</CardTitle>
         <CardDescription>
           Diferença de ticket: <span className="font-medium text-foreground">{brl(diff)}</span>
+          <br />
+          Tipo de comissão: <span className="font-medium text-foreground">{tipo}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -75,9 +109,9 @@ export function ProjecaoComissaoLoja({
           </p>
         )}
         <div className="space-y-1.5 text-sm">
-          {(["faixa_0", "faixa_1", "faixa_2", "faixa_3"] as const).map((k, i) => (
+          {[1, 2, 3].map((i) => (
             <div
-              key={k}
+              key={i}
               className="flex items-center justify-between rounded-md border px-3 py-1.5"
             >
               <span className="text-muted-foreground">Faixa efetiva {i}</span>
@@ -86,7 +120,9 @@ export function ProjecaoComissaoLoja({
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          A faixa efetiva é definida pelo % de atingimento da meta mensal da equipe.
+          A faixa efetiva do mês é o menor valor entre a faixa de % de renovações com móvel e a
+          faixa de receita (soma das diferenças de ticket). Novos acessos de banda larga pagam 5%
+          (até R$ 99,90) ou 10% da diferença, independentemente da faixa.
         </p>
       </CardContent>
     </Card>
@@ -96,21 +132,71 @@ export function ProjecaoComissaoLoja({
 export function ProjecaoComissaoPap({
   valor,
   instalado,
+  tipoProtocolo,
+  produto,
+  mesRef,
+  vendedorId,
+  editingId,
 }: {
   valor: string;
   instalado: boolean;
+  tipoProtocolo: string;
+  produto: string;
+  mesRef: string;
+  vendedorId?: string;
+  editingId?: string;
 }) {
-  const q = useFaixasPap();
+  const q = useParametrosPap();
+
+  const acumuladoQ = useQuery({
+    queryKey: ["pap-core-mes", mesRef, vendedorId],
+    enabled: !!mesRef,
+    queryFn: async () => {
+      const uid = vendedorId ?? (await supabase.auth.getUser()).data.user?.id;
+      if (!uid) return [] as { id: string; valor: number; produto: string | null; tipo_protocolo: string | null }[];
+      const { data } = await supabase
+        .from("vendas_pap")
+        .select("id, valor, produto, tipo_protocolo")
+        .eq("vendedor_id", uid)
+        .eq("mes_ref", mesRef)
+        .eq("status", "instalado");
+      return (data ?? []) as {
+        id: string;
+        valor: number;
+        produto: string | null;
+        tipo_protocolo: string | null;
+      }[];
+    },
+  });
+
   const calc = useMemo(() => {
     const v = parseFloat(valor) || 0;
-    return comissaoPap(q.data ?? [], v, instalado);
-  }, [q.data, valor, instalado]);
+    const produtos = q.data?.produtos ?? [];
+    const outras = (acumuladoQ.data ?? []).filter((r) => r.id !== editingId);
+    const coreOutras = outras
+      .filter((r) => ehCorePap(r.tipo_protocolo ?? "", r.produto ?? "", produtos))
+      .reduce((s, r) => s + Number(r.valor ?? 0), 0);
+    const estaCore = instalado && ehCorePap(tipoProtocolo, produto, produtos);
+    return comissaoPap({
+      tipoProtocolo,
+      produto,
+      valor: v,
+      instalado,
+      totalCoreMes: coreOutras + (estaCore ? v : 0),
+      faixas: q.data?.faixas ?? [],
+      produtos,
+    });
+  }, [q.data, acumuladoQ.data, valor, instalado, tipoProtocolo, produto, editingId]);
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Projeção de comissão</CardTitle>
-        <CardDescription>Baseado no valor de ativação informado.</CardDescription>
+        <CardDescription>
+          {calc.core
+            ? "Tabela 8.1 — percentual conforme a receita acumulada do mês."
+            : "Tabela 8.2 / venda indireta — percentual fixo sobre o valor da venda."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         {!instalado && (
@@ -118,24 +204,28 @@ export function ProjecaoComissaoPap({
             Comissão só é contabilizada quando <span className="font-medium">instalado</span>.
           </p>
         )}
-        <div className="flex items-center justify-between rounded-md border px-3 py-2">
-          <span className="text-muted-foreground">Faixa</span>
-          <span className="font-semibold">{calc.faixa || "-"}</span>
-        </div>
-        <div className="flex items-center justify-between rounded-md border px-3 py-2">
-          <span className="text-muted-foreground">
-            % comissão ({(calc.pct * 100).toFixed(1)}%)
-          </span>
-          <span className="font-semibold">{brl(calc.valor)}</span>
-        </div>
+        {calc.core && (
+          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+            <span className="text-muted-foreground">Faixa (8.1)</span>
+            <span className="font-semibold">{calc.faixa || "-"}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
           <span className="text-muted-foreground">
-            Com acelerador ({(calc.pctAcelerado * 100).toFixed(1)}%)
+            Comissão ({(calc.pct * 100).toFixed(1)}%)
           </span>
-          <span className="font-semibold text-primary">{brl(calc.valorAcelerado)}</span>
+          <span className="font-semibold text-primary">{brl(calc.valor)}</span>
         </div>
+        {calc.core && (
+          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+            <span className="text-muted-foreground">
+              Com acelerador ({(calc.pctAcelerado * 100).toFixed(1)}%)
+            </span>
+            <span className="font-semibold">{brl(calc.valorAcelerado)}</span>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
-          Acelerador aplicado quando o índice de cancelamento da equipe fica abaixo da meta.
+          O acelerador é pago apenas quando o índice de cancelamento D+5 fica dentro da meta.
         </p>
       </CardContent>
     </Card>
