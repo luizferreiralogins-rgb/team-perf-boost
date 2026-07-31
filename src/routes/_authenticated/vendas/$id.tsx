@@ -37,7 +37,7 @@ function EditarVenda() {
       const { data: loja } = await supabase
         .from("vendas_loja")
         .select(
-          "vendedor_id, protocolo, nome_cliente, cpf_cnpj, observacoes, data_abertura, data_ativacao, data_agendamento, classe_protocolo, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
+          "vendedor_id, protocolo, nome_cliente, observacoes, data_abertura, data_ativacao, data_agendamento, classe_protocolo, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
         )
         .eq("id", id)
         .maybeSingle();
@@ -48,7 +48,6 @@ function EditarVenda() {
           state: {
             protocolo: loja.protocolo ?? "",
             nome_cliente: loja.nome_cliente,
-            cpf_cnpj: loja.cpf_cnpj ?? "",
             observacoes: loja.observacoes ?? "",
             data_abertura: loja.data_abertura ?? "",
             data_ativacao: loja.data_ativacao ?? "",
