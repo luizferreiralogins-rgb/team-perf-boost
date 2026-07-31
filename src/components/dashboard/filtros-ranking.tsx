@@ -298,7 +298,9 @@ export function RankingEquipe({
         const k = chaveDe(v.vendedor_id);
         if (!k) continue;
         const l = get(k);
-        const val = Number(v.valor_novo ?? 0);
+        const novo = Number(v.valor_novo ?? 0);
+        const antigo = Number(v.valor_antigo ?? 0);
+        const val = antigo > 0 ? novo - antigo : novo;
         if (isFibra(v.tecnologia) && !isRenov(v.classe_protocolo)) l.fibraQtd++;
         if (isMovel(v.tecnologia) || v.contem_movel) l.movelQtd++;
         if (isRenov(v.classe_protocolo)) l.renovacoesRs += val;
