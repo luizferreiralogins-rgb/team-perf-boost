@@ -177,7 +177,8 @@ function Contestacoes() {
     const nativas = dados.data?.nativas ?? [];
     const vendas = dados.data?.vendas ?? [];
 
-    const alvo = consultor === "todos" ? null : norm(consultor);
+    const filtro = me.data?.isGestor ? consultor : (me.data?.nome ?? "todos");
+    const alvo = filtro === "todos" ? null : norm(filtro);
     const nativasF = alvo ? nativas.filter((n) => norm(n.consultor_nome).includes(alvo)) : nativas;
     const vendasF = alvo ? vendas.filter((v) => norm(v.vendedor_nome).includes(alvo)) : vendas;
 
