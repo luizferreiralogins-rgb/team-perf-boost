@@ -225,7 +225,10 @@ function HistoricoPage() {
             protocolo: v.protocolo,
             tipo: v.classe_protocolo ?? "—",
             produto: v.tecnologia ?? "—",
-            valor: Number(v.valor_novo ?? 0),
+            valor:
+              Number(v.valor_antigo ?? 0) > 0
+                ? Number(v.valor_novo ?? 0) - Number(v.valor_antigo ?? 0)
+                : Number(v.valor_novo ?? 0),
             comissao: Number(v.comissao ?? 0),
           }),
         );
