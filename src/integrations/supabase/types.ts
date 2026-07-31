@@ -122,6 +122,7 @@ export type Database = {
           canal: Database["public"]["Enums"]["canal_venda"]
           created_at: string
           criado_por: string
+          gerente_id: string | null
           id: string
           mes_ref: string
           total_linhas: number
@@ -131,6 +132,7 @@ export type Database = {
           canal: Database["public"]["Enums"]["canal_venda"]
           created_at?: string
           criado_por: string
+          gerente_id?: string | null
           id?: string
           mes_ref: string
           total_linhas?: number
@@ -140,11 +142,20 @@ export type Database = {
           canal?: Database["public"]["Enums"]["canal_venda"]
           created_at?: string
           criado_por?: string
+          gerente_id?: string | null
           id?: string
           mes_ref?: string
           total_linhas?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contestacao_importacoes_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contestacao_vendas_nativas: {
         Row: {
