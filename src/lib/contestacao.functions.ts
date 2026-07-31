@@ -6,8 +6,11 @@ const input = z.object({
   canal: z.enum(["loja", "pap"]),
   mes_ref: z.string().regex(/^\d{4}-\d{2}$/),
   arquivo_nome: z.string().min(1).max(200),
-  csv: z.string().min(10).max(400000),
+  csv: z.string().min(1).max(200000),
+  parte: z.number().int().min(0).default(0),
+  importacao_id: z.string().uuid().nullable().default(null),
 });
+
 
 const SCHEMA = {
   type: "object",
