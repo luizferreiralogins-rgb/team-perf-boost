@@ -161,8 +161,11 @@ function Dashboard() {
       }
       for (const v of scopePap) {
         const val = Number(v.valor ?? 0);
-        if (isBL(v.tecnologia)) { blQtd++; blRs += val; }
-        if (isMovel(v.tecnologia)) { mvQtd++; mvRs += val; }
+        const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
+        const temMovel = isMovel(desc) || Number(v.qtd_linhas ?? 0) > 0;
+        if (isBL(desc) || /fibra|fttx|internet/i.test(desc)) { blQtd++; blRs += val; }
+        if (temMovel) { mvQtd++; mvRs += val; }
+        if ((v.tipo_protocolo ?? "").startsWith("Renovação")) { rvQtd++; rvRs += val; }
       }
 
       return {
