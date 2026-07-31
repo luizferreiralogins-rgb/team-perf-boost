@@ -179,7 +179,7 @@ function Contestacoes() {
     staleTime: 60_000,
   });
 
-  const canalEfetivo = me.data?.isGestor ? canal : (me.data?.canal ?? "loja");
+  const canalEfetivo = canal;
 
   const dados = useQuery({
     enabled: !!me.data,
