@@ -328,49 +328,79 @@ export function FormLoja({
     const valorAntigoNum =
       typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
 
-    // Comissão: calcula faixa efetiva do mês (1-3) considerando esta venda.
+    // Comissão: espelha a planilha oficial (faixa efetiva do mês + tabelas de regras).
     let comissao = 0;
-    let tipoFaixa: "faixa_0" | "faixa_1" | "faixa_2" | "faixa_3" = "faixa_0";
+    let tipoComissao = tipoComissaoLoja(
+      parsed.data.classe_protocolo,
+      parsed.data.contem_movel,
+      parsed.data.tecnologia,
+      [],
+    );
     const mesRef = mesRefFromDate(dataRef);
     if (parsed.data.instalado) {
-      const [{ data: faixas }, { data: metas }, { data: mesVendas }] = await Promise.all([
-        supabase
-          .from("parametros_loja_faixas_ticket")
-          .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
-        supabase
-          .from("parametros_loja_metas")
-          .select("faixa, meta_receita, meta_renov_movel"),
-        supabase
-          .from("vendas_loja")
-          .select("id, valor_novo, classe_protocolo, contem_movel, status")
-          .eq("vendedor_id", uid)
-          .eq("mes_ref", mesRef),
-      ]);
+      const [{ data: faixas }, { data: metas }, { data: novos }, { data: mesVendas }] =
+        await Promise.all([
+          supabase
+            .from("parametros_loja_faixas_ticket")
+            .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
+          supabase.from("parametros_loja_metas").select("faixa, meta_receita, meta_renov_movel"),
+          supabase.from("parametros_loja_novos_produtos").select("codigo, nome, percentual"),
+          supabase
+            .from("vendas_loja")
+            .select("id, valor_novo, valor_antigo, classe_protocolo, contem_movel, tecnologia")
+            .eq("vendedor_id", uid)
+            .eq("mes_ref", mesRef),
+        ]);
+
+      const listaFaixas = (faixas ?? []) as LojaFaixaTicket[];
+      const listaNovos = (novos ?? []) as LojaNovoProduto[];
 
       // Ao editar, exclui a própria venda do acumulado (será recontabilizada).
       const rows = (mesVendas ?? []).filter((v) => v.id !== editingId);
+      const diffAtual = diferencaTicket(parsed.data.valor_novo, valorAntigoNum);
+
+      // Receita do mês = somatória das diferenças de ticket.
       const receitaMes =
-        rows
-          .filter((v) => v.status === "instalado")
-          .reduce((s, v) => s + Number(v.valor_novo ?? 0), 0) + parsed.data.valor_novo;
-      const totalRenov =
-        rows.filter((v) => v.classe_protocolo === "Renovação Contratual").length +
-        (parsed.data.classe_protocolo === "Renovação Contratual" ? 1 : 0);
-      const renovComMovel =
-        rows.filter((v) => v.classe_protocolo === "Renovação Contratual" && v.contem_movel).length +
-        (parsed.data.classe_protocolo === "Renovação Contratual" && parsed.data.contem_movel ? 1 : 0);
+        rows.reduce((s, v) => s + diferencaTicket(Number(v.valor_novo), v.valor_antigo), 0) +
+        diffAtual;
+
+      const tipos = [
+        ...rows.map((v) =>
+          tipoComissaoLoja(
+            v.classe_protocolo ?? "",
+            !!v.contem_movel,
+            v.tecnologia ?? "",
+            listaNovos,
+          ),
+        ),
+        tipoComissaoLoja(
+          parsed.data.classe_protocolo,
+          parsed.data.contem_movel,
+          parsed.data.tecnologia,
+          listaNovos,
+        ),
+      ];
+      const totalRenov = tipos.filter((t) => t.startsWith("Renovação")).length;
+      const renovComMovel = tipos.filter((t) => t === "Renovação com Mobilidade").length;
       const ratio = totalRenov > 0 ? renovComMovel / totalRenov : 0;
 
       const faixaEfet = faixaEfetivaLoja((metas ?? []) as LojaMeta[], receitaMes, ratio);
-      const { porFaixa } = comissaoLoja(
-        (faixas ?? []) as LojaFaixaTicket[],
-        parsed.data.valor_novo,
-        valorAntigoNum,
-        true,
+      tipoComissao = tipos[tipos.length - 1];
+      comissao = comissaoLojaNaFaixa(
+        {
+          classe: parsed.data.classe_protocolo,
+          tecnologia: parsed.data.tecnologia,
+          contemMovel: parsed.data.contem_movel,
+          valorNovo: parsed.data.valor_novo,
+          valorAntigo: valorAntigoNum,
+          instalado: true,
+          faixas: listaFaixas,
+          novos: listaNovos,
+        },
+        faixaEfet,
       );
-      comissao = porFaixa[faixaEfet] ?? 0;
-      tipoFaixa = (`faixa_${faixaEfet}` as typeof tipoFaixa);
     }
+
 
     const payload = {
       vendedor_id: uid,
