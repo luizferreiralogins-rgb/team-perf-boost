@@ -179,6 +179,11 @@ function Contestacoes() {
     staleTime: 60_000,
   });
 
+  const canalPerfil = me.data?.canal;
+  useEffect(() => {
+    if (canalPerfil) setCanal(canalPerfil);
+  }, [canalPerfil]);
+
   const canalEfetivo = canal;
 
   const dados = useQuery({
