@@ -744,7 +744,7 @@ export function FormPap({
       data_venda: parsed.data.data,
       data_ativacao: parsed.data.data_instalacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
-      mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
+      mes_ref: mesRefPap,
       valor: parsed.data.valor,
       qtd_linhas: parsed.data.qtd_linhas,
       produto: parsed.data.produto,
@@ -764,7 +764,9 @@ export function FormPap({
         motivo: motivoReagendamento,
       });
     }
+    if (!error) await recalcularPapMes(uid, mesRefPap);
     setLoading(false);
+
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
       return;
