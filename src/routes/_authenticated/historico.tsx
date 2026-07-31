@@ -1,4 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  useOrdenacao,
+  cmpTexto,
+  cmpNumeroDesc,
+  cmpDataDesc,
+  type OpcaoOrdenacao,
+} from "@/components/ordenacao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -271,6 +278,19 @@ function HistoricoPage() {
     );
   }, [registrosQ.data, busca, nomePorId]);
 
+  type LinhaHist = (typeof rows)[number];
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<LinhaHist>[]>(
+    () => [
+      { valor: "data", label: "Instalação (recente)", cmp: cmpDataDesc((r) => r.data_instalacao) },
+      { valor: "cliente", label: "Cliente (A-Z)", cmp: cmpTexto((r) => r.cliente) },
+      { valor: "valor", label: "Valor (maior)", cmp: cmpNumeroDesc((r) => r.valor) },
+      { valor: "comissao", label: "Comissão (maior)", cmp: cmpNumeroDesc((r) => r.comissao) },
+      { valor: "consultor", label: "Consultor (A-Z)", cmp: cmpTexto((r) => nomePorId[r.vendedor_id] ?? "") },
+    ],
+    [nomePorId],
+  );
+  const { rows: linhas, control: ordenarControl } = useOrdenacao(rows, opcoesOrdem);
+
   const totais = useMemo(
     () => ({
       qtd: rows.length,
@@ -409,8 +429,9 @@ function HistoricoPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">Registros</CardTitle>
+          {rows.length > 0 && ordenarControl}
         </CardHeader>
         <CardContent>
           {registrosQ.isLoading ? (
@@ -441,7 +462,7 @@ function HistoricoPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => (
+                  {linhas.map((r) => (
                     <TableRow key={`${r.canal}-${r.id}`}>
                       <TableCell className="whitespace-nowrap">{fmtDate(r.data_instalacao)}</TableCell>
                       {isGestor && <TableCell>{nomePorId[r.vendedor_id] ?? "—"}</TableCell>}
