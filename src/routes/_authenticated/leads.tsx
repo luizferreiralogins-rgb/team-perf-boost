@@ -120,7 +120,7 @@ function LeadsPage() {
 
   const isConsultor =
     !!me.data && me.data.roles.includes("consultor") &&
-    !me.data.roles.some((r) => ["gerente", "regional", "admin"].includes(r));
+    !me.data.roles.some((r) => ["gerente", "lider_pap", "regional", "admin"].includes(r));
 
   const leadsQ = useQuery({
     queryKey: ["leads"],

@@ -18,7 +18,7 @@ export type Membro = {
   canal: "loja" | "pap";
   loja_unidade: "norte" | "sul" | "shopping" | null;
   gerente_id: string | null;
-  role: "consultor" | "gerente" | "regional" | "admin";
+  role: "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 };
 
 export type Filtros = {
@@ -96,7 +96,7 @@ export function useEquipe(uid?: string, role?: string) {
         role: roleMap.get(p.id) ?? "consultor",
       }));
 
-      if (role === "gerente") {
+      if (role === "gerente" || role === "lider_pap") {
         // toda a cadeia abaixo do gerente (consultores + gerentes subordinados e seus times)
         return descendentesDe(todos, uid!);
       }
@@ -135,14 +135,14 @@ export function FiltrosBar({
   onChange: (f: Filtros) => void;
 }) {
   const gerentes = useMemo(
-    () => membros.filter((m) => m.role === "gerente").sort((a, b) => a.nome.localeCompare(b.nome)),
+    () => membros.filter((m) => (m.role === "gerente" || m.role === "lider_pap")).sort((a, b) => a.nome.localeCompare(b.nome)),
     [membros],
   );
   const consultores = useMemo(
     () => membros.filter((m) => m.role === "consultor").sort((a, b) => a.nome.localeCompare(b.nome)),
     [membros],
   );
-  const isRegional = role !== "gerente";
+  const isRegional = role !== "gerente" && role !== "lider_pap";
   // Gerente que tem gerentes na equipe pode filtrar por esses gerentes também
   const pessoas = useMemo(
     () => (isRegional ? gerentes : [...gerentes, ...consultores]),
@@ -225,7 +225,7 @@ export function RankingEquipe({
   membros: Membro[];
   filtros: Filtros;
 }) {
-  const isRegional = role !== "gerente";
+  const isRegional = role !== "gerente" && role !== "lider_pap";
   const escopo = useMemo(() => aplicarFiltros(membros, filtros, role), [membros, filtros, role]);
   const ids = useMemo(() => escopo.map((m) => m.id), [escopo]);
   const mesRef = `${filtros.mes}-01`;

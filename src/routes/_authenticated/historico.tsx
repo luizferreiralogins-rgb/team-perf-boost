@@ -106,7 +106,7 @@ function useMe() {
       const list = (roles ?? []).map((r) => r.role as string);
       return {
         uid,
-        isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin"),
+        isGestor: list.some((r) => ["gerente", "lider_pap", "regional", "admin"].includes(r)),
         isRegional: list.some((r) => r === "regional" || r === "admin"),
       };
     },

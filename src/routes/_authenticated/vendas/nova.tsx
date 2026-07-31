@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
     if (!uid) return;
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
     const list = (roles ?? []).map((r) => r.role);
-    const isGestor = list.some((r) => r === "gerente" || r === "regional" || r === "admin");
+    const isGestor = list.some((r) => ["gerente", "lider_pap", "regional", "admin"].includes(r));
     if (isGestor) throw redirect({ to: "/dashboard" });
   },
   component: NovaVenda,

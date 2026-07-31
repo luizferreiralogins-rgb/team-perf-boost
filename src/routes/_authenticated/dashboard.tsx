@@ -55,7 +55,7 @@ function Dashboard() {
         ? "admin"
         : list.includes("regional")
           ? "regional"
-          : list.includes("gerente")
+          : list.includes("gerente") || list.includes("lider_pap")
             ? "gerente"
             : "consultor";
       return {

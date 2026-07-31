@@ -33,7 +33,7 @@ export const salvarRelatorioContestacao = createServerFn({ method: "POST" })
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
-    if (!(roles ?? []).some((row) => row.role === "gerente")) {
+    if (!(roles ?? []).some((row) => (row.role === "gerente" || row.role === "lider_pap"))) {
       throw new Error("Apenas Gerentes podem publicar o relatório da própria equipe.");
     }
 
@@ -105,7 +105,7 @@ export const limparRelatorioContestacao = createServerFn({ method: "POST" })
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
-    if (!(roles ?? []).some((row) => row.role === "gerente")) {
+    if (!(roles ?? []).some((row) => (row.role === "gerente" || row.role === "lider_pap"))) {
       throw new Error("Apenas Gerentes podem limpar o relatório da própria equipe.");
     }
 

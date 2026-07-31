@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Role = "consultor" | "gerente" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 type Canal = "loja" | "pap";
 type Unidade = "norte" | "sul" | "shopping";
 
@@ -18,13 +18,14 @@ const canManage = async (
     .eq("user_id", callerId);
   const rs: Role[] = (roles ?? []).map((r: any) => r.role);
   if (rs.includes("admin") || rs.includes("regional")) {
-    return targetRole === "gerente" || targetRole === "consultor";
+    return targetRole === "gerente" || targetRole === "lider_pap" || targetRole === "consultor";
   }
-  if (rs.includes("gerente")) {
-    return targetRole === "consultor" && gerenteId === callerId;
+  if (rs.includes("gerente") || rs.includes("lider_pap")) {
+    return (targetRole === "consultor" || targetRole === "lider_pap") && gerenteId === callerId;
   }
   return false;
 };
+
 
 export const listTeam = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -54,7 +55,7 @@ export const listTeam = createServerFn({ method: "GET" })
 const createSchema = z.object({
   email: z.string().trim().email().max(255),
   nome: z.string().trim().min(2).max(120),
-  role: z.enum(["gerente", "consultor"]),
+  role: z.enum(["gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
@@ -66,20 +67,28 @@ export const createTeamMember = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const gerenteId = data.role === "consultor" ? (data.gerente_id ?? null) : null;
+    const precisaGestor = data.role === "consultor" || data.role === "lider_pap";
+    const gerenteId = precisaGestor ? (data.gerente_id ?? null) : null;
     const ok = await canManage(supabase, userId, data.role as Role, gerenteId);
     if (!ok) throw new Error("Sem permissão para criar este tipo de acesso.");
+    if (data.role === "lider_pap" && !gerenteId) {
+      throw new Error("O Líder PAP precisa estar vinculado a um Gerente.");
+    }
 
-    // Gerente criando consultor sempre vincula a si mesmo
+    // Gerente/Líder PAP criando subordinado sempre vincula a si mesmo
     const { data: myRoles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
     const rs: Role[] = (myRoles ?? []).map((r: any) => r.role);
     const gerenteFinal =
-      data.role === "consultor" && rs.includes("gerente") && !rs.includes("regional") && !rs.includes("admin")
+      precisaGestor &&
+      (rs.includes("gerente") || rs.includes("lider_pap")) &&
+      !rs.includes("regional") &&
+      !rs.includes("admin")
         ? userId
         : gerenteId;
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const created = await supabaseAdmin.auth.admin.createUser({
@@ -117,7 +126,7 @@ const updateSchema = z.object({
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
-  role: z.enum(["gerente", "consultor"]).optional(),
+  role: z.enum(["gerente", "lider_pap", "consultor"]).optional(),
 });
 
 export const updateTeamMember = createServerFn({ method: "POST" })
