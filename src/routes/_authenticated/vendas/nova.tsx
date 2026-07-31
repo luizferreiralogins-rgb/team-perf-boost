@@ -617,7 +617,11 @@ export function FormLoja({
           valorNovo={form.valor_novo}
           valorAntigo={form.valor_antigo}
           instalado={form.instalado}
+          classe={form.classe_protocolo}
+          tecnologia={form.tecnologia}
+          contemMovel={form.contem_movel}
         />
+
         <CalculadoraParcelaMedia defaultParcelaNormal={form.valor_novo} />
       </aside>
     </div>
