@@ -245,7 +245,7 @@ export function RankingEquipe({
       const [loja, pap, leads] = await Promise.all([
         supabase
           .from("vendas_loja")
-          .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, valor_novo")
+          .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, valor_novo, valor_antigo")
           .eq("mes_ref", mesRef)
           .in("vendedor_id", ids),
         supabase
@@ -298,7 +298,9 @@ export function RankingEquipe({
         const k = chaveDe(v.vendedor_id);
         if (!k) continue;
         const l = get(k);
-        const val = Number(v.valor_novo ?? 0);
+        const novo = Number(v.valor_novo ?? 0);
+        const antigo = Number(v.valor_antigo ?? 0);
+        const val = antigo > 0 ? novo - antigo : novo;
         if (isFibra(v.tecnologia) && !isRenov(v.classe_protocolo)) l.fibraQtd++;
         if (isMovel(v.tecnologia) || v.contem_movel) l.movelQtd++;
         if (isRenov(v.classe_protocolo)) l.renovacoesRs += val;
