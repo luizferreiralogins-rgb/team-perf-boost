@@ -64,6 +64,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
 });
 
 type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "regional";
 type Canal = "loja" | "pap";
 type Unidade = "norte" | "sul" | "shopping";
 
@@ -111,7 +112,13 @@ function EquipePage() {
 
   const members = (membersQ.data ?? []) as Member[];
   const gerentes = useMemo(
-    () => members.filter((m) => m.roles.includes("gerente") || m.roles.includes("lider_pap")),
+    () =>
+      members.filter(
+        (m) =>
+          m.roles.includes("gerente") ||
+          m.roles.includes("lider_pap") ||
+          m.roles.includes("regional"),
+      ),
     [members],
   );
 
@@ -510,6 +517,14 @@ function EditarDialog({
   const [unidade, setUnidade] = useState<Unidade | "">(member.loja_unidade ?? "");
   const [ativo, setAtivo] = useState(member.ativo);
   const [gerenteId, setGerenteId] = useState<string>(member.gerente_id ?? "");
+  const cargoAtual: RoleEditavel = member.roles.includes("regional")
+    ? "regional"
+    : member.roles.includes("gerente")
+      ? "gerente"
+      : member.roles.includes("lider_pap")
+        ? "lider_pap"
+        : "consultor";
+  const [role, setRole] = useState<RoleEditavel>(cargoAtual);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -521,6 +536,7 @@ function EditarDialog({
           loja_unidade: canal === "loja" ? (unidade || null) : null,
           ativo,
           gerente_id: isRegional ? (gerenteId || null) : undefined,
+          role: isRegional && role !== cargoAtual ? role : undefined,
         } as any,
       }),
     onSuccess: () => {
@@ -572,17 +588,33 @@ function EditarDialog({
               </div>
             )}
           </div>
-          {isRegional && !member.roles.includes("regional") && (
-            <div className="space-y-2">
-              <Label>Gestor responsável</Label>
-              <Select value={gerenteId} onValueChange={setGerenteId}>
-                <SelectTrigger><SelectValue placeholder="Sem gerente" /></SelectTrigger>
-                <SelectContent>
-                  {gerentes.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {isRegional && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Cargo</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as RoleEditavel)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regional">Gerente Regional</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                    <SelectItem value="lider_pap">Líder PAP</SelectItem>
+                    <SelectItem value="consultor">Consultor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Gestor responsável</Label>
+                <Select value={gerenteId} onValueChange={setGerenteId}>
+                  <SelectTrigger><SelectValue placeholder="Sem gestor" /></SelectTrigger>
+                  <SelectContent>
+                    {gerentes
+                      .filter((g) => g.id !== member.id)
+                      .map((g) => (
+                        <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           <div className="flex items-center justify-between rounded-md border p-3">
