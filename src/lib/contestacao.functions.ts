@@ -187,8 +187,16 @@ ${data.csv.slice(0, 380000)}`;
       nome_cliente: (v.nome_cliente ?? "").trim() || "(sem nome)",
       cpf_cnpj: (v.cpf_cnpj ?? "").replace(/\D/g, "") || null,
       consultor_nome: (v.consultor_nome ?? "").trim() || null,
-      valor: Number(v.valor) || 0,
+      classe_protocolo: (v.classe_protocolo ?? "").trim() || null,
+      tecnologia: (v.tecnologia ?? "").trim() || null,
+      valor_novo: Number(v.valor_novo) || 0,
+      valor_antigo: Number(v.valor_antigo) || 0,
+      diferenca: Number(v.diferenca) || Number(v.valor_novo || 0) - Number(v.valor_antigo || 0),
+      faixa: Number(v.faixa) || 0,
+      comissao: Number(v.comissao) || 0,
+      valor: Number(v.valor) || Number(v.valor_novo) || 0,
       data_instalacao: /^\d{4}-\d{2}-\d{2}$/.test(v.data_instalacao ?? "") ? v.data_instalacao : null,
+
     }));
 
     const { error: insErr } = await context.supabase.from("contestacao_vendas_nativas").insert(rows);
