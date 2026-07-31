@@ -100,7 +100,7 @@ function Dashboard() {
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("valor_novo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel")
+        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel")
         .eq("mes_ref", mesRefISO);
       const papQ = supabase
         .from("vendas_pap")
