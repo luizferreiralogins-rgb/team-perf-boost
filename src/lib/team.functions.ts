@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Role = "consultor" | "gerente" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 type Canal = "loja" | "pap";
 type Unidade = "norte" | "sul" | "shopping";
 
@@ -18,13 +18,14 @@ const canManage = async (
     .eq("user_id", callerId);
   const rs: Role[] = (roles ?? []).map((r: any) => r.role);
   if (rs.includes("admin") || rs.includes("regional")) {
-    return targetRole === "gerente" || targetRole === "consultor";
+    return targetRole === "gerente" || targetRole === "lider_pap" || targetRole === "consultor";
   }
-  if (rs.includes("gerente")) {
-    return targetRole === "consultor" && gerenteId === callerId;
+  if (rs.includes("gerente") || rs.includes("lider_pap")) {
+    return (targetRole === "consultor" || targetRole === "lider_pap") && gerenteId === callerId;
   }
   return false;
 };
+
 
 export const listTeam = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
