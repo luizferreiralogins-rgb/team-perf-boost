@@ -248,6 +248,20 @@ function LeadsPage() {
     onError: (e: any) => toast.error(e.message ?? "Falha ao remover"),
   });
 
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<Lead>[]>(
+    () => [
+      { valor: "recentes", label: "Cadastro (recente)", cmp: cmpDataDesc((l) => l.created_at) },
+      { valor: "nome", label: "Nome (A-Z)", cmp: cmpTexto((l) => l.nome) },
+      { valor: "produto", label: "Produto (A-Z)", cmp: cmpTexto((l) => l.produto_interesse ?? "") },
+      { valor: "consultor", label: "Consultor (A-Z)", cmp: cmpTexto((l) => nomesVendedores[l.vendedor_id] ?? "") },
+    ],
+    [nomesVendedores],
+  );
+  const { rows: leadsOrdenados, control: ordenarControl } = useOrdenacao(
+    leadsQ.data ?? [],
+    opcoesOrdem,
+  );
+
   const grouped = useMemo(() => {
     const g: Record<LeadStatus, Lead[]> = {
       contato_feito: [],
@@ -257,9 +271,9 @@ function LeadsPage() {
       nao_perturbar: [],
       transferido: [],
     };
-    (leadsQ.data ?? []).forEach((l) => g[l.status].push(l));
+    leadsOrdenados.forEach((l) => g[l.status].push(l));
     return g;
-  }, [leadsQ.data]);
+  }, [leadsOrdenados]);
 
   const inbox = (transfersQ.data ?? []).map((t: any) => ({
     ...t,
@@ -330,6 +344,8 @@ function LeadsPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="flex justify-end">{ordenarControl}</div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {COLUMNS.map((col) => (

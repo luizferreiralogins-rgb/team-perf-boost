@@ -138,6 +138,18 @@ function EquipePage() {
     });
   }, [members, filterRole, filterCanal, filterUnidade, filterGerente, q, isGerente, isRegional, me.data?.uid]);
 
+  type Membro = (typeof filtered)[number];
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<Membro>[]>(
+    () => [
+      { valor: "nome", label: "Nome (A-Z)", cmp: cmpTexto((m) => m.nome) },
+      { valor: "email", label: "E-mail (A-Z)", cmp: cmpTexto((m) => m.email ?? "") },
+      { valor: "canal", label: "Canal (A-Z)", cmp: cmpTexto((m) => m.canal ?? "") },
+      { valor: "perfil", label: "Perfil (A-Z)", cmp: cmpTexto((m) => m.roles.join(", ")) },
+    ],
+    [],
+  );
+  const { rows: membrosOrdenados, control: ordenarControl } = useOrdenacao(filtered, opcoesOrdem);
+
   if (!me.isLoading && !isRegional && !isGerente) {
     return (
       <div className="mx-auto max-w-2xl">
