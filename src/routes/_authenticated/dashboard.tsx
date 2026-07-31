@@ -157,7 +157,8 @@ function Dashboard() {
 
       for (const v of scopeLoja) {
         const val = Number(v.valor_novo ?? 0);
-        if (isBL(v.tecnologia)) { blQtd++; blRs += val; }
+        const renovLoja = v.classe_protocolo === "Renovação Contratual";
+        if (isBL(v.tecnologia) && !renovLoja) { blQtd++; blRs += val; }
         if (isMovel(v.tecnologia) || v.contem_movel) { mvQtd++; mvRs += val; }
         if (v.classe_protocolo === "Renovação Contratual") { rvQtd++; rvRs += val; }
       }
@@ -165,7 +166,8 @@ function Dashboard() {
         const val = Number(v.valor ?? 0);
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
         const temMovel = isMovel(desc) || Number(v.qtd_linhas ?? 0) > 0;
-        if (isBL(desc) || /fibra|fttx|internet/i.test(desc)) { blQtd++; blRs += val; }
+        const renovPap = (v.tipo_protocolo ?? "").startsWith("Renovação");
+        if ((isBL(desc) || /fibra|fttx|internet/i.test(desc)) && !renovPap) { blQtd++; blRs += val; }
         if (temMovel) { mvQtd++; mvRs += val; }
         if ((v.tipo_protocolo ?? "").startsWith("Renovação")) { rvQtd++; rvRs += val; }
       }

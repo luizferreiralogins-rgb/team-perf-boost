@@ -299,7 +299,7 @@ export function RankingEquipe({
         if (!k) continue;
         const l = get(k);
         const val = Number(v.valor_novo ?? 0);
-        if (isFibra(v.tecnologia)) l.fibraQtd++;
+        if (isFibra(v.tecnologia) && !isRenov(v.classe_protocolo)) l.fibraQtd++;
         if (isMovel(v.tecnologia) || v.contem_movel) l.movelQtd++;
         if (isRenov(v.classe_protocolo)) l.renovacoesRs += val;
       }
@@ -309,7 +309,7 @@ export function RankingEquipe({
         const l = get(k);
         const val = Number(v.valor ?? 0);
         const prod = v.produto ?? v.tecnologia;
-        if (isFibra(prod)) l.fibraQtd++;
+        if (isFibra(prod) && !isRenov(v.tipo_protocolo)) l.fibraQtd++;
         if (isMovel(prod)) l.movelQtd++;
         if (isRenov(v.tipo_protocolo)) l.renovacoesRs += val;
       }
