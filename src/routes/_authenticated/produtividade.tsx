@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Activity, ClipboardList, ShoppingBag, Users } from "lucide-react";
+import { Activity, ClipboardList, ShoppingBag, Timer, Users } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
+import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 
 export const Route = createFileRoute("/_authenticated/produtividade")({
   head: () => ({
@@ -151,6 +153,34 @@ function Produtividade() {
     [prod],
   );
 
+  const tempos = useTempos();
+  const { data: roles } = useQuery({
+    queryKey: ["meus-roles-produtividade"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", sess.user!.id);
+      return (data ?? []).map((r) => r.role as string);
+    },
+  });
+  const isMaster = !!roles?.some((r) => r === "regional" || r === "admin");
+
+  const minutosMes = useMemo(() => {
+    const mapa = mapaTempos(tempos.data);
+    const atend = (prod?.atendimentos ?? []).reduce(
+      (s, a) => s + (mapa.get(a.tipo) ?? 0),
+      0,
+    );
+    return (
+      atend +
+      (prod?.totais.vendas ?? 0) * (mapa.get("venda") ?? 0) +
+      (prod?.totais.leads ?? 0) * (mapa.get("lead") ?? 0)
+    );
+  }, [prod, tempos.data]);
+
+
   const criar = useMutation({
     mutationFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
@@ -225,6 +255,30 @@ function Produtividade() {
           icon={Activity}
         />
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Tempo produtivo
+          </CardTitle>
+          <Timer className="h-4 w-4 text-primary" />
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-8">
+          <div>
+            <div className="text-2xl font-bold">{formatarMinutos(minutosMes)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Acumulado do mês</p>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">
+              {formatarMinutos(minutosMes / diasDecorridos)}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Média por dia</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isMaster && <TemposConfig />}
+
 
       <Card>
         <CardHeader>
@@ -385,6 +439,76 @@ function Stat({
             )}
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TemposConfig() {
+  const qc = useQueryClient();
+  const tempos = useTempos();
+  const [valores, setValores] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (tempos.data) {
+      setValores(Object.fromEntries(tempos.data.map((t) => [t.chave, String(t.minutos)])));
+    }
+  }, [tempos.data]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const linhas = (tempos.data ?? []).map((t) => ({
+        chave: t.chave,
+        minutos: Number(valores[t.chave] ?? t.minutos) || 0,
+      }));
+      for (const l of linhas) {
+        const { error } = await supabase
+          .from("parametros_tempos")
+          .update({ minutos: l.minutos })
+          .eq("chave", l.chave);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Tempos médios atualizados.");
+      qc.invalidateQueries({ queryKey: ["parametros-tempos"] });
+      qc.invalidateQueries({ queryKey: ["produtividade"] });
+      qc.invalidateQueries({ queryKey: ["produtividade-time"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar tempos."),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tempos médios de produtividade</CardTitle>
+        <CardDescription>
+          Defina, em minutos, o tempo médio de cada tipo de atendimento, de cada venda e de cada
+          lead. Esses valores alimentam o "Tempo produtivo" de todos os usuários.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {tempos.isLoading && <Skeleton className="h-40 w-full" />}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(tempos.data ?? []).map((t) => (
+            <div key={t.chave}>
+              <Label htmlFor={`t-${t.chave}`}>{t.label}</Label>
+              <Input
+                id={`t-${t.chave}`}
+                type="number"
+                min={0}
+                step="1"
+                value={valores[t.chave] ?? ""}
+                onChange={(e) => setValores((v) => ({ ...v, [t.chave]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? "Salvando..." : "Salvar tempos"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

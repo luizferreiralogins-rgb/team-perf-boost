@@ -517,6 +517,33 @@ export type Database = {
         }
         Relationships: []
       }
+      parametros_tempos: {
+        Row: {
+          chave: string
+          created_at: string
+          label: string
+          minutos: number
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          label: string
+          minutos?: number
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          label?: string
+          minutos?: number
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parametros_versoes: {
         Row: {
           aplicado_por: string

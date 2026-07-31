@@ -3,6 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -411,13 +413,15 @@ function ProdutividadeTime() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
 
+  const tempos = useTempos();
+
   const { data, isLoading } = useQuery({
     queryKey: ["produtividade-time", inicioMes],
     queryFn: async () => {
       const [atend, loja, pap, leads, profs] = await Promise.all([
         supabase
           .from("atendimentos")
-          .select("usuario_id")
+          .select("usuario_id, tipo")
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes),
         supabase.from("vendas_loja").select("vendedor_id").gte("created_at", `${inicioMes}T00:00:00`),
@@ -430,13 +434,23 @@ function ProdutividadeTime() {
       ]);
 
       const nomes = new Map((profs.data ?? []).map((p) => [p.id, p.nome || "—"]));
-      const linhas = new Map<string, { atendimentos: number; vendas: number; leads: number }>();
-      const bump = (id: string, k: "atendimentos" | "vendas" | "leads", n = 1) => {
-        const cur = linhas.get(id) ?? { atendimentos: 0, vendas: 0, leads: 0 };
-        cur[k] += n;
+      const linhas = new Map<
+        string,
+        { atendimentos: number; vendas: number; leads: number; tipos: Record<string, number> }
+      >();
+      const get = (id: string) => {
+        const cur = linhas.get(id) ?? { atendimentos: 0, vendas: 0, leads: 0, tipos: {} };
         linhas.set(id, cur);
+        return cur;
       };
-      for (const a of atend.data ?? []) bump(a.usuario_id, "atendimentos");
+      const bump = (id: string, k: "atendimentos" | "vendas" | "leads", n = 1) => {
+        get(id)[k] += n;
+      };
+      for (const a of atend.data ?? []) {
+        const cur = get(a.usuario_id);
+        cur.atendimentos += 1;
+        cur.tipos[a.tipo] = (cur.tipos[a.tipo] ?? 0) + 1;
+      }
       for (const v of [...(loja.data ?? []), ...(pap.data ?? [])]) bump(v.vendedor_id, "vendas");
       for (const l of leads.data ?? []) {
         const dia = (s: string) => s.slice(0, 10);
@@ -456,6 +470,18 @@ function ProdutividadeTime() {
 
   const diasDecorridos = Math.max(1, hoje.getDate());
 
+  const mapa = mapaTempos(tempos.data);
+  const minutosDe = (l: {
+    tipos: Record<string, number>;
+    vendas: number;
+    leads: number;
+  }) =>
+    Object.entries(l.tipos).reduce((s, [t, n]) => s + n * (mapa.get(t) ?? 0), 0) +
+    l.vendas * (mapa.get("venda") ?? 0) +
+    l.leads * (mapa.get("lead") ?? 0);
+
+  const minutosTime = (data ?? []).reduce((s, l) => s + minutosDe(l), 0);
+
   return (
     <Card>
       <CardHeader>
@@ -469,11 +495,34 @@ function ProdutividadeTime() {
         {!isLoading && (data?.length ?? 0) === 0 && (
           <p className="text-sm text-muted-foreground">Nenhuma atividade registrada neste mês.</p>
         )}
+        {!isLoading && (data?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-8 rounded-md border border-border bg-muted/40 p-3">
+            <div>
+              <span className="block text-xs text-muted-foreground">
+                Tempo produtivo do time — acumulado mês
+              </span>
+              <span className="text-xl font-bold">{formatarMinutos(minutosTime)}</span>
+            </div>
+            <div>
+              <span className="block text-xs text-muted-foreground">
+                Tempo produtivo do time — média dia
+              </span>
+              <span className="text-xl font-bold">
+                {formatarMinutos(minutosTime / diasDecorridos)}
+              </span>
+            </div>
+          </div>
+        )}
         {(data ?? []).map((l) => (
           <div key={l.id} className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
             <span className="font-medium">{l.nome}</span>
             <span className="ml-auto text-xs text-muted-foreground">
               {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
+              <br className="sm:hidden" />
+              <span className="sm:ml-2">
+                ⏱ {formatarMinutos(minutosDe(l))} · {formatarMinutos(minutosDe(l) / diasDecorridos)}
+                /dia
+              </span>
             </span>
             <span className="w-20 text-right">
               <span className="block text-lg font-bold leading-none">{l.total}</span>
@@ -487,3 +536,4 @@ function ProdutividadeTime() {
     </Card>
   );
 }
+
