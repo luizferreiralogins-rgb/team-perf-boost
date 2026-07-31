@@ -18,7 +18,8 @@ const canManage = async (
     .eq("user_id", callerId);
   const rs: Role[] = (roles ?? []).map((r: any) => r.role);
   if (rs.includes("admin") || rs.includes("regional")) {
-    return targetRole === "gerente" || targetRole === "lider_pap" || targetRole === "consultor";
+    // Regional/Admin (Acesso Master) gerencia cargos e hierarquia de qualquer usuário
+    return true;
   }
   if (rs.includes("gerente") || rs.includes("lider_pap")) {
     return (targetRole === "consultor" || targetRole === "lider_pap") && gerenteId === callerId;
@@ -55,7 +56,7 @@ export const listTeam = createServerFn({ method: "GET" })
 const createSchema = z.object({
   email: z.string().trim().email().max(255),
   nome: z.string().trim().min(2).max(120),
-  role: z.enum(["gerente", "lider_pap", "consultor"]),
+  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
@@ -126,7 +127,7 @@ const updateSchema = z.object({
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
-  role: z.enum(["gerente", "lider_pap", "consultor"]).optional(),
+  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]).optional(),
 });
 
 export const updateTeamMember = createServerFn({ method: "POST" })
@@ -161,6 +162,7 @@ export const updateTeamMember = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
     if (data.role && data.role !== currentRole) {
+      if (data.user_id === userId) throw new Error("Você não pode alterar o próprio cargo.");
       // Só regional/admin podem mudar role
       if (!(await canManage(supabase, userId, data.role, target?.gerente_id ?? null))) {
         throw new Error("Sem permissão para alterar o tipo de acesso.");
