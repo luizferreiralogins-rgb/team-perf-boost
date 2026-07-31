@@ -16,17 +16,38 @@ const SCHEMA = {
   properties: {
     vendas: {
       type: "array",
-      description: "Uma linha por venda reconhecida no sistema nativo.",
+      description: "Uma linha por venda reconhecida no relatório matriz.",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["protocolo", "nome_cliente", "cpf_cnpj", "consultor_nome", "valor", "data_instalacao"],
+        required: [
+          "protocolo",
+          "nome_cliente",
+          "cpf_cnpj",
+          "consultor_nome",
+          "classe_protocolo",
+          "tecnologia",
+          "valor_novo",
+          "valor_antigo",
+          "diferenca",
+          "faixa",
+          "comissao",
+          "valor",
+          "data_instalacao",
+        ],
         properties: {
           protocolo: { type: "string", description: "Número do protocolo/contrato. Vazio se não houver." },
           nome_cliente: { type: "string" },
           cpf_cnpj: { type: "string", description: "Somente dígitos, ou vazio." },
           consultor_nome: { type: "string", description: "Nome do vendedor/consultor, ou vazio." },
-          valor: { type: "number", description: "Valor mensal da venda em reais. 0 se não houver." },
+          classe_protocolo: { type: "string", description: "Classe do protocolo, ou vazio." },
+          tecnologia: { type: "string", description: "Tecnologia/produto, ou vazio." },
+          valor_novo: { type: "number", description: "Preço novo em reais. 0 se não houver." },
+          valor_antigo: { type: "number", description: "Preço antigo em reais. 0 se não houver." },
+          diferenca: { type: "number", description: "Diferença entre preço novo e antigo. 0 se não houver." },
+          faixa: { type: "number", description: "Faixa aplicada (número). 0 se não houver." },
+          comissao: { type: "number", description: "Comissão em reais. 0 se não houver." },
+          valor: { type: "number", description: "Valor mensal da venda em reais (use o preço novo). 0 se não houver." },
           data_instalacao: {
             type: "string",
             description: "Data de instalação/ativação em formato AAAA-MM-DD. Vazio se não houver.",
@@ -42,9 +63,17 @@ export type VendaNativa = {
   nome_cliente: string;
   cpf_cnpj: string;
   consultor_nome: string;
+  classe_protocolo: string;
+  tecnologia: string;
+  valor_novo: number;
+  valor_antigo: number;
+  diferenca: number;
+  faixa: number;
+  comissao: number;
   valor: number;
   data_instalacao: string;
 };
+
 
 /** Interpreta a planilha do sistema nativo (convertida em CSV) e grava as vendas reconhecidas. */
 export const importarPlanilhaNativa = createServerFn({ method: "POST" })
