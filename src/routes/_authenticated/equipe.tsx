@@ -176,6 +176,7 @@ function EquipePage() {
               <SelectContent>
                 <SelectItem value="all">Todos os perfis</SelectItem>
                 <SelectItem value="gerente">Gerente</SelectItem>
+                <SelectItem value="lider_pap">Líder PAP</SelectItem>
                 <SelectItem value="consultor">Consultor</SelectItem>
               </SelectContent>
             </Select>
@@ -276,7 +277,9 @@ function MemberRow({
     ? "Regional"
     : member.roles.includes("gerente")
       ? "Gerente"
-      : "Consultor";
+      : member.roles.includes("lider_pap")
+        ? "Líder PAP"
+        : "Consultor";
 
   return (
     <TableRow>
@@ -338,7 +341,9 @@ function NovoAcessoDialog({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"gerente" | "consultor">(isRegional ? "gerente" : "consultor");
+  const [role, setRole] = useState<"gerente" | "lider_pap" | "consultor">(
+    isRegional ? "gerente" : "consultor",
+  );
   const [canal, setCanal] = useState<Canal>("loja");
   const [unidade, setUnidade] = useState<Unidade | "">("");
   const [gerenteId, setGerenteId] = useState<string>("");
@@ -354,7 +359,7 @@ function NovoAcessoDialog({
           canal: role === "consultor" ? canal : undefined,
           loja_unidade: role === "consultor" && canal === "loja" ? (unidade || null) : null,
           gerente_id:
-            role === "consultor"
+            role === "consultor" || role === "lider_pap"
               ? isRegional
                 ? gerenteId || null
                 : myId
@@ -387,6 +392,7 @@ function NovoAcessoDialog({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gerente">Gerente</SelectItem>
+                  <SelectItem value="lider_pap">Líder PAP</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                 </SelectContent>
               </Select>
@@ -406,6 +412,24 @@ function NovoAcessoDialog({
             <Label>Senha temporária</Label>
             <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
           </div>
+          {role === "lider_pap" && isRegional && (
+            <div className="space-y-2">
+              <Label>Vincular ao gerente</Label>
+              <Select value={gerenteId} onValueChange={setGerenteId}>
+                <SelectTrigger><SelectValue placeholder="Selecione um gerente" /></SelectTrigger>
+                <SelectContent>
+                  {gerentes
+                    .filter((g) => g.roles.includes("gerente"))
+                    .map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O Líder PAP precisa estar vinculado a um Gerente.
+              </p>
+            </div>
+          )}
           {role === "consultor" && (
             <>
               <div className="grid gap-3 md:grid-cols-2">
@@ -453,7 +477,13 @@ function NovoAcessoDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => mut.mutate()}
-            disabled={mut.isPending || !nome || !email || password.length < 8}
+            disabled={
+              mut.isPending ||
+              !nome ||
+              !email ||
+              password.length < 8 ||
+              (role === "lider_pap" && isRegional && !gerenteId)
+            }
           >
             {mut.isPending ? "Criando..." : "Criar acesso"}
           </Button>
@@ -544,7 +574,7 @@ function EditarDialog({
           </div>
           {isRegional && !member.roles.includes("regional") && (
             <div className="space-y-2">
-              <Label>Gerente responsável</Label>
+              <Label>Gestor responsável</Label>
               <Select value={gerenteId} onValueChange={setGerenteId}>
                 <SelectTrigger><SelectValue placeholder="Sem gerente" /></SelectTrigger>
                 <SelectContent>
