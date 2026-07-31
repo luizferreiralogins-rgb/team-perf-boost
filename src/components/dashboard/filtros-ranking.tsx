@@ -245,7 +245,7 @@ export function RankingEquipe({
       const [loja, pap, leads] = await Promise.all([
         supabase
           .from("vendas_loja")
-          .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, valor_novo")
+          .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, valor_novo, valor_antigo")
           .eq("mes_ref", mesRef)
           .in("vendedor_id", ids),
         supabase
