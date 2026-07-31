@@ -436,6 +436,7 @@ export function FormLoja({
         motivo: motivoReagendamento,
       });
     }
+    if (!error) await recalcularLojaMes(uid, mesRef);
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
@@ -443,6 +444,7 @@ export function FormLoja({
     }
     toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
     navigate({ to: editingId ? "/historico" : "/vendas" });
+
 
   }
 
