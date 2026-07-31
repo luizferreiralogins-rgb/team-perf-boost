@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useOrdenacao, cmpTexto, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -220,8 +221,9 @@ function EquipePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>{filtered.length} acessos</CardTitle>
+          {filtered.length > 0 && ordenarControl}
         </CardHeader>
         <CardContent>
           {membersQ.isLoading ? (
@@ -242,7 +244,7 @@ function EquipePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((m) => (
+                  {membrosOrdenados.map((m) => (
                     <MemberRow
                       key={m.id}
                       member={m}
