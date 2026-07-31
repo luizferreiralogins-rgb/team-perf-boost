@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, ScanSearch, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+import { AlertTriangle, CheckCircle2, ClipboardPaste, Save, ScanSearch } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { importarPlanilhaNativa } from "@/lib/contestacao.functions";
+import { salvarRelatorioContestacao } from "@/lib/contestacao-manual.functions";
 import {
   diferencaTicket,
   ehCorePap,
@@ -92,6 +91,47 @@ type Matriz = {
   data_instalacao: string | null;
 };
 
+type LinhaColada = {
+  protocolo: string;
+  vendedor: string;
+  classe: string;
+  tecnologia: string;
+  valor_novo: number;
+  valor_antigo: number;
+  diferenca: number;
+  faixa: number;
+  comissao: number;
+};
+
+const numeroColado = (valor: string) => {
+  const limpo = valor.trim().replace(/R\$|\s/g, "");
+  if (!limpo) return 0;
+  const normalizado = limpo.includes(",")
+    ? limpo.replace(/\./g, "").replace(",", ".")
+    : limpo;
+  const numero = Number(normalizado.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(numero) ? numero : 0;
+};
+
+const linhasDaAreaTransferencia = (texto: string): LinhaColada[] =>
+  texto
+    .split(/\r?\n/)
+    .map((linha) => linha.split("\t"))
+    .filter((colunas) => colunas.some((valor) => valor.trim()))
+    .filter((colunas, indice) => !(indice === 0 && norm(colunas[0]).includes("PROTOCOLO")))
+    .map((colunas) => ({
+      protocolo: (colunas[0] ?? "").trim(),
+      vendedor: (colunas[1] ?? "").trim(),
+      classe: (colunas[2] ?? "").trim(),
+      tecnologia: (colunas[3] ?? "").trim(),
+      valor_novo: numeroColado(colunas[4] ?? ""),
+      valor_antigo: numeroColado(colunas[5] ?? ""),
+      diferenca: numeroColado(colunas[6] ?? ""),
+      faixa: numeroColado(colunas[7] ?? ""),
+      comissao: numeroColado(colunas[8] ?? ""),
+    }))
+    .filter((linha) => linha.protocolo && linha.vendedor);
+
 type VendaConsultor = {
   id: string;
   protocolo: string | null;
@@ -112,8 +152,9 @@ function Contestacoes() {
   const [mes, setMes] = useState(mesAtual());
   const [canal, setCanal] = useState<"loja" | "pap">("loja");
   const [consultor, setConsultor] = useState("todos");
+  const [gerente, setGerente] = useState("todos");
+  const [linhasColadas, setLinhasColadas] = useState<LinhaColada[]>([]);
   const [verificado, setVerificado] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const me = useQuery({
     queryKey: ["contest-me"],
@@ -121,7 +162,7 @@ function Contestacoes() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       const [{ data: profile }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("nome, canal").eq("id", uid).maybeSingle(),
+        supabase.from("profiles").select("nome, canal, gerente_id").eq("id", uid).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", uid),
       ]);
       const list = (roles ?? []).map((r) => r.role as string);
@@ -130,7 +171,9 @@ function Contestacoes() {
         nome: profile?.nome ?? "",
         canal: (profile?.canal ?? "loja") as "loja" | "pap",
         isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin"),
+        isGerente: list.some((r) => r === "gerente"),
         isRegional: list.some((r) => r === "regional" || r === "admin"),
+        gerenteId: profile?.gerente_id ?? null,
       };
     },
     staleTime: 60_000,
@@ -140,28 +183,33 @@ function Contestacoes() {
 
   const dados = useQuery({
     enabled: !!me.data,
-    queryKey: ["contestacoes", mes, canalEfetivo],
+    queryKey: ["contestacoes", mes, canalEfetivo, gerente],
     queryFn: async () => {
       const inicio = `${mes}-01`;
       const fimDate = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0);
       const fim = `${mes}-${String(fimDate.getDate()).padStart(2, "0")}`;
 
-      const [{ data: nativas }, { data: importacao }] = await Promise.all([
-        supabase
-          .from("contestacao_vendas_nativas")
-          .select(
-            "id, protocolo, nome_cliente, consultor_nome, classe_protocolo, tecnologia, valor_novo, valor_antigo, diferenca, faixa, comissao, valor, data_instalacao",
-          )
-          .eq("mes_ref", inicio)
-          .eq("canal", canalEfetivo)
-          .limit(5000),
-        supabase
-          .from("contestacao_importacoes")
-          .select("arquivo_nome, total_linhas, created_at")
-          .eq("mes_ref", inicio)
-          .eq("canal", canalEfetivo)
-          .maybeSingle(),
-      ]);
+       let importacoesQuery = supabase
+         .from("contestacao_importacoes")
+         .select("id, arquivo_nome, total_linhas, created_at, gerente_id, profiles!contestacao_importacoes_gerente_id_fkey(nome)")
+         .eq("mes_ref", inicio)
+         .eq("canal", canalEfetivo);
+       if (me.data?.isRegional && gerente !== "todos") importacoesQuery = importacoesQuery.eq("gerente_id", gerente);
+
+       const [{ data: importacoes }, { data: gestores }] = await Promise.all([
+         importacoesQuery,
+         me.data?.isRegional
+           ? supabase.from("profiles").select("id, nome, user_roles!inner(role)").eq("user_roles.role", "gerente").eq("ativo", true)
+           : Promise.resolve({ data: [] }),
+       ]);
+       const importacaoIds = (importacoes ?? []).map((item) => item.id);
+       const { data: nativas } = importacaoIds.length
+         ? await supabase
+           .from("contestacao_vendas_nativas")
+           .select("id, protocolo, nome_cliente, consultor_nome, classe_protocolo, tecnologia, valor_novo, valor_antigo, diferenca, faixa, comissao, valor, data_instalacao")
+           .in("importacao_id", importacaoIds)
+           .limit(5000)
+         : { data: [] };
 
       const matriz: Matriz[] = (nativas ?? []).map((n) => ({
         id: n.id,
@@ -269,7 +317,7 @@ function Contestacoes() {
         vendas = vendas.map((v) => ({ ...v, vendedor_nome: map.get(v.vendedor_id) ?? "—" }));
       }
 
-      return { matriz, vendas, importacao, faixaSistema };
+       return { matriz, vendas, importacoes: importacoes ?? [], gestores: gestores ?? [], faixaSistema };
     },
   });
 
@@ -289,7 +337,7 @@ function Contestacoes() {
   // Nova filtragem exige nova verificação.
   useEffect(() => {
     setVerificado(false);
-  }, [mes, canalEfetivo, consultor]);
+  }, [mes, canalEfetivo, consultor, gerente]);
 
   const comparacao = useMemo(() => {
     const chaveM = (m: Matriz) => normProt(m.protocolo) || norm(m.nome_cliente);
@@ -350,57 +398,26 @@ function Contestacoes() {
     };
   }, [matrizFiltrada, vendasFiltradas, canalEfetivo, dados.data]);
 
-  const importar = useMutation({
-    mutationFn: async (file: File) => {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array", cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      if (!ws) throw new Error("A planilha está vazia.");
-      const csv = XLSX.utils.sheet_to_csv(ws, { dateNF: "yyyy-mm-dd" });
-      if (csv.trim().length < 10) throw new Error("Não foi possível ler o conteúdo da planilha.");
-
-      // Divide arquivos grandes em partes (mantendo o cabeçalho em cada uma).
-      const LIMITE = 150000;
-      const linhas = csv.split(/\r?\n/).filter((l) => l.trim().length);
-      const cabecalho = linhas[0] ?? "";
-      const corpo = linhas.slice(1);
-      const partes: string[] = [];
-      let atual = "";
-      for (const linha of corpo) {
-        if (atual.length + linha.length + 1 > LIMITE && atual.length) {
-          partes.push(`${cabecalho}\n${atual}`);
-          atual = "";
-        }
-        atual += `${linha}\n`;
-      }
-      if (atual.trim().length) partes.push(`${cabecalho}\n${atual}`);
-      if (!partes.length) partes.push(csv.slice(0, LIMITE));
-
-      let importacaoId: string | null = null;
-      let total = 0;
-      for (let i = 0; i < partes.length; i++) {
-        if (partes.length > 1) toast.info(`Processando parte ${i + 1} de ${partes.length}...`);
-        const r = await importarPlanilhaNativa({
-          data: {
-            canal: canalEfetivo,
-            mes_ref: mes,
-            arquivo_nome: file.name,
-            csv: partes[i],
-            parte: i,
-            importacao_id: importacaoId,
-          },
-        });
-        importacaoId = r.importacao_id;
-        total = r.total;
-      }
-      return { importacao_id: importacaoId, total };
-    },
+  const salvar = useMutation({
+    mutationFn: () => salvarRelatorioContestacao({ data: { canal: canalEfetivo, mes_ref: mes, linhas: linhasColadas } }),
     onSuccess: (r) => {
-      toast.success(`Relatório matriz importado: ${r.total} vendas.`);
+      toast.success(`Relatório publicado com ${r.total} vendas.`);
+      setLinhasColadas([]);
       qc.invalidateQueries({ queryKey: ["contestacoes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const colarTabela = (evento: ClipboardEvent<HTMLInputElement>) => {
+    evento.preventDefault();
+    const linhas = linhasDaAreaTransferencia(evento.clipboardData.getData("text/plain"));
+    if (!linhas.length) {
+      toast.error("Não foi possível identificar linhas com Protocolo e Vendedor.");
+      return;
+    }
+    setLinhasColadas(linhas);
+    toast.success(`${linhas.length} linha(s) preenchida(s). Revise e publique o relatório.`);
+  };
 
 
   const consultores = useMemo(() => {
