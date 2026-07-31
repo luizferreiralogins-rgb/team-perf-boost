@@ -6,6 +6,7 @@ import { Activity, ClipboardList, ShoppingBag, Timer, Users } from "lucide-react
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
+import { useOrdenacao, cmpTexto, cmpDataDesc, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -147,6 +148,20 @@ function Produtividade() {
       };
     },
   });
+
+  type Atendimento = NonNullable<typeof prod>["atendimentos"][number];
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<Atendimento>[]>(
+    () => [
+      { valor: "data", label: "Data (mais recente)", cmp: cmpDataDesc((a) => a.data_atendimento) },
+      { valor: "cliente", label: "Cliente (A-Z)", cmp: cmpTexto((a) => a.nome_cliente) },
+      { valor: "tipo", label: "Tipo (A-Z)", cmp: cmpTexto((a) => a.tipo) },
+    ],
+    [],
+  );
+  const { rows: atendimentosOrdenados, control: ordenarControl } = useOrdenacao(
+    prod?.atendimentos ?? [],
+    opcoesOrdem,
+  );
 
   const maxTotal = useMemo(
     () => Math.max(1, ...(prod?.linhas ?? []).map((l) => l.total)),
@@ -372,15 +387,16 @@ function Produtividade() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>Atendimentos do mês</CardTitle>
+          {(prod?.atendimentos.length ?? 0) > 0 && ordenarControl}
         </CardHeader>
         <CardContent className="space-y-2">
           {isLoading && <Skeleton className="h-24 w-full" />}
           {!isLoading && (prod?.atendimentos.length ?? 0) === 0 && (
             <p className="text-sm text-muted-foreground">Nenhum atendimento registrado ainda.</p>
           )}
-          {(prod?.atendimentos ?? []).map((a) => (
+          {atendimentosOrdenados.map((a) => (
             <div
               key={a.id}
               className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3"
