@@ -149,42 +149,63 @@ export type Database = {
       contestacao_vendas_nativas: {
         Row: {
           canal: Database["public"]["Enums"]["canal_venda"]
+          classe_protocolo: string | null
+          comissao: number
           consultor_nome: string | null
           cpf_cnpj: string | null
           created_at: string
           data_instalacao: string | null
+          diferenca: number
+          faixa: number
           id: string
           importacao_id: string
           mes_ref: string
           nome_cliente: string
           protocolo: string | null
+          tecnologia: string | null
           valor: number
+          valor_antigo: number
+          valor_novo: number
         }
         Insert: {
           canal: Database["public"]["Enums"]["canal_venda"]
+          classe_protocolo?: string | null
+          comissao?: number
           consultor_nome?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           data_instalacao?: string | null
+          diferenca?: number
+          faixa?: number
           id?: string
           importacao_id: string
           mes_ref: string
           nome_cliente: string
           protocolo?: string | null
+          tecnologia?: string | null
           valor?: number
+          valor_antigo?: number
+          valor_novo?: number
         }
         Update: {
           canal?: Database["public"]["Enums"]["canal_venda"]
+          classe_protocolo?: string | null
+          comissao?: number
           consultor_nome?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           data_instalacao?: string | null
+          diferenca?: number
+          faixa?: number
           id?: string
           importacao_id?: string
           mes_ref?: string
           nome_cliente?: string
           protocolo?: string | null
+          tecnologia?: string | null
           valor?: number
+          valor_antigo?: number
+          valor_novo?: number
         }
         Relationships: [
           {

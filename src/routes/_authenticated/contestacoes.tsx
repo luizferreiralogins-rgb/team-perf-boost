@@ -1,12 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, ScanSearch, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import { supabase } from "@/integrations/supabase/client";
 import { importarPlanilhaNativa } from "@/lib/contestacao.functions";
+import {
+  diferencaTicket,
+  ehCorePap,
+  faixaEfetivaLoja,
+  faixaPap,
+  tipoComissaoLoja,
+  type LojaFaixaTicket,
+  type LojaMeta,
+  type LojaNovoProduto,
+  type PapFaixa,
+  type PapNovoProduto,
+} from "@/lib/comissao";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,12 +48,12 @@ export const Route = createFileRoute("/_authenticated/contestacoes")({
       {
         name: "description",
         content:
-          "Compare as vendas do sistema nativo com as vendas cadastradas pelos consultores e identifique divergências do mês.",
+          "Consulte o relatório matriz importado pelo Gerente Regional e verifique divergências com as suas vendas do mês.",
       },
       { property: "og:title", content: "Contestações — Unifique Comercial" },
       {
         property: "og:description",
-        content: "Cruzamento automático entre planilha do sistema nativo e vendas dos consultores.",
+        content: "Relatório matriz x vendas do consultor: protocolos, valores, faixa e comissão.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -51,7 +63,9 @@ export const Route = createFileRoute("/_authenticated/contestacoes")({
 });
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const mesAtual = () => new Date().toISOString().slice(0, 7);
+const perto = (a: number, b: number) => Math.abs((a || 0) - (b || 0)) <= 0.01;
 
 const norm = (s: string | null | undefined) =>
   (s ?? "")
@@ -63,11 +77,31 @@ const norm = (s: string | null | undefined) =>
     .trim();
 const normProt = (s: string | null | undefined) => (s ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
+type Matriz = {
+  id: string;
+  protocolo: string | null;
+  nome_cliente: string;
+  consultor_nome: string | null;
+  classe_protocolo: string | null;
+  tecnologia: string | null;
+  valor_novo: number;
+  valor_antigo: number;
+  diferenca: number;
+  faixa: number;
+  comissao: number;
+  data_instalacao: string | null;
+};
+
 type VendaConsultor = {
   id: string;
   protocolo: string | null;
   cliente: string;
-  valor: number;
+  classe: string;
+  tecnologia: string;
+  valor_novo: number;
+  valor_antigo: number;
+  diferenca: number;
+  comissao: number;
   data: string | null;
   vendedor_id: string;
   vendedor_nome: string;
@@ -78,6 +112,7 @@ function Contestacoes() {
   const [mes, setMes] = useState(mesAtual());
   const [canal, setCanal] = useState<"loja" | "pap">("loja");
   const [consultor, setConsultor] = useState("todos");
+  const [verificado, setVerificado] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const me = useQuery({
@@ -95,6 +130,7 @@ function Contestacoes() {
         nome: profile?.nome ?? "",
         canal: (profile?.canal ?? "loja") as "loja" | "pap",
         isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin"),
+        isRegional: list.some((r) => r === "regional" || r === "admin"),
       };
     },
     staleTime: 60_000,
@@ -113,7 +149,9 @@ function Contestacoes() {
       const [{ data: nativas }, { data: importacao }] = await Promise.all([
         supabase
           .from("contestacao_vendas_nativas")
-          .select("id, protocolo, nome_cliente, consultor_nome, valor, data_instalacao")
+          .select(
+            "id, protocolo, nome_cliente, consultor_nome, classe_protocolo, tecnologia, valor_novo, valor_antigo, diferenca, faixa, comissao, valor, data_instalacao",
+          )
           .eq("mes_ref", inicio)
           .eq("canal", canalEfetivo)
           .limit(5000),
@@ -125,41 +163,103 @@ function Contestacoes() {
           .maybeSingle(),
       ]);
 
+      const matriz: Matriz[] = (nativas ?? []).map((n) => ({
+        id: n.id,
+        protocolo: n.protocolo,
+        nome_cliente: n.nome_cliente,
+        consultor_nome: n.consultor_nome,
+        classe_protocolo: n.classe_protocolo,
+        tecnologia: n.tecnologia,
+        valor_novo: Number(n.valor_novo ?? 0) || Number(n.valor ?? 0),
+        valor_antigo: Number(n.valor_antigo ?? 0),
+        diferenca: Number(n.diferenca ?? 0),
+        faixa: Number(n.faixa ?? 0),
+        comissao: Number(n.comissao ?? 0),
+        data_instalacao: n.data_instalacao,
+      }));
+
       let vendas: VendaConsultor[] = [];
+      let faixaSistema = 0;
+
       if (canalEfetivo === "loja") {
-        const { data: rows } = await supabase
-          .from("vendas_loja")
-          .select("id, protocolo, nome_cliente, valor_novo, data_ativacao, vendedor_id")
-          .eq("status", "instalado")
-          .gte("data_ativacao", inicio)
-          .lte("data_ativacao", fim)
-          .limit(5000);
+        const [{ data: rows }, { data: metas }, { data: novos }] = await Promise.all([
+          supabase
+            .from("vendas_loja")
+            .select(
+              "id, protocolo, nome_cliente, classe_protocolo, tecnologia, contem_movel, valor_novo, valor_antigo, comissao, data_ativacao, vendedor_id",
+            )
+            .eq("status", "instalado")
+            .gte("data_ativacao", inicio)
+            .lte("data_ativacao", fim)
+            .limit(5000),
+          supabase.from("parametros_loja_metas").select("faixa, meta_receita, meta_renov_movel"),
+          supabase.from("parametros_loja_novos_produtos").select("codigo, nome, percentual"),
+        ]);
+        const listaNovos = (novos ?? []) as LojaNovoProduto[];
         vendas = (rows ?? []).map((v) => ({
           id: v.id,
           protocolo: v.protocolo,
           cliente: v.nome_cliente,
-          valor: Number(v.valor_novo ?? 0),
+          classe: v.classe_protocolo ?? "",
+          tecnologia: v.tecnologia ?? "",
+          valor_novo: Number(v.valor_novo ?? 0),
+          valor_antigo: Number(v.valor_antigo ?? 0),
+          diferenca: diferencaTicket(Number(v.valor_novo ?? 0), v.valor_antigo),
+          comissao: Number(v.comissao ?? 0),
           data: v.data_ativacao,
           vendedor_id: v.vendedor_id,
           vendedor_nome: "",
         }));
+        const receita = vendas.reduce((s, v) => s + v.diferenca, 0);
+        const tipos = (rows ?? []).map((v) =>
+          tipoComissaoLoja(v.classe_protocolo ?? "", !!v.contem_movel, v.tecnologia ?? "", listaNovos),
+        );
+        const totalRenov = tipos.filter((t) => t.startsWith("Renovação")).length;
+        const renovMovel = tipos.filter((t) => t === "Renovação com Mobilidade").length;
+        faixaSistema = faixaEfetivaLoja(
+          (metas ?? []) as LojaMeta[],
+          receita,
+          totalRenov > 0 ? renovMovel / totalRenov : 0,
+        );
       } else {
-        const { data: rows } = await supabase
-          .from("vendas_pap")
-          .select("id, protocolo, nome_cliente, valor, data_ativacao, vendedor_id")
-          .eq("status", "instalado")
-          .gte("data_ativacao", inicio)
-          .lte("data_ativacao", fim)
-          .limit(5000);
+        const [{ data: rows }, { data: faixas }, { data: produtos }] = await Promise.all([
+          supabase
+            .from("vendas_pap")
+            .select(
+              "id, protocolo, nome_cliente, tipo_protocolo, produto, tecnologia, valor, comissao, data_ativacao, vendedor_id",
+            )
+            .eq("status", "instalado")
+            .gte("data_ativacao", inicio)
+            .lte("data_ativacao", fim)
+            .limit(5000),
+          supabase
+            .from("parametros_pap_faixas")
+            .select(
+              "faixa, receita_de, receita_ate, pct_comissao, meta_max_cancel, acelerador_baixo_cancel, bonus_venda_indireta",
+            ),
+          supabase
+            .from("parametros_pap_novos_produtos")
+            .select("codigo, nome, percentual, limitado, limite"),
+        ]);
+        const listaProdutos = (produtos ?? []) as PapNovoProduto[];
         vendas = (rows ?? []).map((v) => ({
           id: v.id,
           protocolo: v.protocolo,
           cliente: v.nome_cliente,
-          valor: Number(v.valor ?? 0),
+          classe: v.tipo_protocolo ?? "",
+          tecnologia: v.produto ?? v.tecnologia ?? "",
+          valor_novo: Number(v.valor ?? 0),
+          valor_antigo: 0,
+          diferenca: Number(v.valor ?? 0),
+          comissao: Number(v.comissao ?? 0),
           data: v.data_ativacao,
           vendedor_id: v.vendedor_id,
           vendedor_nome: "",
         }));
+        const core = (rows ?? [])
+          .filter((v) => ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos))
+          .reduce((s, v) => s + Number(v.valor ?? 0), 0);
+        faixaSistema = faixaPap((faixas ?? []) as PapFaixa[], core)?.faixa ?? 0;
       }
 
       const ids = [...new Set(vendas.map((v) => v.vendedor_id))];
@@ -169,45 +269,86 @@ function Contestacoes() {
         vendas = vendas.map((v) => ({ ...v, vendedor_nome: map.get(v.vendedor_id) ?? "—" }));
       }
 
-      return { nativas: nativas ?? [], vendas, importacao };
+      return { matriz, vendas, importacao, faixaSistema };
     },
   });
 
+  const filtro = me.data?.isGestor ? consultor : (me.data?.nome ?? "todos");
+  const alvo = filtro === "todos" ? null : norm(filtro);
+
+  const matrizFiltrada = useMemo(() => {
+    const rows = dados.data?.matriz ?? [];
+    return alvo ? rows.filter((n) => norm(n.consultor_nome).includes(alvo)) : rows;
+  }, [dados.data, alvo]);
+
+  const vendasFiltradas = useMemo(() => {
+    const rows = dados.data?.vendas ?? [];
+    return alvo ? rows.filter((v) => norm(v.vendedor_nome).includes(alvo)) : rows;
+  }, [dados.data, alvo]);
+
+  // Nova filtragem exige nova verificação.
+  useEffect(() => {
+    setVerificado(false);
+  }, [mes, canalEfetivo, consultor]);
+
   const comparacao = useMemo(() => {
-    const nativas = dados.data?.nativas ?? [];
-    const vendas = dados.data?.vendas ?? [];
+    const chaveM = (m: Matriz) => normProt(m.protocolo) || norm(m.nome_cliente);
+    const chaveV = (v: VendaConsultor) => normProt(v.protocolo) || norm(v.cliente);
 
-    const filtro = me.data?.isGestor ? consultor : (me.data?.nome ?? "todos");
-    const alvo = filtro === "todos" ? null : norm(filtro);
-    const nativasF = alvo ? nativas.filter((n) => norm(n.consultor_nome).includes(alvo)) : nativas;
-    const vendasF = alvo ? vendas.filter((v) => norm(v.vendedor_nome).includes(alvo)) : vendas;
+    const mapV = new Map(vendasFiltradas.map((v) => [chaveV(v), v]));
+    const mapM = new Map(matrizFiltrada.map((m) => [chaveM(m), m]));
 
-    const protVendas = new Set(vendas.map((v) => normProt(v.protocolo)).filter(Boolean));
-    const nomeVendas = new Set(vendas.map((v) => norm(v.cliente)).filter(Boolean));
-    const protNativas = new Set(nativas.map((n) => normProt(n.protocolo)).filter(Boolean));
-    const nomeNativas = new Set(nativas.map((n) => norm(n.nome_cliente)).filter(Boolean));
+    const soMatriz = matrizFiltrada.filter((m) => !mapV.has(chaveM(m)));
+    const soConsultor = vendasFiltradas.filter((v) => !mapM.has(chaveV(v)));
 
-    const soNativo = nativasF.filter(
-      (n) =>
-        !(normProt(n.protocolo) && protVendas.has(normProt(n.protocolo))) &&
-        !nomeVendas.has(norm(n.nome_cliente)),
-    );
-    const soConsultor = vendasF.filter(
-      (v) =>
-        !(normProt(v.protocolo) && protNativas.has(normProt(v.protocolo))) &&
-        !nomeNativas.has(norm(v.cliente)),
-    );
-    const conciliadas = vendasF.length - soConsultor.length;
+    const divergencias: Array<{
+      id: string;
+      protocolo: string;
+      cliente: string;
+      campos: Array<{ campo: string; matriz: number; consultor: number }>;
+    }> = [];
 
-    return { soNativo, soConsultor, conciliadas, totalNativo: nativasF.length, totalConsultor: vendasF.length };
-  }, [dados.data, consultor, me.data]);
+    matrizFiltrada.forEach((m) => {
+      const v = mapV.get(chaveM(m));
+      if (!v) return;
+      const campos: Array<{ campo: string; matriz: number; consultor: number }> = [];
+      if (!perto(m.valor_novo, v.valor_novo))
+        campos.push({ campo: "Preço novo", matriz: m.valor_novo, consultor: v.valor_novo });
+      if (canalEfetivo === "loja" && !perto(m.valor_antigo, v.valor_antigo))
+        campos.push({ campo: "Preço antigo", matriz: m.valor_antigo, consultor: v.valor_antigo });
+      if (!perto(m.diferenca, v.diferenca))
+        campos.push({ campo: "Diferença", matriz: m.diferenca, consultor: v.diferenca });
+      if (!perto(m.comissao, v.comissao))
+        campos.push({ campo: "Comissão", matriz: m.comissao, consultor: v.comissao });
+      if (campos.length)
+        divergencias.push({ id: m.id, protocolo: m.protocolo ?? "—", cliente: m.nome_cliente, campos });
+    });
 
-  const consultores = useMemo(() => {
-    const set = new Set<string>();
-    (dados.data?.vendas ?? []).forEach((v) => v.vendedor_nome && set.add(v.vendedor_nome));
-    (dados.data?.nativas ?? []).forEach((n) => n.consultor_nome && set.add(n.consultor_nome));
-    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [dados.data]);
+    const somaM = {
+      qtd: matrizFiltrada.length,
+      receita: matrizFiltrada.reduce((s, m) => s + m.diferenca, 0),
+      faixa: matrizFiltrada.filter((m) => m.faixa > 0).length
+        ? matrizFiltrada.reduce((s, m) => s + m.faixa, 0) /
+          matrizFiltrada.filter((m) => m.faixa > 0).length
+        : 0,
+      comissao: matrizFiltrada.reduce((s, m) => s + m.comissao, 0),
+    };
+    const somaV = {
+      qtd: vendasFiltradas.length,
+      receita: vendasFiltradas.reduce((s, v) => s + v.diferenca, 0),
+      faixa: dados.data?.faixaSistema ?? 0,
+      comissao: vendasFiltradas.reduce((s, v) => s + v.comissao, 0),
+    };
+
+    return {
+      soMatriz,
+      soConsultor,
+      divergencias,
+      conciliadas: matrizFiltrada.length - soMatriz.length,
+      somaM,
+      somaV,
+    };
+  }, [matrizFiltrada, vendasFiltradas, canalEfetivo, dados.data]);
 
   const importar = useMutation({
     mutationFn: async (file: File) => {
@@ -222,19 +363,26 @@ function Contestacoes() {
       });
     },
     onSuccess: (r) => {
-      toast.success(`Planilha importada: ${r.total} vendas reconhecidas.`);
+      toast.success(`Relatório matriz importado: ${r.total} vendas.`);
       qc.invalidateQueries({ queryKey: ["contestacoes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const consultores = useMemo(() => {
+    const set = new Set<string>();
+    (dados.data?.vendas ?? []).forEach((v) => v.vendedor_nome && set.add(v.vendedor_nome));
+    (dados.data?.matriz ?? []).forEach((n) => n.consultor_nome && set.add(n.consultor_nome));
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [dados.data]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Contestações</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Cruzamento entre as vendas reconhecidas pelo sistema nativo e as vendas instaladas
-          cadastradas pelos consultores no mês selecionado.
+          Relatório matriz importado pelo Gerente Regional. Filtre o seu nome e clique em Verificar
+          para comparar com as suas vendas instaladas no mês.
         </p>
       </div>
 
@@ -289,16 +437,17 @@ function Contestacoes() {
         </CardContent>
       </Card>
 
-      {me.data?.isGestor && (
+      {me.data?.isRegional && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <FileSpreadsheet className="h-4 w-4" /> Planilha do sistema nativo
+              <FileSpreadsheet className="h-4 w-4" /> Planilha de contestações (relatório matriz)
             </CardTitle>
             <CardDescription>
-              Envie a planilha (.xlsx, .xls ou .csv) com as vendas reconhecidas do canal{" "}
-              {canalEfetivo === "pap" ? "PAP" : "Loja"} em {mes}. A IA identifica as colunas
-              automaticamente e substitui a importação anterior do mesmo mês.
+              Exclusivo do Gerente Regional. Envie a planilha (.xlsx, .xls ou .csv) do canal{" "}
+              {canalEfetivo === "pap" ? "PAP" : "Loja"} em {mes}. A IA extrai Protocolo, Vendedor,
+              Classe do Protocolo, Tecnologia, Preço Novo, Preço Antigo, Diferença, Faixa e Comissão
+              e substitui a importação anterior do mesmo mês.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -332,46 +481,48 @@ function Contestacoes() {
         <Skeleton className="h-40 w-full" />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Kpi titulo="Sistema nativo" valor={comparacao.totalNativo} />
-            <Kpi titulo="Cadastradas pelos consultores" valor={comparacao.totalConsultor} />
-            <Kpi titulo="Conciliadas" valor={comparacao.conciliadas} tom="ok" />
-          </div>
-
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                No sistema nativo e sem registro do consultor
-                <Badge variant="destructive">{comparacao.soNativo.length}</Badge>
-              </CardTitle>
+            <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+              <div>
+                <CardTitle className="text-base">Relatório matriz</CardTitle>
+                <CardDescription>
+                  {matrizFiltrada.length} protocolo(s) para o filtro selecionado.
+                </CardDescription>
+              </div>
+              <Button onClick={() => setVerificado(true)} disabled={!matrizFiltrada.length}>
+                <ScanSearch className="mr-2 h-4 w-4" /> Verificar
+              </Button>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              {comparacao.soNativo.length === 0 ? (
-                <Vazio texto="Nenhuma divergência: todas as vendas do sistema nativo têm registro do consultor." />
+              {matrizFiltrada.length === 0 ? (
+                <Vazio texto="Nenhum registro do relatório matriz para este mês, canal e consultor." />
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Protocolo</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Consultor</TableHead>
-                      <TableHead>Instalação</TableHead>
-                      <TableHead>Valor</TableHead>
+                      <TableHead>Vendedor</TableHead>
+                      <TableHead>Classe do Protocolo</TableHead>
+                      <TableHead>Tecnologia</TableHead>
+                      <TableHead className="text-right">Preço Novo</TableHead>
+                      <TableHead className="text-right">Preço Antigo</TableHead>
+                      <TableHead className="text-right">Diferença</TableHead>
+                      <TableHead className="text-right">Faixa</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {comparacao.soNativo.map((n) => (
-                      <TableRow key={n.id}>
-                        <TableCell className="whitespace-nowrap">{n.protocolo ?? "—"}</TableCell>
-                        <TableCell>{n.nome_cliente}</TableCell>
-                        <TableCell>{n.consultor_nome ?? "—"}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {n.data_instalacao
-                            ? new Date(`${n.data_instalacao}T00:00:00`).toLocaleDateString("pt-BR")
-                            : "—"}
-                        </TableCell>
-                        <TableCell>{brl(Number(n.valor ?? 0))}</TableCell>
+                    {matrizFiltrada.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="whitespace-nowrap">{m.protocolo ?? "—"}</TableCell>
+                        <TableCell>{m.consultor_nome ?? "—"}</TableCell>
+                        <TableCell>{m.classe_protocolo ?? "—"}</TableCell>
+                        <TableCell>{m.tecnologia ?? "—"}</TableCell>
+                        <TableCell className="text-right">{brl(m.valor_novo)}</TableCell>
+                        <TableCell className="text-right">{brl(m.valor_antigo)}</TableCell>
+                        <TableCell className="text-right">{brl(m.diferenca)}</TableCell>
+                        <TableCell className="text-right">{m.faixa || "—"}</TableCell>
+                        <TableCell className="text-right">{brl(m.comissao)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -380,48 +531,212 @@ function Contestacoes() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                Cadastradas pelo consultor e ausentes no sistema nativo
-                <Badge variant="destructive">{comparacao.soConsultor.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              {comparacao.soConsultor.length === 0 ? (
-                <Vazio texto="Nenhuma divergência: todas as vendas dos consultores constam no sistema nativo." />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Protocolo</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Consultor</TableHead>
-                      <TableHead>Instalação</TableHead>
-                      <TableHead>Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {comparacao.soConsultor.map((v) => (
-                      <TableRow key={v.id}>
-                        <TableCell className="whitespace-nowrap">{v.protocolo ?? "—"}</TableCell>
-                        <TableCell>{v.cliente}</TableCell>
-                        <TableCell>{v.vendedor_nome}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {v.data ? new Date(`${v.data}T00:00:00`).toLocaleDateString("pt-BR") : "—"}
-                        </TableCell>
-                        <TableCell>{brl(v.valor)}</TableCell>
+          {verificado && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Kpi titulo="Conciliadas" valor={comparacao.conciliadas} tom="ok" />
+                <Kpi titulo="Só no relatório matriz" valor={comparacao.soMatriz.length} />
+                <Kpi titulo="Só no registro do consultor" valor={comparacao.soConsultor.length} />
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    No relatório matriz e sem registro do consultor
+                    <Badge variant="destructive">{comparacao.soMatriz.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  {comparacao.soMatriz.length === 0 ? (
+                    <Vazio texto="Todos os protocolos do relatório matriz possuem registro do consultor." />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Vendedor</TableHead>
+                          <TableHead className="text-right">Diferença</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {comparacao.soMatriz.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell className="whitespace-nowrap">{m.protocolo ?? "—"}</TableCell>
+                            <TableCell>{m.nome_cliente}</TableCell>
+                            <TableCell>{m.consultor_nome ?? "—"}</TableCell>
+                            <TableCell className="text-right">{brl(m.diferenca)}</TableCell>
+                            <TableCell className="text-right">{brl(m.comissao)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    Registradas pelo consultor e ausentes no relatório matriz
+                    <Badge variant="destructive">{comparacao.soConsultor.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  {comparacao.soConsultor.length === 0 ? (
+                    <Vazio texto="Todas as vendas do consultor constam no relatório matriz." />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Vendedor</TableHead>
+                          <TableHead className="text-right">Diferença</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {comparacao.soConsultor.map((v) => (
+                          <TableRow key={v.id}>
+                            <TableCell className="whitespace-nowrap">{v.protocolo ?? "—"}</TableCell>
+                            <TableCell>{v.cliente}</TableCell>
+                            <TableCell>{v.vendedor_nome}</TableCell>
+                            <TableCell className="text-right">{brl(v.diferenca)}</TableCell>
+                            <TableCell className="text-right">{brl(v.comissao)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    Divergências de valores nos protocolos conciliados
+                    <Badge variant="destructive">{comparacao.divergencias.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  {comparacao.divergencias.length === 0 ? (
+                    <Vazio texto="Nenhuma divergência de preço novo, preço antigo, diferença ou comissão." />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Protocolo</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Campo</TableHead>
+                          <TableHead className="text-right">Matriz</TableHead>
+                          <TableHead className="text-right">Consultor</TableHead>
+                          <TableHead className="text-right">Diferença</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {comparacao.divergencias.flatMap((d) =>
+                          d.campos.map((c) => (
+                            <TableRow key={`${d.id}-${c.campo}`}>
+                              <TableCell className="whitespace-nowrap">{d.protocolo}</TableCell>
+                              <TableCell>{d.cliente}</TableCell>
+                              <TableCell>{c.campo}</TableCell>
+                              <TableCell className="text-right">{brl(c.matriz)}</TableCell>
+                              <TableCell className="text-right">{brl(c.consultor)}</TableCell>
+                              <TableCell className="text-right font-medium text-destructive">
+                                {brl(c.matriz - c.consultor)}
+                              </TableCell>
+                            </TableRow>
+                          )),
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Resumo acumulado — Matriz x Consultor</CardTitle>
+                  <CardDescription>
+                    Comparação considerando apenas as vendas filtradas em ambos os relatórios.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Indicador</TableHead>
+                        <TableHead className="text-right">Matriz</TableHead>
+                        <TableHead className="text-right">Consultor</TableHead>
+                        <TableHead className="text-right">Diferença</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      <LinhaResumo
+                        label="Qtd de Protocolos"
+                        matriz={comparacao.somaM.qtd}
+                        consultor={comparacao.somaV.qtd}
+                        formato="int"
+                      />
+                      <LinhaResumo
+                        label="Receita Geral"
+                        matriz={comparacao.somaM.receita}
+                        consultor={comparacao.somaV.receita}
+                        formato="brl"
+                      />
+                      <LinhaResumo
+                        label="Faixa Média"
+                        matriz={comparacao.somaM.faixa}
+                        consultor={comparacao.somaV.faixa}
+                        formato="num"
+                      />
+                      <LinhaResumo
+                        label="Comissão Total"
+                        matriz={comparacao.somaM.comissao}
+                        consultor={comparacao.somaV.comissao}
+                        formato="brl"
+                      />
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+function LinhaResumo({
+  label,
+  matriz,
+  consultor,
+  formato,
+}: {
+  label: string;
+  matriz: number;
+  consultor: number;
+  formato: "int" | "brl" | "num";
+}) {
+  const fmt = (n: number) => (formato === "brl" ? brl(n) : formato === "int" ? String(n) : num(n));
+  const delta = matriz - consultor;
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{label}</TableCell>
+      <TableCell className="text-right">{fmt(matriz)}</TableCell>
+      <TableCell className="text-right">{fmt(consultor)}</TableCell>
+      <TableCell
+        className={`text-right font-medium ${perto(delta, 0) ? "text-muted-foreground" : "text-destructive"}`}
+      >
+        {fmt(delta)}
+      </TableCell>
+    </TableRow>
   );
 }
 
