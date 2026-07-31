@@ -122,7 +122,6 @@ const TECNOLOGIAS = [
 
 const commonBase = {
   nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
-  cpf_cnpj: z.string().trim().max(20).optional().or(z.literal("")),
   observacoes: z.string().max(500).optional().or(z.literal("")),
 };
 
@@ -194,7 +193,6 @@ function NovaVenda() {
     ? {
         protocolo: "",
         nome_cliente: search.lead_nome ?? "",
-        cpf_cnpj: "",
         observacoes: obsLead ? `Origem: Lead. ${obsLead}` : "",
         data_abertura: today(),
         data_ativacao: "",
@@ -260,7 +258,6 @@ function NovaVenda() {
 export type FormLojaState = {
   protocolo: string;
   nome_cliente: string;
-  cpf_cnpj: string;
   observacoes: string;
   data_abertura: string;
   data_ativacao: string;
@@ -290,7 +287,6 @@ export function FormLoja({
     initial ?? {
       protocolo: "",
       nome_cliente: "",
-      cpf_cnpj: "",
       observacoes: "",
       data_abertura: today(),
       data_ativacao: "",
@@ -408,7 +404,6 @@ export function FormLoja({
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
       nome_cliente: parsed.data.nome_cliente,
-      cpf_cnpj: parsed.data.cpf_cnpj || null,
       data_abertura: parsed.data.data_abertura,
       data_ativacao: parsed.data.data_ativacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
@@ -472,12 +467,6 @@ export function FormLoja({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
-              />
-            </Field>
-            <Field label="CPF/CNPJ">
-              <Input
-                value={form.cpf_cnpj}
-                onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
               />
             </Field>
             <Field label="Classe de protocolo" required>
