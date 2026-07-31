@@ -28,13 +28,19 @@ import {
   registrarReagendamento,
 } from "@/components/vendas/reagendamento";
 import {
-  comissaoLoja,
+  comissaoLojaNaFaixa,
   comissaoPap,
+  diferencaTicket,
+  ehCorePap,
   faixaEfetivaLoja,
+  tipoComissaoLoja,
   type LojaFaixaTicket,
   type LojaMeta,
+  type LojaNovoProduto,
   type PapFaixa,
+  type PapNovoProduto,
 } from "@/lib/comissao";
+
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
