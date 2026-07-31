@@ -443,3 +443,73 @@ function Stat({
     </Card>
   );
 }
+
+function TemposConfig() {
+  const qc = useQueryClient();
+  const tempos = useTempos();
+  const [valores, setValores] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (tempos.data) {
+      setValores(Object.fromEntries(tempos.data.map((t) => [t.chave, String(t.minutos)])));
+    }
+  }, [tempos.data]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      const linhas = (tempos.data ?? []).map((t) => ({
+        chave: t.chave,
+        minutos: Number(valores[t.chave] ?? t.minutos) || 0,
+      }));
+      for (const l of linhas) {
+        const { error } = await supabase
+          .from("parametros_tempos")
+          .update({ minutos: l.minutos })
+          .eq("chave", l.chave);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Tempos médios atualizados.");
+      qc.invalidateQueries({ queryKey: ["parametros-tempos"] });
+      qc.invalidateQueries({ queryKey: ["produtividade"] });
+      qc.invalidateQueries({ queryKey: ["produtividade-time"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar tempos."),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tempos médios de produtividade</CardTitle>
+        <CardDescription>
+          Defina, em minutos, o tempo médio de cada tipo de atendimento, de cada venda e de cada
+          lead. Esses valores alimentam o "Tempo produtivo" de todos os usuários.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {tempos.isLoading && <Skeleton className="h-40 w-full" />}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(tempos.data ?? []).map((t) => (
+            <div key={t.chave}>
+              <Label htmlFor={`t-${t.chave}`}>{t.label}</Label>
+              <Input
+                id={`t-${t.chave}`}
+                type="number"
+                min={0}
+                step="1"
+                value={valores[t.chave] ?? ""}
+                onChange={(e) => setValores((v) => ({ ...v, [t.chave]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? "Salvando..." : "Salvar tempos"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
