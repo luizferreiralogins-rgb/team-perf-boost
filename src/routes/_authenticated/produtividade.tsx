@@ -153,6 +153,34 @@ function Produtividade() {
     [prod],
   );
 
+  const tempos = useTempos();
+  const { data: roles } = useQuery({
+    queryKey: ["meus-roles-produtividade"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", sess.user!.id);
+      return (data ?? []).map((r) => r.role as string);
+    },
+  });
+  const isMaster = !!roles?.some((r) => r === "regional" || r === "admin");
+
+  const minutosMes = useMemo(() => {
+    const mapa = mapaTempos(tempos.data);
+    const atend = (prod?.atendimentos ?? []).reduce(
+      (s, a) => s + (mapa.get(a.tipo) ?? 0),
+      0,
+    );
+    return (
+      atend +
+      (prod?.totais.vendas ?? 0) * (mapa.get("venda") ?? 0) +
+      (prod?.totais.leads ?? 0) * (mapa.get("lead") ?? 0)
+    );
+  }, [prod, tempos.data]);
+
+
   const criar = useMutation({
     mutationFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
