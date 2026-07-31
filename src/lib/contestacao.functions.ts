@@ -85,27 +85,31 @@ export const importarPlanilhaNativa = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", context.userId);
     const roles = (rolesRows ?? []).map((r) => r.role);
-    if (!roles.some((r) => r === "gerente" || r === "regional" || r === "admin")) {
-      throw new Error("Apenas gestores podem importar a planilha do sistema nativo.");
+    if (!roles.some((r) => r === "regional" || r === "admin")) {
+      throw new Error("Apenas o Gerente Regional pode anexar a planilha de contestações.");
     }
 
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY ausente.");
 
-    const instrucao = `Você recebe o conteúdo (em CSV) de uma planilha exportada do sistema nativo da Unifique com as vendas reconhecidas do canal ${data.canal.toUpperCase()} no mês ${data.mes_ref}.
+    const instrucao = `Você recebe o conteúdo (em CSV) do relatório matriz da Unifique com as vendas reconhecidas do canal ${data.canal.toUpperCase()} no mês ${data.mes_ref}.
 
-Sua tarefa: identificar automaticamente qual coluna corresponde a cada campo (os nomes das colunas variam: "Protocolo", "Contrato", "Nº OS", "Cliente", "Nome do Cliente", "CPF/CNPJ", "Vendedor", "Consultor", "Valor", "Mensalidade", "Data Instalação", "Ativação", etc.) e devolver UMA linha por venda.
+Sua tarefa: identificar automaticamente qual coluna corresponde a cada campo (os nomes variam: "Protocolo", "Contrato", "Nº OS", "Cliente", "CPF/CNPJ", "Vendedor", "Consultor", "Classe", "Classe do Protocolo", "Tecnologia", "Produto", "Preço Novo", "Valor Novo", "Preço Antigo", "Valor Antigo", "Diferença", "Faixa", "Comissão", "Data Instalação", "Ativação", etc.) e devolver UMA linha por venda.
 
 Regras:
 - Ignore linhas de cabeçalho, totais, subtotais e linhas em branco;
-- Converta valores no padrão brasileiro (1.234,56 => 1234.56) e remova "R$";
+- Converta valores no padrão brasileiro (1.234,56 => 1234.56) e remova "R$" e "%";
 - Converta datas para AAAA-MM-DD (30/07/2026 => 2026-07-30);
 - CPF/CNPJ apenas com dígitos;
+- "faixa" é numérica (ex.: 1, 2, 3). Se vier como texto tipo "Faixa 2", devolva 2;
+- Se "diferenca" não existir, calcule preço novo menos preço antigo;
+- "valor" deve repetir o preço novo;
 - Nunca invente vendas: extraia apenas o que existe no arquivo;
-- Se um campo não existir na planilha, devolva string vazia (ou 0 para valor).
+- Se um campo não existir na planilha, devolva string vazia (ou 0 para números).
 
 Conteúdo do arquivo "${data.arquivo_nome}":
 ${data.csv.slice(0, 380000)}`;
+
 
     const chamar = async (model: string) => {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
