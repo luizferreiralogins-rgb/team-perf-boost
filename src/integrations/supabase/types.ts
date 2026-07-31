@@ -827,6 +827,10 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      consultor_ve_nativa: {
+        Args: { _consultor_nome: string }
+        Returns: boolean
+      }
       expirar_leads_sem_contato: { Args: never; Returns: number }
       get_canal: {
         Args: { _user: string }
@@ -859,6 +863,7 @@ export type Database = {
           nome: string
         }[]
       }
+      nome_chave: { Args: { _t: string }; Returns: string }
       pode_gerenciar: {
         Args: { _manager: string; _target: string }
         Returns: boolean
