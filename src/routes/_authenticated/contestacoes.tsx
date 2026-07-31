@@ -263,25 +263,29 @@ function Contestacoes() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Consultor</Label>
-            <Select value={consultor} onValueChange={setConsultor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {me.data?.nome && !consultores.includes(me.data.nome) && (
-                  <SelectItem value={me.data.nome}>{me.data.nome}</SelectItem>
-                )}
-                {consultores.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {me.data?.isGestor ? (
+            <div className="space-y-1.5">
+              <Label>Consultor</Label>
+              <Select value={consultor} onValueChange={setConsultor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {consultores.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Consultor</Label>
+              <Input value={me.data?.nome ?? ""} readOnly disabled />
+            </div>
+          )}
         </CardContent>
       </Card>
 
