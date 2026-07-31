@@ -237,7 +237,7 @@ function Contestacoes() {
       let vendas: VendaConsultor[] = [];
       let faixaSistema = 0;
 
-      if (canalEfetivo === "loja") {
+      if (canalVendas === "loja") {
         const [{ data: rows }, { data: metas }, { data: novos }] = await Promise.all([
           supabase
             .from("vendas_loja")
@@ -370,7 +370,7 @@ function Contestacoes() {
       const campos: Array<{ campo: string; matriz: number; consultor: number }> = [];
       if (!perto(m.valor_novo, v.valor_novo))
         campos.push({ campo: "Preço novo", matriz: m.valor_novo, consultor: v.valor_novo });
-      if (canalEfetivo === "loja" && !perto(m.valor_antigo, v.valor_antigo))
+      if (canalVendas === "loja" && !perto(m.valor_antigo, v.valor_antigo))
         campos.push({ campo: "Preço antigo", matriz: m.valor_antigo, consultor: v.valor_antigo });
       if (!perto(m.diferenca, v.diferenca))
         campos.push({ campo: "Diferença", matriz: m.diferenca, consultor: v.diferenca });
