@@ -904,7 +904,16 @@ export function FormPap({
         </CardContent>
       </Card>
       <aside className="space-y-4">
-        <ProjecaoComissaoPap valor={form.valor} instalado={form.instalado} />
+        <ProjecaoComissaoPap
+          valor={form.valor}
+          instalado={form.instalado}
+          tipoProtocolo={form.tipo_protocolo}
+          produto={form.produto}
+          mesRef={mesRefFromDate(form.data_instalacao || form.data || today())}
+          vendedorId={ownerId}
+          editingId={editingId}
+        />
+
         <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
       </aside>
     </div>
