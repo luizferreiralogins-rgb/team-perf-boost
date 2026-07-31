@@ -572,12 +572,22 @@ function Contestacoes() {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-muted-foreground">{linhasColadas.length} linha(s) pronta(s) para publicação.</span>
-              <Button onClick={() => salvar.mutate()} disabled={!linhasColadas.length || salvar.isPending}>
-                <Save className="mr-2 h-4 w-4" />
-                {salvar.isPending ? "Publicando..." : "Publicar relatório"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => limpar.mutate()}
+                  disabled={limpar.isPending || salvar.isPending}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {limpar.isPending ? "Limpando..." : "Limpar"}
+                </Button>
+                <Button onClick={() => salvar.mutate()} disabled={!linhasColadas.length || salvar.isPending}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {salvar.isPending ? "Publicando..." : "Publicar relatório"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
