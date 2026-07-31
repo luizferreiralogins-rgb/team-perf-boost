@@ -185,10 +185,13 @@ function Contestacoes() {
   }, [canalPerfil]);
 
   const canalEfetivo = canal;
+  // Consultor compara sempre com as vendas do seu próprio canal, mesmo que o
+  // relatório da equipe tenha sido publicado em outro canal pelo gerente.
+  const canalVendas = me.data?.isGestor ? canalEfetivo : (me.data?.canal ?? canalEfetivo);
 
   const dados = useQuery({
     enabled: !!me.data,
-    queryKey: ["contestacoes", mes, canalEfetivo, gerente],
+    queryKey: ["contestacoes", mes, canalEfetivo, canalVendas, gerente],
     queryFn: async () => {
       const inicio = `${mes}-01`;
       const fimDate = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0);
