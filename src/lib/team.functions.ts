@@ -126,7 +126,7 @@ const updateSchema = z.object({
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
-  role: z.enum(["gerente", "consultor"]).optional(),
+  role: z.enum(["gerente", "lider_pap", "consultor"]).optional(),
 });
 
 export const updateTeamMember = createServerFn({ method: "POST" })
