@@ -419,7 +419,7 @@ export function FormLoja({
       qtd_linhas: parsed.data.qtd_linhas,
       status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
-      tipo_comissao: tipoFaixa,
+      tipo_comissao: tipoComissao,
       observacoes: parsed.data.observacoes || null,
     };
 
