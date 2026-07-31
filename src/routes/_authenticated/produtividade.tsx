@@ -257,6 +257,30 @@ function Produtividade() {
       </div>
 
       <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Tempo produtivo
+          </CardTitle>
+          <Timer className="h-4 w-4 text-primary" />
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-8">
+          <div>
+            <div className="text-2xl font-bold">{formatarMinutos(minutosMes)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Acumulado do mês</p>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">
+              {formatarMinutos(minutosMes / diasDecorridos)}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Média por dia</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isMaster && <TemposConfig />}
+
+
+      <Card>
         <CardHeader>
           <CardTitle>Novo atendimento</CardTitle>
           <CardDescription>Preencha os dados do atendimento realizado.</CardDescription>
