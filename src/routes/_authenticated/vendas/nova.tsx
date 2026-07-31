@@ -690,14 +690,47 @@ export function FormPap({
     const uid = ownerId ?? sess.user!.id;
 
 
+    const mesRefPap = mesRefFromDate(parsed.data.data_instalacao || parsed.data.data);
     let comissao = 0;
     if (parsed.data.instalado) {
-      const { data: faixas } = await supabase
-        .from("parametros_pap_faixas")
-        .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel");
-      const r = comissaoPap((faixas ?? []) as PapFaixa[], parsed.data.valor, true);
+      const [{ data: faixas }, { data: produtos }, { data: mesVendas }] = await Promise.all([
+        supabase
+          .from("parametros_pap_faixas")
+          .select(
+            "faixa, receita_de, receita_ate, pct_comissao, meta_max_cancel, acelerador_baixo_cancel, bonus_venda_indireta",
+          ),
+        supabase
+          .from("parametros_pap_novos_produtos")
+          .select("codigo, nome, percentual, limitado, limite"),
+        supabase
+          .from("vendas_pap")
+          .select("id, valor, produto, tipo_protocolo")
+          .eq("vendedor_id", uid)
+          .eq("mes_ref", mesRefPap)
+          .eq("status", "instalado"),
+      ]);
+      const listaProdutos = (produtos ?? []) as PapNovoProduto[];
+      const outras = (mesVendas ?? []).filter((v) => v.id !== editingId);
+      const coreOutras = outras
+        .filter((v) => ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos))
+        .reduce((s, v) => s + Number(v.valor ?? 0), 0);
+      const estaCore = ehCorePap(
+        parsed.data.tipo_protocolo,
+        parsed.data.produto,
+        listaProdutos,
+      );
+      const r = comissaoPap({
+        tipoProtocolo: parsed.data.tipo_protocolo,
+        produto: parsed.data.produto,
+        valor: parsed.data.valor,
+        instalado: true,
+        totalCoreMes: coreOutras + (estaCore ? parsed.data.valor : 0),
+        faixas: (faixas ?? []) as PapFaixa[],
+        produtos: listaProdutos,
+      });
       comissao = r.valor;
     }
+
 
     const payload = {
       vendedor_id: uid,
