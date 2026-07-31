@@ -125,14 +125,21 @@ function Dashboard() {
       const lojaRows = loja.data ?? [];
       const papRows = pap.data ?? [];
 
+      // Receita = valor novo; quando há valor antigo, apenas a diferença de ticket
+      const receitaLoja = (v: { valor_novo: number | null; valor_antigo: number | null }) => {
+        const novo = Number(v.valor_novo ?? 0);
+        const antigo = Number(v.valor_antigo ?? 0);
+        return antigo > 0 ? novo - antigo : novo;
+      };
+
       // Totais (respeitando canal do consultor; gestor vê ambos)
       const vendas = isGestor
         ? [
-            ...lojaRows.map((v) => ({ status: v.status, valor: Number(v.valor_novo ?? 0), comissao: Number(v.comissao ?? 0) })),
+            ...lojaRows.map((v) => ({ status: v.status, valor: receitaLoja(v), comissao: Number(v.comissao ?? 0) })),
             ...papRows.map((v) => ({ status: v.status, valor: Number(v.valor ?? 0), comissao: Number(v.comissao ?? 0) })),
           ]
         : canal === "loja"
-          ? lojaRows.map((v) => ({ status: v.status, valor: Number(v.valor_novo ?? 0), comissao: Number(v.comissao ?? 0) }))
+          ? lojaRows.map((v) => ({ status: v.status, valor: receitaLoja(v), comissao: Number(v.comissao ?? 0) }))
           : papRows.map((v) => ({ status: v.status, valor: Number(v.valor ?? 0), comissao: Number(v.comissao ?? 0) }));
 
       const total = vendas.length;
@@ -156,7 +163,7 @@ function Dashboard() {
       let rvQtd = 0, rvRs = 0;
 
       for (const v of scopeLoja) {
-        const val = Number(v.valor_novo ?? 0);
+        const val = receitaLoja(v);
         const renovLoja = v.classe_protocolo === "Renovação Contratual";
         if (isBL(v.tecnologia) && !renovLoja) { blQtd++; blRs += val; }
         if (isMovel(v.tecnologia) || v.contem_movel) { mvQtd++; mvRs += val; }
