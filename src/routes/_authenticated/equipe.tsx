@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useOrdenacao, cmpTexto, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -137,6 +138,18 @@ function EquipePage() {
     });
   }, [members, filterRole, filterCanal, filterUnidade, filterGerente, q, isGerente, isRegional, me.data?.uid]);
 
+  type Membro = (typeof filtered)[number];
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<Membro>[]>(
+    () => [
+      { valor: "nome", label: "Nome (A-Z)", cmp: cmpTexto((m) => m.nome) },
+      { valor: "email", label: "E-mail (A-Z)", cmp: cmpTexto((m) => m.email ?? "") },
+      { valor: "canal", label: "Canal (A-Z)", cmp: cmpTexto((m) => m.canal ?? "") },
+      { valor: "perfil", label: "Perfil (A-Z)", cmp: cmpTexto((m) => m.roles.join(", ")) },
+    ],
+    [],
+  );
+  const { rows: membrosOrdenados, control: ordenarControl } = useOrdenacao(filtered, opcoesOrdem);
+
   if (!me.isLoading && !isRegional && !isGerente) {
     return (
       <div className="mx-auto max-w-2xl">
@@ -220,8 +233,9 @@ function EquipePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>{filtered.length} acessos</CardTitle>
+          {filtered.length > 0 && ordenarControl}
         </CardHeader>
         <CardContent>
           {membersQ.isLoading ? (
@@ -242,7 +256,7 @@ function EquipePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((m) => (
+                  {membrosOrdenados.map((m) => (
                     <MemberRow
                       key={m.id}
                       member={m}

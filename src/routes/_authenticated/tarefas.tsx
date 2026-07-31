@@ -1,4 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  useOrdenacao,
+  cmpTexto,
+  cmpDataAsc,
+  cmpDataDesc,
+  type OpcaoOrdenacao,
+} from "@/components/ordenacao";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -163,15 +170,34 @@ function TarefasPage() {
   }, [tarefas.data, filtro]);
 
 
+  const PESO_PRIORIDADE: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<Tarefa>[]>(
+    () => [
+      { valor: "data", label: "Data (mais próxima)", cmp: cmpDataAsc((t) => t.data_venc) },
+      { valor: "data_desc", label: "Data (mais recente)", cmp: cmpDataDesc((t) => t.data_venc) },
+      { valor: "titulo", label: "Título (A-Z)", cmp: cmpTexto((t) => t.titulo) },
+      {
+        valor: "prioridade",
+        label: "Prioridade",
+        cmp: (a, b) => (PESO_PRIORIDADE[a.prioridade] ?? 9) - (PESO_PRIORIDADE[b.prioridade] ?? 9),
+      },
+    ],
+    [],
+  );
+  const { rows: listaOrdenada, ordem, control: ordenarControl } = useOrdenacao(lista, opcoesOrdem);
+
   const grupos = useMemo(() => {
     const map = new Map<string, Tarefa[]>();
-    for (const t of lista) {
+    for (const t of listaOrdenada) {
       const arr = map.get(t.data_venc) ?? [];
       arr.push(t);
       map.set(t.data_venc, arr);
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [lista]);
+    const entries = [...map.entries()];
+    return ordem === "data_desc"
+      ? entries.sort((a, b) => b[0].localeCompare(a[0]))
+      : entries.sort((a, b) => a[0].localeCompare(b[0]));
+  }, [listaOrdenada, ordem]);
 
   const vencemAmanha = (tarefas.data ?? []).filter(
     (t) => emAberto(t.status) && t.data_venc === amanha(),
@@ -275,6 +301,8 @@ function TarefasPage() {
           responsavelInicial={responsavelInicial}
           onCriada={() => qc.invalidateQueries({ queryKey: ["tarefas"] })}
         />
+
+        {grupos.length > 0 && <div className="flex justify-end">{ordenarControl}</div>}
 
         {tarefas.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
         {!tarefas.isLoading && grupos.length === 0 && (

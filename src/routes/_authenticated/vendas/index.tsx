@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  useOrdenacao,
+  cmpTexto,
+  cmpNumeroDesc,
+  cmpDataDesc,
+  type OpcaoOrdenacao,
+} from "@/components/ordenacao";
 
 export const Route = createFileRoute("/_authenticated/vendas/")({
   head: () => ({
@@ -134,6 +141,18 @@ function VendasList() {
     },
   });
 
+  type LinhaVenda = NonNullable<typeof data>["rows"][number];
+  const opcoesOrdem = useMemo<OpcaoOrdenacao<LinhaVenda>[]>(
+    () => [
+      { valor: "data", label: "Data (mais recente)", cmp: cmpDataDesc((r) => r.data) },
+      { valor: "cliente", label: "Cliente (A-Z)", cmp: cmpTexto((r) => r.cliente) },
+      { valor: "valor", label: "Valor (maior)", cmp: cmpNumeroDesc((r) => r.valor) },
+      { valor: "comissao", label: "Comissão (maior)", cmp: cmpNumeroDesc((r) => r.comissao) },
+    ],
+    [],
+  );
+  const { rows: linhas, control: ordenarControl } = useOrdenacao(data?.rows ?? [], opcoesOrdem);
+
   async function confirmDelete() {
     if (!toDelete || !data) return;
     setDeleting(true);
@@ -170,8 +189,9 @@ function VendasList() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle>Últimas 100 vendas</CardTitle>
+          {(data?.rows.length ?? 0) > 0 && ordenarControl}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -201,7 +221,7 @@ function VendasList() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data!.rows.map((v) => (
+                  {linhas.map((v) => (
                     <TableRow key={v.id}>
                       <TableCell className="whitespace-nowrap">
                         {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
