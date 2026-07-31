@@ -358,9 +358,42 @@ function Contestacoes() {
       if (!ws) throw new Error("A planilha está vazia.");
       const csv = XLSX.utils.sheet_to_csv(ws, { dateNF: "yyyy-mm-dd" });
       if (csv.trim().length < 10) throw new Error("Não foi possível ler o conteúdo da planilha.");
-      return importarPlanilhaNativa({
-        data: { canal: canalEfetivo, mes_ref: mes, arquivo_nome: file.name, csv },
-      });
+
+      // Divide arquivos grandes em partes (mantendo o cabeçalho em cada uma).
+      const LIMITE = 150000;
+      const linhas = csv.split(/\r?\n/).filter((l) => l.trim().length);
+      const cabecalho = linhas[0] ?? "";
+      const corpo = linhas.slice(1);
+      const partes: string[] = [];
+      let atual = "";
+      for (const linha of corpo) {
+        if (atual.length + linha.length + 1 > LIMITE && atual.length) {
+          partes.push(`${cabecalho}\n${atual}`);
+          atual = "";
+        }
+        atual += `${linha}\n`;
+      }
+      if (atual.trim().length) partes.push(`${cabecalho}\n${atual}`);
+      if (!partes.length) partes.push(csv.slice(0, LIMITE));
+
+      let importacaoId: string | null = null;
+      let total = 0;
+      for (let i = 0; i < partes.length; i++) {
+        if (partes.length > 1) toast.info(`Processando parte ${i + 1} de ${partes.length}...`);
+        const r = await importarPlanilhaNativa({
+          data: {
+            canal: canalEfetivo,
+            mes_ref: mes,
+            arquivo_nome: file.name,
+            csv: partes[i],
+            parte: i,
+            importacao_id: importacaoId,
+          },
+        });
+        importacaoId = r.importacao_id;
+        total = r.total;
+      }
+      return { importacao_id: importacaoId, total };
     },
     onSuccess: (r) => {
       toast.success(`Relatório matriz importado: ${r.total} vendas.`);
@@ -368,6 +401,7 @@ function Contestacoes() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const consultores = useMemo(() => {
     const set = new Set<string>();
