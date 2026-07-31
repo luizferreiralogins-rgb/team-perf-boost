@@ -404,7 +404,7 @@ function Contestacoes() {
       somaM,
       somaV,
     };
-  }, [matrizFiltrada, vendasFiltradas, canalEfetivo, dados.data]);
+  }, [matrizFiltrada, vendasFiltradas, canalEfetivo, canalVendas, dados.data]);
 
   const salvar = useMutation({
     mutationFn: () => salvarRelatorioContestacao({ data: { canal: canalEfetivo, mes_ref: mes, linhas: linhasColadas } }),
