@@ -200,7 +200,7 @@ function Contestacoes() {
     const conciliadas = vendasF.length - soConsultor.length;
 
     return { soNativo, soConsultor, conciliadas, totalNativo: nativasF.length, totalConsultor: vendasF.length };
-  }, [dados.data, consultor]);
+  }, [dados.data, consultor, me.data]);
 
   const consultores = useMemo(() => {
     const set = new Set<string>();
