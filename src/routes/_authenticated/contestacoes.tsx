@@ -473,7 +473,7 @@ function Contestacoes() {
             <Select
               value={canalEfetivo}
               onValueChange={(v) => setCanal(v as "loja" | "pap")}
-              disabled={!me.data?.isGestor}
+              
             >
               <SelectTrigger>
                 <SelectValue />
