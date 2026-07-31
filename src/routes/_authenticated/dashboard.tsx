@@ -102,7 +102,7 @@ function Dashboard() {
         .eq("mes_ref", mesRefISO);
       const papQ = supabase
         .from("vendas_pap")
-        .select("valor, status, mes_ref, comissao, tecnologia")
+        .select("valor, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas")
         .eq("mes_ref", mesRefISO);
       if (!isGestor) {
         lojaQ.eq("vendedor_id", uid);
