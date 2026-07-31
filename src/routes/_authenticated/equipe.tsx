@@ -63,7 +63,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
   component: EquipePage,
 });
 
-type Role = "consultor" | "gerente" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 type Canal = "loja" | "pap";
 type Unidade = "norte" | "sul" | "shopping";
 

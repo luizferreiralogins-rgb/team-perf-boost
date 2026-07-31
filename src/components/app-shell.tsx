@@ -26,7 +26,7 @@ import { useAlertas } from "@/hooks/use-alertas";
 
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
-type Role = "consultor" | "gerente" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 
 function useMe() {
   return useQuery({
@@ -117,7 +117,7 @@ function Sidebar({
   mobileOpen: boolean;
   onClose: () => void;
 }) {
-  const isGestor = roles.includes("gerente") || roles.includes("regional") || roles.includes("admin");
+  const isGestor = roles.includes("gerente") || roles.includes("lider_pap") || roles.includes("regional") || roles.includes("admin");
   const isConsultor = roles.includes("consultor") && !isGestor;
   const alertas = useAlertas().data;
   const items = [

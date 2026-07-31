@@ -41,7 +41,7 @@ function useGestor() {
       if (!uid) return false;
       const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
       return (data ?? []).some(
-        (r) => r.role === "gerente" || r.role === "regional" || r.role === "admin",
+        (r) => ["gerente", "lider_pap", "regional", "admin"].includes(r.role),
       );
     },
   });
