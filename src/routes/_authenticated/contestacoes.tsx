@@ -416,6 +416,20 @@ function Contestacoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const limpar = useMutation({
+    mutationFn: () => limparRelatorioContestacao({ data: { canal: canalEfetivo, mes_ref: mes } }),
+    onSuccess: (r) => {
+      toast.success(
+        r.removidos
+          ? "Relatório limpo. Cole uma nova tabela e publique."
+          : "Não havia relatório publicado para este mês/canal.",
+      );
+      setLinhasColadas([]);
+      qc.invalidateQueries({ queryKey: ["contestacoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const colarTabela = (evento: ClipboardEvent<HTMLInputElement>) => {
     evento.preventDefault();
     const linhas = linhasDaAreaTransferencia(evento.clipboardData.getData("text/plain"));
