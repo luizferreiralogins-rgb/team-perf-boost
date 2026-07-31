@@ -89,3 +89,42 @@ export const salvarRelatorioContestacao = createServerFn({ method: "POST" })
 
     return { total: rows.length };
   });
+
+export const limparRelatorioContestacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value: unknown) =>
+    z
+      .object({
+        canal: z.enum(["loja", "pap"]),
+        mes_ref: z.string().regex(/^\d{4}-\d{2}$/),
+      })
+      .parse(value),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (!(roles ?? []).some((row) => row.role === "gerente")) {
+      throw new Error("Apenas Gerentes podem limpar o relatório da própria equipe.");
+    }
+
+    const mes = `${data.mes_ref}-01`;
+    const { data: anteriores, error: buscaErro } = await context.supabase
+      .from("contestacao_importacoes")
+      .select("id")
+      .eq("gerente_id", context.userId)
+      .eq("mes_ref", mes)
+      .eq("canal", data.canal);
+    if (buscaErro) throw new Error(buscaErro.message);
+
+    if (anteriores?.length) {
+      const { error } = await context.supabase
+        .from("contestacao_importacoes")
+        .delete()
+        .in("id", anteriores.map((row) => row.id));
+      if (error) throw new Error(error.message);
+    }
+
+    return { removidos: anteriores?.length ?? 0 };
+  });
