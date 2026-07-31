@@ -28,13 +28,21 @@ import {
   registrarReagendamento,
 } from "@/components/vendas/reagendamento";
 import {
-  comissaoLoja,
+  comissaoLojaNaFaixa,
   comissaoPap,
+  diferencaTicket,
+  ehCorePap,
   faixaEfetivaLoja,
+  tipoComissaoLoja,
   type LojaFaixaTicket,
   type LojaMeta,
+  type LojaNovoProduto,
   type PapFaixa,
+  type PapNovoProduto,
 } from "@/lib/comissao";
+import { recalcularLojaMes, recalcularPapMes } from "@/lib/recalculo";
+
+
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
@@ -322,49 +330,79 @@ export function FormLoja({
     const valorAntigoNum =
       typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : null;
 
-    // Comissão: calcula faixa efetiva do mês (1-3) considerando esta venda.
+    // Comissão: espelha a planilha oficial (faixa efetiva do mês + tabelas de regras).
     let comissao = 0;
-    let tipoFaixa: "faixa_0" | "faixa_1" | "faixa_2" | "faixa_3" = "faixa_0";
+    let tipoComissao = tipoComissaoLoja(
+      parsed.data.classe_protocolo,
+      parsed.data.contem_movel,
+      parsed.data.tecnologia,
+      [],
+    );
     const mesRef = mesRefFromDate(dataRef);
     if (parsed.data.instalado) {
-      const [{ data: faixas }, { data: metas }, { data: mesVendas }] = await Promise.all([
-        supabase
-          .from("parametros_loja_faixas_ticket")
-          .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
-        supabase
-          .from("parametros_loja_metas")
-          .select("faixa, meta_receita, meta_renov_movel"),
-        supabase
-          .from("vendas_loja")
-          .select("id, valor_novo, classe_protocolo, contem_movel, status")
-          .eq("vendedor_id", uid)
-          .eq("mes_ref", mesRef),
-      ]);
+      const [{ data: faixas }, { data: metas }, { data: novos }, { data: mesVendas }] =
+        await Promise.all([
+          supabase
+            .from("parametros_loja_faixas_ticket")
+            .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
+          supabase.from("parametros_loja_metas").select("faixa, meta_receita, meta_renov_movel"),
+          supabase.from("parametros_loja_novos_produtos").select("codigo, nome, percentual"),
+          supabase
+            .from("vendas_loja")
+            .select("id, valor_novo, valor_antigo, classe_protocolo, contem_movel, tecnologia")
+            .eq("vendedor_id", uid)
+            .eq("mes_ref", mesRef),
+        ]);
+
+      const listaFaixas = (faixas ?? []) as LojaFaixaTicket[];
+      const listaNovos = (novos ?? []) as LojaNovoProduto[];
 
       // Ao editar, exclui a própria venda do acumulado (será recontabilizada).
       const rows = (mesVendas ?? []).filter((v) => v.id !== editingId);
+      const diffAtual = diferencaTicket(parsed.data.valor_novo, valorAntigoNum);
+
+      // Receita do mês = somatória das diferenças de ticket.
       const receitaMes =
-        rows
-          .filter((v) => v.status === "instalado")
-          .reduce((s, v) => s + Number(v.valor_novo ?? 0), 0) + parsed.data.valor_novo;
-      const totalRenov =
-        rows.filter((v) => v.classe_protocolo === "Renovação Contratual").length +
-        (parsed.data.classe_protocolo === "Renovação Contratual" ? 1 : 0);
-      const renovComMovel =
-        rows.filter((v) => v.classe_protocolo === "Renovação Contratual" && v.contem_movel).length +
-        (parsed.data.classe_protocolo === "Renovação Contratual" && parsed.data.contem_movel ? 1 : 0);
+        rows.reduce((s, v) => s + diferencaTicket(Number(v.valor_novo), v.valor_antigo), 0) +
+        diffAtual;
+
+      const tipos = [
+        ...rows.map((v) =>
+          tipoComissaoLoja(
+            v.classe_protocolo ?? "",
+            !!v.contem_movel,
+            v.tecnologia ?? "",
+            listaNovos,
+          ),
+        ),
+        tipoComissaoLoja(
+          parsed.data.classe_protocolo,
+          parsed.data.contem_movel,
+          parsed.data.tecnologia,
+          listaNovos,
+        ),
+      ];
+      const totalRenov = tipos.filter((t) => t.startsWith("Renovação")).length;
+      const renovComMovel = tipos.filter((t) => t === "Renovação com Mobilidade").length;
       const ratio = totalRenov > 0 ? renovComMovel / totalRenov : 0;
 
       const faixaEfet = faixaEfetivaLoja((metas ?? []) as LojaMeta[], receitaMes, ratio);
-      const { porFaixa } = comissaoLoja(
-        (faixas ?? []) as LojaFaixaTicket[],
-        parsed.data.valor_novo,
-        valorAntigoNum,
-        true,
+      tipoComissao = tipos[tipos.length - 1];
+      comissao = comissaoLojaNaFaixa(
+        {
+          classe: parsed.data.classe_protocolo,
+          tecnologia: parsed.data.tecnologia,
+          contemMovel: parsed.data.contem_movel,
+          valorNovo: parsed.data.valor_novo,
+          valorAntigo: valorAntigoNum,
+          instalado: true,
+          faixas: listaFaixas,
+          novos: listaNovos,
+        },
+        faixaEfet,
       );
-      comissao = porFaixa[faixaEfet] ?? 0;
-      tipoFaixa = (`faixa_${faixaEfet}` as typeof tipoFaixa);
     }
+
 
     const payload = {
       vendedor_id: uid,
@@ -383,7 +421,7 @@ export function FormLoja({
       qtd_linhas: parsed.data.qtd_linhas,
       status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
       comissao,
-      tipo_comissao: tipoFaixa,
+      tipo_comissao: tipoComissao,
       observacoes: parsed.data.observacoes || null,
     };
 
@@ -400,6 +438,7 @@ export function FormLoja({
         motivo: motivoReagendamento,
       });
     }
+    if (!error) await recalcularLojaMes(uid, mesRef);
     setLoading(false);
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
@@ -407,6 +446,7 @@ export function FormLoja({
     }
     toast.success(editingId ? "Venda atualizada!" : "Venda registrada!");
     navigate({ to: editingId ? "/historico" : "/vendas" });
+
 
   }
 
@@ -581,7 +621,11 @@ export function FormLoja({
           valorNovo={form.valor_novo}
           valorAntigo={form.valor_antigo}
           instalado={form.instalado}
+          classe={form.classe_protocolo}
+          tecnologia={form.tecnologia}
+          contemMovel={form.contem_movel}
         />
+
         <CalculadoraParcelaMedia defaultParcelaNormal={form.valor_novo} />
       </aside>
     </div>
@@ -650,14 +694,47 @@ export function FormPap({
     const uid = ownerId ?? sess.user!.id;
 
 
+    const mesRefPap = mesRefFromDate(parsed.data.data_instalacao || parsed.data.data);
     let comissao = 0;
     if (parsed.data.instalado) {
-      const { data: faixas } = await supabase
-        .from("parametros_pap_faixas")
-        .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel");
-      const r = comissaoPap((faixas ?? []) as PapFaixa[], parsed.data.valor, true);
+      const [{ data: faixas }, { data: produtos }, { data: mesVendas }] = await Promise.all([
+        supabase
+          .from("parametros_pap_faixas")
+          .select(
+            "faixa, receita_de, receita_ate, pct_comissao, meta_max_cancel, acelerador_baixo_cancel, bonus_venda_indireta",
+          ),
+        supabase
+          .from("parametros_pap_novos_produtos")
+          .select("codigo, nome, percentual, limitado, limite"),
+        supabase
+          .from("vendas_pap")
+          .select("id, valor, produto, tipo_protocolo")
+          .eq("vendedor_id", uid)
+          .eq("mes_ref", mesRefPap)
+          .eq("status", "instalado"),
+      ]);
+      const listaProdutos = (produtos ?? []) as PapNovoProduto[];
+      const outras = (mesVendas ?? []).filter((v) => v.id !== editingId);
+      const coreOutras = outras
+        .filter((v) => ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos))
+        .reduce((s, v) => s + Number(v.valor ?? 0), 0);
+      const estaCore = ehCorePap(
+        parsed.data.tipo_protocolo,
+        parsed.data.produto,
+        listaProdutos,
+      );
+      const r = comissaoPap({
+        tipoProtocolo: parsed.data.tipo_protocolo,
+        produto: parsed.data.produto,
+        valor: parsed.data.valor,
+        instalado: true,
+        totalCoreMes: coreOutras + (estaCore ? parsed.data.valor : 0),
+        faixas: (faixas ?? []) as PapFaixa[],
+        produtos: listaProdutos,
+      });
       comissao = r.valor;
     }
+
 
     const payload = {
       vendedor_id: uid,
@@ -667,7 +744,7 @@ export function FormPap({
       data_venda: parsed.data.data,
       data_ativacao: parsed.data.data_instalacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
-      mes_ref: mesRefFromDate(parsed.data.data_instalacao || parsed.data.data),
+      mes_ref: mesRefPap,
       valor: parsed.data.valor,
       qtd_linhas: parsed.data.qtd_linhas,
       produto: parsed.data.produto,
@@ -687,7 +764,9 @@ export function FormPap({
         motivo: motivoReagendamento,
       });
     }
+    if (!error) await recalcularPapMes(uid, mesRefPap);
     setLoading(false);
+
     if (error) {
       toast.error("Erro ao salvar venda: " + error.message);
       return;
@@ -827,7 +906,16 @@ export function FormPap({
         </CardContent>
       </Card>
       <aside className="space-y-4">
-        <ProjecaoComissaoPap valor={form.valor} instalado={form.instalado} />
+        <ProjecaoComissaoPap
+          valor={form.valor}
+          instalado={form.instalado}
+          tipoProtocolo={form.tipo_protocolo}
+          produto={form.produto}
+          mesRef={mesRefFromDate(form.data_instalacao || form.data || today())}
+          vendedorId={ownerId}
+          editingId={editingId}
+        />
+
         <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
       </aside>
     </div>
