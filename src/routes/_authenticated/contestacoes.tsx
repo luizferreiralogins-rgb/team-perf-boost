@@ -177,7 +177,8 @@ function Contestacoes() {
     const nativas = dados.data?.nativas ?? [];
     const vendas = dados.data?.vendas ?? [];
 
-    const alvo = consultor === "todos" ? null : norm(consultor);
+    const filtro = me.data?.isGestor ? consultor : (me.data?.nome ?? "todos");
+    const alvo = filtro === "todos" ? null : norm(filtro);
     const nativasF = alvo ? nativas.filter((n) => norm(n.consultor_nome).includes(alvo)) : nativas;
     const vendasF = alvo ? vendas.filter((v) => norm(v.vendedor_nome).includes(alvo)) : vendas;
 
@@ -199,7 +200,7 @@ function Contestacoes() {
     const conciliadas = vendasF.length - soConsultor.length;
 
     return { soNativo, soConsultor, conciliadas, totalNativo: nativasF.length, totalConsultor: vendasF.length };
-  }, [dados.data, consultor]);
+  }, [dados.data, consultor, me.data]);
 
   const consultores = useMemo(() => {
     const set = new Set<string>();
@@ -262,25 +263,29 @@ function Contestacoes() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Consultor</Label>
-            <Select value={consultor} onValueChange={setConsultor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {me.data?.nome && !consultores.includes(me.data.nome) && (
-                  <SelectItem value={me.data.nome}>{me.data.nome}</SelectItem>
-                )}
-                {consultores.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {me.data?.isGestor ? (
+            <div className="space-y-1.5">
+              <Label>Consultor</Label>
+              <Select value={consultor} onValueChange={setConsultor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {consultores.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Consultor</Label>
+              <Input value={me.data?.nome ?? ""} readOnly disabled />
+            </div>
+          )}
         </CardContent>
       </Card>
 
