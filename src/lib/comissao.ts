@@ -1,5 +1,6 @@
-// Cálculos de projeção de comissão + calculadora de parcela média.
-// Baseado em parametros_loja_faixas_ticket e parametros_pap_faixas.
+// Cálculos de comissão — espelham exatamente as planilhas oficiais
+// "Gestão Lojas" (abas Correlacionamentos / Configuração - Tabelas e Metas)
+// e "Gestão PAP" (aba Parametros — Tabelas 8.1 e 8.2 da Diretriz DC-MER-008).
 
 export type LojaFaixaTicket = {
   diff_de: number;
@@ -10,32 +11,109 @@ export type LojaFaixaTicket = {
   faixa_3: number;
 };
 
-export type PapFaixa = {
-  faixa: number;
-  receita_de: number;
-  receita_ate: number;
-  pct_comissao: number;
-  acelerador_baixo_cancel: number;
-};
-
 export type LojaMeta = {
   faixa: number;
   meta_receita: number;
   meta_renov_movel: number;
 };
 
-/** Ticket mínimo para elegibilidade de comissão (vendas, renovações e demais serviços). */
-export const TICKET_MINIMO = 10;
+export type LojaNovoProduto = {
+  codigo: string;
+  nome: string;
+  percentual: number;
+};
+
+export type PapFaixa = {
+  faixa: number;
+  receita_de: number;
+  receita_ate: number;
+  pct_comissao: number;
+  meta_max_cancel?: number;
+  acelerador_baixo_cancel: number;
+  bonus_venda_indireta?: number;
+};
+
+export type PapNovoProduto = {
+  codigo: string;
+  nome: string;
+  percentual: number;
+  limitado: boolean;
+  limite: number;
+};
+
+export function round2(v: number) {
+  return Math.round((v + Number.EPSILON) * 100) / 100;
+}
+
+export function brl(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/* ------------------------------------------------------------------ *
+ *  LOJA
+ * ------------------------------------------------------------------ */
+
+/** Tecnologias com "Aplicação PP" (percentual sobre a diferença em novos acessos). */
+const PREFIXOS_PP = ["01.04"];
+
+/** Classes de protocolo tratadas como renovação quando não há mobilidade. */
+const CLASSES_RENOVACAO = [
+  "Renovação Contratual",
+  "Renovação Contratual NxN",
+  "Transferência de Endereço",
+  "Migração de Tecnologia",
+];
+
+export type TipoComissaoLoja =
+  | "Venda"
+  | "Renovação com Mobilidade"
+  | "Renovação sem Mobilidade"
+  | "Novos Serviços";
+
+function codigoTecnologia(tec: string) {
+  return (tec ?? "").trim().slice(0, 5);
+}
+
+export function ehTecnologiaPP(tecnologia: string) {
+  return PREFIXOS_PP.includes(codigoTecnologia(tecnologia));
+}
+
+export function produtoNovoServico(
+  tecnologia: string,
+  novos: LojaNovoProduto[],
+): LojaNovoProduto | undefined {
+  const cod = codigoTecnologia(tecnologia);
+  return novos.find((p) => p.codigo.trim() === cod);
+}
+
+/** Correlacionamentos: classe de protocolo + contém móvel → tipo de comissão. */
+export function tipoComissaoLoja(
+  classe: string,
+  contemMovel: boolean,
+  tecnologia: string,
+  novos: LojaNovoProduto[],
+): TipoComissaoLoja {
+  const novo = produtoNovoServico(tecnologia, novos);
+  if (novo && (classe === "Novo Acesso" || classe === "Adicional de Serviço")) {
+    return "Novos Serviços";
+  }
+  if (CLASSES_RENOVACAO.includes(classe)) {
+    const comMovel =
+      contemMovel &&
+      (classe === "Renovação Contratual" || classe === "Renovação Contratual NxN");
+    return comMovel ? "Renovação com Mobilidade" : "Renovação sem Mobilidade";
+  }
+  return "Venda";
+}
+
+/** Diferença de ticket = valor novo considerado − valor antigo. */
+export function diferencaTicket(valorNovo: number, valorAntigo: number | null | undefined) {
+  return round2((valorNovo || 0) - (valorAntigo || 0));
+}
 
 /**
- * Faixa efetiva do consultor no mês (1 a 3). Faixa 1 é a base.
- * Sobe para faixa 2/3 conforme atinge, simultaneamente, a meta de receita
- * e a meta de % de renovações com móvel. Usa-se o MIN entre as duas dimensões.
- *
- * Tabela de metas (planilha Loja):
- *   Faixa 1: base (qualquer receita, qualquer % renov c/ móvel)
- *   Faixa 2: receita ≥ meta_receita(faixa 1) E % renov c/ móvel ≥ meta_renov(faixa 2)
- *   Faixa 3: receita ≥ meta_receita(faixa 2) E % renov c/ móvel ≥ meta_renov(faixa 3)
+ * Faixa efetiva do mês (1 a 3): menor valor entre a faixa de % de renovações
+ * com móvel e a faixa de receita (soma das diferenças de ticket do mês).
  */
 export function faixaEfetivaLoja(
   metas: LojaMeta[],
@@ -43,71 +121,175 @@ export function faixaEfetivaLoja(
   ratioRenovMovel: number,
 ): 1 | 2 | 3 {
   const m = [...(metas ?? [])].sort((a, b) => a.faixa - b.faixa);
-  const f1 = m.find((x) => x.faixa === 1);
-  const f2 = m.find((x) => x.faixa === 2);
-  const f3 = m.find((x) => x.faixa === 3);
-  if (!f1 || !f2) return 1;
+  if (!m.length) return 1;
 
-  let lvlReceita: 1 | 2 | 3 = 1;
-  if (receitaMes >= Number(f1.meta_receita)) lvlReceita = 2;
-  if (receitaMes >= Number(f2.meta_receita)) lvlReceita = 3;
+  // Faixa % renovações: maior faixa cuja meta seja <= o atingimento.
+  let lvlRenov = m[0].faixa;
+  for (const x of m) if (ratioRenovMovel >= Number(x.meta_renov_movel)) lvlRenov = x.faixa;
 
-  let lvlRenov: 1 | 2 | 3 = 1;
-  if (ratioRenovMovel >= Number(f2.meta_renov_movel)) lvlRenov = 2;
-  if (f3 && ratioRenovMovel >= Number(f3.meta_renov_movel)) lvlRenov = 3;
+  // Faixa receita: menor faixa cuja meta seja >= a receita acumulada.
+  const alvo = m.find((x) => receitaMes <= Number(x.meta_receita));
+  const lvlReceita = alvo ? alvo.faixa : m[m.length - 1].faixa;
 
-  return Math.min(lvlReceita, lvlRenov) as 1 | 2 | 3;
+  const f = Math.min(lvlRenov, lvlReceita);
+  return Math.max(1, Math.min(3, f)) as 1 | 2 | 3;
 }
 
-/** Comissão Loja: R$ por protocolo. Só paga quando a diferença (novo - antigo) ≥ R$ 10.
- *  Para novas vendas (sem valor antigo) a diferença equivale ao próprio valor novo. */
-export function comissaoLoja(
-  faixas: LojaFaixaTicket[],
-  valorNovo: number,
-  valorAntigo: number | null | undefined,
-  instalado: boolean,
-): { diff: number; porFaixa: [number, number, number, number] } {
-  const diff = Math.max(0, (valorNovo || 0) - (valorAntigo || 0));
-  if (!instalado || !faixas.length || diff < TICKET_MINIMO) {
-    return { diff, porFaixa: [0, 0, 0, 0] };
-  }
+function valorTabelaRenovacao(faixas: LojaFaixaTicket[], diff: number, faixa: number): number {
+  if (!faixas.length) return 0;
+  const ordenadas = [...faixas].sort((a, b) => Number(a.diff_de) - Number(b.diff_de));
   const row =
-    faixas.find((f) => diff >= Number(f.diff_de) && diff < Number(f.diff_ate)) ??
-    faixas[faixas.length - 1];
+    ordenadas.find((f) => diff >= Number(f.diff_de) && diff < Number(f.diff_ate)) ??
+    (diff >= Number(ordenadas[ordenadas.length - 1].diff_de)
+      ? ordenadas[ordenadas.length - 1]
+      : undefined);
+  if (!row) return 0;
+  const key = (["faixa_0", "faixa_1", "faixa_2", "faixa_3"] as const)[
+    Math.max(0, Math.min(3, faixa))
+  ];
+  return Number(row[key]) || 0;
+}
+
+export type CtxLoja = {
+  classe: string;
+  tecnologia: string;
+  contemMovel: boolean;
+  valorNovo: number;
+  valorAntigo: number | null | undefined;
+  instalado: boolean;
+  faixas: LojaFaixaTicket[];
+  novos: LojaNovoProduto[];
+};
+
+/** Comissão (R$) de uma venda Loja para uma determinada faixa efetiva. */
+export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
+  if (!ctx.instalado) return 0;
+  const diff = diferencaTicket(ctx.valorNovo, ctx.valorAntigo);
+  if (diff <= 0) return 0;
+
+  const tipo = tipoComissaoLoja(ctx.classe, ctx.contemMovel, ctx.tecnologia, ctx.novos);
+
+  if (ctx.classe === "Novo Acesso" && ehTecnologiaPP(ctx.tecnologia)) {
+    return round2(diff * (diff <= 99.9 ? 0.05 : 0.1));
+  }
+  if (tipo === "Renovação com Mobilidade" || tipo === "Renovação sem Mobilidade") {
+    return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
+  }
+  if (tipo === "Novos Serviços") {
+    const p = produtoNovoServico(ctx.tecnologia, ctx.novos);
+    return round2(diff * (Number(p?.percentual) || 0));
+  }
+  return round2(diff * 0.1);
+}
+
+/** Resultado completo: diferença, tipo e comissão em cada faixa efetiva (0 a 3). */
+export function comissaoLoja(ctx: CtxLoja): {
+  diff: number;
+  tipo: TipoComissaoLoja;
+  porFaixa: [number, number, number, number];
+} {
   return {
-    diff,
-    porFaixa: [
-      Number(row.faixa_0) || 0,
-      Number(row.faixa_1) || 0,
-      Number(row.faixa_2) || 0,
-      Number(row.faixa_3) || 0,
+    diff: diferencaTicket(ctx.valorNovo, ctx.valorAntigo),
+    tipo: tipoComissaoLoja(ctx.classe, ctx.contemMovel, ctx.tecnologia, ctx.novos),
+    porFaixa: [0, 1, 2, 3].map((f) => comissaoLojaNaFaixa(ctx, f)) as [
+      number,
+      number,
+      number,
+      number,
     ],
   };
 }
 
+/* ------------------------------------------------------------------ *
+ *  PAP
+ * ------------------------------------------------------------------ */
 
-/** Comissão PAP: % sobre valor de ativação. Só paga quando o ticket > R$ 10. */
-export function comissaoPap(
-  faixas: PapFaixa[],
-  valor: number,
-  instalado: boolean,
-): { pct: number; valor: number; pctAcelerado: number; valorAcelerado: number; faixa: number } {
-  if (!instalado || !faixas.length || !valor || valor < TICKET_MINIMO) {
-    return { pct: 0, valor: 0, pctAcelerado: 0, valorAcelerado: 0, faixa: 0 };
+function normaliza(s: string) {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+export function produtoPap(produto: string, produtos: PapNovoProduto[]) {
+  const alvo = normaliza(produto);
+  return produtos.find((p) => normaliza(p.nome) === alvo);
+}
+
+/** Faixa da Tabela 8.1 pela receita core acumulada no mês (VLOOKUP aproximado). */
+export function faixaPap(faixas: PapFaixa[], totalCoreMes: number): PapFaixa | undefined {
+  if (!faixas.length) return undefined;
+  const ord = [...faixas].sort((a, b) => Number(a.receita_de) - Number(b.receita_de));
+  let row: PapFaixa | undefined;
+  for (const f of ord) if (totalCoreMes >= Number(f.receita_de)) row = f;
+  return row ?? ord[0];
+}
+
+export type CtxPap = {
+  tipoProtocolo: string;
+  produto: string;
+  valor: number;
+  instalado: boolean;
+  /** Receita de produtos da Tabela 8.1 já instalados no mês, incluindo esta venda. */
+  totalCoreMes: number;
+  faixas: PapFaixa[];
+  produtos: PapNovoProduto[];
+  /** Índice de cancelamento D+5 dentro da meta libera o acelerador. */
+  dentroMetaCancelamento?: boolean;
+};
+
+/** Uma venda é "core" (Tabela 8.1) quando não é venda indireta nem produto da 8.2. */
+export function ehCorePap(tipoProtocolo: string, produto: string, produtos: PapNovoProduto[]) {
+  return tipoProtocolo !== "Venda Indireta" && !produtoPap(produto, produtos);
+}
+
+export function comissaoPap(ctx: CtxPap): {
+  pct: number;
+  valor: number;
+  faixa: number;
+  pctAcelerado: number;
+  valorAcelerado: number;
+  core: boolean;
+} {
+  const core = ehCorePap(ctx.tipoProtocolo, ctx.produto, ctx.produtos);
+  const row = faixaPap(ctx.faixas, ctx.totalCoreMes);
+  const vazio = { pct: 0, valor: 0, faixa: row?.faixa ?? 0, pctAcelerado: 0, valorAcelerado: 0, core };
+  if (!ctx.instalado || !ctx.valor) return vazio;
+
+  // Venda indireta: bônus da faixa sobre o valor da venda.
+  if (ctx.tipoProtocolo === "Venda Indireta") {
+    const pct = Number(row?.bonus_venda_indireta) || 0;
+    const v = round2(ctx.valor * pct);
+    return { pct, valor: v, faixa: row?.faixa ?? 0, pctAcelerado: pct, valorAcelerado: v, core };
   }
-  const row =
-    faixas.find((f) => valor >= Number(f.receita_de) && valor <= Number(f.receita_ate)) ??
-    faixas[faixas.length - 1];
-  const pct = Number(row.pct_comissao) || 0;
-  const acel = Number(row.acelerador_baixo_cancel) || 0;
+
+  // Tabela 8.2: percentual fixo do produto, limitado por venda. Não soma com a 8.1.
+  const prod = produtoPap(ctx.produto, ctx.produtos);
+  if (prod) {
+    const pct = Number(prod.percentual) || 0;
+    const bruto = ctx.valor * pct;
+    const v = round2(prod.limitado ? Math.min(bruto, Number(prod.limite) || bruto) : bruto);
+    return { pct, valor: v, faixa: 0, pctAcelerado: pct, valorAcelerado: v, core };
+  }
+
+  // Tabela 8.1: percentual da faixa + acelerador quando o cancelamento está na meta.
+  const base = Number(row?.pct_comissao) || 0;
+  const acel = Number(row?.acelerador_baixo_cancel) || 0;
+  const pct = base + (ctx.dentroMetaCancelamento ? acel : 0);
   return {
     pct,
-    valor: valor * pct,
-    pctAcelerado: pct + acel,
-    valorAcelerado: valor * (pct + acel),
-    faixa: row.faixa,
+    valor: round2(ctx.valor * pct),
+    faixa: row?.faixa ?? 0,
+    pctAcelerado: base + acel,
+    valorAcelerado: round2(ctx.valor * (base + acel)),
+    core,
   };
 }
+
+/* ------------------------------------------------------------------ *
+ *  Utilitários
+ * ------------------------------------------------------------------ */
 
 /** Parcela média: distribui o desconto ao longo do contrato. */
 export function parcelaMedia(
@@ -120,8 +302,4 @@ export function parcelaMedia(
   const md = Math.max(0, Math.min(mesesComDesc, mesesTotal));
   const mn = mesesTotal - md;
   return (parcelaDesc * md + parcelaNormal * mn) / mesesTotal;
-}
-
-export function brl(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
