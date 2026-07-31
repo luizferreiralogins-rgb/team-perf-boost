@@ -170,8 +170,10 @@ function Contestacoes() {
         uid,
         nome: profile?.nome ?? "",
         canal: (profile?.canal ?? "loja") as "loja" | "pap",
-        isGestor: list.some((r) => r === "gerente" || r === "regional" || r === "admin"),
-        isGerente: list.some((r) => r === "gerente"),
+        isGestor: list.some((r) =>
+          ["gerente", "lider_pap", "regional", "admin"].includes(r),
+        ),
+        isGerente: list.some((r) => r === "gerente" || r === "lider_pap"),
         isRegional: list.some((r) => r === "regional" || r === "admin"),
         gerenteId: profile?.gerente_id ?? null,
       };
@@ -207,7 +209,7 @@ function Contestacoes() {
        const [{ data: importacoes }, { data: gestores }] = await Promise.all([
          importacoesQuery,
          me.data?.isRegional
-           ? supabase.from("profiles").select("id, nome, user_roles!inner(role)").eq("user_roles.role", "gerente").eq("ativo", true)
+           ? supabase.from("profiles").select("id, nome, user_roles!inner(role)").in("user_roles.role", ["gerente", "lider_pap"]).eq("ativo", true)
            : Promise.resolve({ data: [] }),
        ]);
        const importacaoIds = (importacoes ?? []).map((item) => item.id);
