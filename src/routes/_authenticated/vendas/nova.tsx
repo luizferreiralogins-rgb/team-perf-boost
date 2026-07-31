@@ -40,6 +40,8 @@ import {
   type PapFaixa,
   type PapNovoProduto,
 } from "@/lib/comissao";
+import { recalcularLojaMes, recalcularPapMes } from "@/lib/recalculo";
+
 
 
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
