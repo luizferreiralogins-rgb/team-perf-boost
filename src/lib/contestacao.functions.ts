@@ -110,8 +110,9 @@ Regras:
 - Nunca invente vendas: extraia apenas o que existe no arquivo;
 - Se um campo não existir na planilha, devolva string vazia (ou 0 para números).
 
-Conteúdo do arquivo "${data.arquivo_nome}":
-${data.csv.slice(0, 380000)}`;
+Conteúdo do arquivo "${data.arquivo_nome}"${data.parte > 0 ? ` (parte ${data.parte + 1} — a primeira linha é o cabeçalho)` : ""}:
+${data.csv}`;
+
 
 
     const chamar = async (model: string) => {
