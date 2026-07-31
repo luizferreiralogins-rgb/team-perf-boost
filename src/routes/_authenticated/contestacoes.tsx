@@ -179,11 +179,19 @@ function Contestacoes() {
     staleTime: 60_000,
   });
 
-  const canalEfetivo = me.data?.isGestor ? canal : (me.data?.canal ?? "loja");
+  const canalPerfil = me.data?.canal;
+  useEffect(() => {
+    if (canalPerfil) setCanal(canalPerfil);
+  }, [canalPerfil]);
+
+  const canalEfetivo = canal;
+  // Consultor compara sempre com as vendas do seu próprio canal, mesmo que o
+  // relatório da equipe tenha sido publicado em outro canal pelo gerente.
+  const canalVendas = me.data?.isGestor ? canalEfetivo : (me.data?.canal ?? canalEfetivo);
 
   const dados = useQuery({
     enabled: !!me.data,
-    queryKey: ["contestacoes", mes, canalEfetivo, gerente],
+    queryKey: ["contestacoes", mes, canalEfetivo, canalVendas, gerente],
     queryFn: async () => {
       const inicio = `${mes}-01`;
       const fimDate = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0);
@@ -229,7 +237,7 @@ function Contestacoes() {
       let vendas: VendaConsultor[] = [];
       let faixaSistema = 0;
 
-      if (canalEfetivo === "loja") {
+      if (canalVendas === "loja") {
         const [{ data: rows }, { data: metas }, { data: novos }] = await Promise.all([
           supabase
             .from("vendas_loja")
@@ -362,7 +370,7 @@ function Contestacoes() {
       const campos: Array<{ campo: string; matriz: number; consultor: number }> = [];
       if (!perto(m.valor_novo, v.valor_novo))
         campos.push({ campo: "Preço novo", matriz: m.valor_novo, consultor: v.valor_novo });
-      if (canalEfetivo === "loja" && !perto(m.valor_antigo, v.valor_antigo))
+      if (canalVendas === "loja" && !perto(m.valor_antigo, v.valor_antigo))
         campos.push({ campo: "Preço antigo", matriz: m.valor_antigo, consultor: v.valor_antigo });
       if (!perto(m.diferenca, v.diferenca))
         campos.push({ campo: "Diferença", matriz: m.diferenca, consultor: v.diferenca });
@@ -396,7 +404,7 @@ function Contestacoes() {
       somaM,
       somaV,
     };
-  }, [matrizFiltrada, vendasFiltradas, canalEfetivo, dados.data]);
+  }, [matrizFiltrada, vendasFiltradas, canalEfetivo, canalVendas, dados.data]);
 
   const salvar = useMutation({
     mutationFn: () => salvarRelatorioContestacao({ data: { canal: canalEfetivo, mes_ref: mes, linhas: linhasColadas } }),
@@ -468,7 +476,7 @@ function Contestacoes() {
             <Select
               value={canalEfetivo}
               onValueChange={(v) => setCanal(v as "loja" | "pap")}
-              disabled={!me.data?.isGestor}
+              
             >
               <SelectTrigger>
                 <SelectValue />
