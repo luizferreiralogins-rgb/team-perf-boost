@@ -55,7 +55,7 @@ export const listTeam = createServerFn({ method: "GET" })
 const createSchema = z.object({
   email: z.string().trim().email().max(255),
   nome: z.string().trim().min(2).max(120),
-  role: z.enum(["gerente", "consultor"]),
+  role: z.enum(["gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
