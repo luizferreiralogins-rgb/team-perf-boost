@@ -67,20 +67,28 @@ export const createTeamMember = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const gerenteId = data.role === "consultor" ? (data.gerente_id ?? null) : null;
+    const precisaGestor = data.role === "consultor" || data.role === "lider_pap";
+    const gerenteId = precisaGestor ? (data.gerente_id ?? null) : null;
     const ok = await canManage(supabase, userId, data.role as Role, gerenteId);
     if (!ok) throw new Error("Sem permissão para criar este tipo de acesso.");
+    if (data.role === "lider_pap" && !gerenteId) {
+      throw new Error("O Líder PAP precisa estar vinculado a um Gerente.");
+    }
 
-    // Gerente criando consultor sempre vincula a si mesmo
+    // Gerente/Líder PAP criando subordinado sempre vincula a si mesmo
     const { data: myRoles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
     const rs: Role[] = (myRoles ?? []).map((r: any) => r.role);
     const gerenteFinal =
-      data.role === "consultor" && rs.includes("gerente") && !rs.includes("regional") && !rs.includes("admin")
+      precisaGestor &&
+      (rs.includes("gerente") || rs.includes("lider_pap")) &&
+      !rs.includes("regional") &&
+      !rs.includes("admin")
         ? userId
         : gerenteId;
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const created = await supabaseAdmin.auth.admin.createUser({
