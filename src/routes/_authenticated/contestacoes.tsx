@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, ClipboardPaste, Save, ScanSearch } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardPaste, Save, ScanSearch, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { salvarRelatorioContestacao, limparRelatorioContestacao } from "@/lib/contestacao-manual.functions";
