@@ -6,8 +6,11 @@ const input = z.object({
   canal: z.enum(["loja", "pap"]),
   mes_ref: z.string().regex(/^\d{4}-\d{2}$/),
   arquivo_nome: z.string().min(1).max(200),
-  csv: z.string().min(10).max(400000),
+  csv: z.string().min(1).max(200000),
+  parte: z.number().int().min(0).default(0),
+  importacao_id: z.string().uuid().nullable().default(null),
 });
+
 
 const SCHEMA = {
   type: "object",
@@ -107,8 +110,9 @@ Regras:
 - Nunca invente vendas: extraia apenas o que existe no arquivo;
 - Se um campo não existir na planilha, devolva string vazia (ou 0 para números).
 
-Conteúdo do arquivo "${data.arquivo_nome}":
-${data.csv.slice(0, 380000)}`;
+Conteúdo do arquivo "${data.arquivo_nome}"${data.parte > 0 ? ` (parte ${data.parte + 1} — a primeira linha é o cabeçalho)` : ""}:
+${data.csv}`;
+
 
 
     const chamar = async (model: string) => {
@@ -149,38 +153,44 @@ ${data.csv.slice(0, 380000)}`;
       }
     }
 
-    if (!vendas.length) throw new Error("Nenhuma venda foi identificada na planilha.");
-
     const mes = `${data.mes_ref}-01`;
+    let importacaoId = data.importacao_id;
 
-    // Substitui a importação anterior do mesmo mês/canal.
-    const { data: antigas } = await context.supabase
-      .from("contestacao_importacoes")
-      .select("id")
-      .eq("mes_ref", mes)
-      .eq("canal", data.canal);
-    if (antigas?.length) {
-      await context.supabase
+    if (data.parte === 0) {
+      if (!vendas.length) throw new Error("Nenhuma venda foi identificada na planilha.");
+
+      // Substitui a importação anterior do mesmo mês/canal.
+      const { data: antigas } = await context.supabase
         .from("contestacao_importacoes")
-        .delete()
-        .in("id", antigas.map((a) => a.id));
+        .select("id")
+        .eq("mes_ref", mes)
+        .eq("canal", data.canal);
+      if (antigas?.length) {
+        await context.supabase
+          .from("contestacao_importacoes")
+          .delete()
+          .in("id", antigas.map((a) => a.id));
+      }
+
+      const { data: imp, error: impErr } = await context.supabase
+        .from("contestacao_importacoes")
+        .insert({
+          mes_ref: mes,
+          canal: data.canal,
+          arquivo_nome: data.arquivo_nome,
+          total_linhas: 0,
+          criado_por: context.userId,
+        })
+        .select("id")
+        .single();
+      if (impErr || !imp) throw new Error(impErr?.message ?? "Falha ao registrar importação.");
+      importacaoId = imp.id;
     }
 
-    const { data: imp, error: impErr } = await context.supabase
-      .from("contestacao_importacoes")
-      .insert({
-        mes_ref: mes,
-        canal: data.canal,
-        arquivo_nome: data.arquivo_nome,
-        total_linhas: vendas.length,
-        criado_por: context.userId,
-      })
-      .select("id")
-      .single();
-    if (impErr || !imp) throw new Error(impErr?.message ?? "Falha ao registrar importação.");
+    if (!importacaoId) throw new Error("Importação não localizada para esta parte da planilha.");
 
     const rows = vendas.slice(0, 5000).map((v) => ({
-      importacao_id: imp.id,
+      importacao_id: importacaoId,
       mes_ref: mes,
       canal: data.canal,
       protocolo: (v.protocolo ?? "").trim() || null,
@@ -196,11 +206,23 @@ ${data.csv.slice(0, 380000)}`;
       comissao: Number(v.comissao) || 0,
       valor: Number(v.valor) || Number(v.valor_novo) || 0,
       data_instalacao: /^\d{4}-\d{2}-\d{2}$/.test(v.data_instalacao ?? "") ? v.data_instalacao : null,
-
     }));
 
-    const { error: insErr } = await context.supabase.from("contestacao_vendas_nativas").insert(rows);
-    if (insErr) throw new Error(insErr.message);
+    if (rows.length) {
+      const { error: insErr } = await context.supabase.from("contestacao_vendas_nativas").insert(rows);
+      if (insErr) throw new Error(insErr.message);
+    }
 
-    return { importacao_id: imp.id, total: rows.length };
+    const { count } = await context.supabase
+      .from("contestacao_vendas_nativas")
+      .select("id", { count: "exact", head: true })
+      .eq("importacao_id", importacaoId);
+
+    await context.supabase
+      .from("contestacao_importacoes")
+      .update({ total_linhas: count ?? rows.length })
+      .eq("id", importacaoId);
+
+    return { importacao_id: importacaoId, total: count ?? rows.length };
   });
+
