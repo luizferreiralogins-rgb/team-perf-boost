@@ -577,6 +577,84 @@ export type Database = {
         }
         Relationships: []
       }
+      planejamento_acoes: {
+        Row: {
+          cidade: string | null
+          consultores: string | null
+          created_at: string
+          data: string
+          fechado_bl: number | null
+          fechado_movel: number | null
+          id: string
+          leads: number | null
+          lider_id: string
+          local: string | null
+          obs: string | null
+          tipo_acao: string | null
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string | null
+          consultores?: string | null
+          created_at?: string
+          data: string
+          fechado_bl?: number | null
+          fechado_movel?: number | null
+          id?: string
+          leads?: number | null
+          lider_id: string
+          local?: string | null
+          obs?: string | null
+          tipo_acao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string | null
+          consultores?: string | null
+          created_at?: string
+          data?: string
+          fechado_bl?: number | null
+          fechado_movel?: number | null
+          id?: string
+          leads?: number | null
+          lider_id?: string
+          local?: string | null
+          obs?: string | null
+          tipo_acao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      planejamento_opcoes: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          lider_id: string
+          ordem: number
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          lider_id: string
+          ordem?: number
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          lider_id?: string
+          ordem?: number
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
