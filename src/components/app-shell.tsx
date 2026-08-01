@@ -16,6 +16,7 @@ import {
   Activity,
   History,
   Scale,
+  MapPinned,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -131,6 +132,17 @@ function Sidebar({
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("regional") || roles.includes("admin") },
+    {
+      to: "/planejamento",
+      label: "Planejamento",
+      icon: MapPinned,
+      show:
+        roles.includes("lider_pap") ||
+        profile?.canal === "pap" ||
+        roles.includes("gerente") ||
+        roles.includes("regional") ||
+        roles.includes("admin"),
+    },
     { to: "/historico", label: "Histórico", icon: History, show: true },
     { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
     { to: "/chat", label: "Chat", icon: MessageCircle, show: true, badge: alertas?.chat },

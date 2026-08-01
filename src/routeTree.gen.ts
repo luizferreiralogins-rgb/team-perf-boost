@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
 import { Route as AuthenticatedProdutividadeRouteImport } from './routes/_authenticated/produtividade'
+import { Route as AuthenticatedPlanejamentoRouteImport } from './routes/_authenticated/planejamento'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
@@ -55,6 +56,12 @@ const AuthenticatedProdutividadeRoute =
   AuthenticatedProdutividadeRouteImport.update({
     id: '/produtividade',
     path: '/produtividade',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPlanejamentoRoute =
+  AuthenticatedPlanejamentoRouteImport.update({
+    id: '/planejamento',
+    path: '/planejamento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -137,6 +145,7 @@ export interface FileRoutesByTo {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/leads': typeof AuthenticatedLeadsRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -156,6 +165,7 @@ export interface FileRoutesById {
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/leads': typeof AuthenticatedLeadsRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/_authenticated/produtividade': typeof AuthenticatedProdutividadeRoute
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/leads'
     | '/perfil'
+    | '/planejamento'
     | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/leads'
     | '/perfil'
+    | '/planejamento'
     | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/historico'
     | '/_authenticated/leads'
     | '/_authenticated/perfil'
+    | '/_authenticated/planejamento'
     | '/_authenticated/produtividade'
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/tarefas'
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/produtividade'
       fullPath: '/produtividade'
       preLoaderRoute: typeof AuthenticatedProdutividadeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planejamento': {
+      id: '/_authenticated/planejamento'
+      path: '/planejamento'
+      fullPath: '/planejamento'
+      preLoaderRoute: typeof AuthenticatedPlanejamentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
@@ -349,6 +369,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedPlanejamentoRoute: typeof AuthenticatedPlanejamentoRoute
   AuthenticatedProdutividadeRoute: typeof AuthenticatedProdutividadeRoute
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
@@ -365,6 +386,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedLeadsRoute: AuthenticatedLeadsRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedPlanejamentoRoute: AuthenticatedPlanejamentoRoute,
   AuthenticatedProdutividadeRoute: AuthenticatedProdutividadeRoute,
   AuthenticatedRegrasComissionamentoRoute:
     AuthenticatedRegrasComissionamentoRoute,
