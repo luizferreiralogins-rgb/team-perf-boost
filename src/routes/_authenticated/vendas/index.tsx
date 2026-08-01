@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,12 +84,15 @@ type Row = {
   valor: number;
   status: string;
   comissao: number;
+  data_instalacao: string | null;
 };
 
 function VendasList() {
   const qc = useQueryClient();
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [arquivando, setArquivando] = useState(false);
+  const [confirmArquivar, setConfirmArquivar] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
@@ -105,8 +108,9 @@ function VendasList() {
       if (canal === "loja") {
         const { data: rows } = await supabase
           .from("vendas_loja")
-          .select("id, nome_cliente, valor_novo, status, data_abertura, comissao")
+          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, comissao")
           .eq("vendedor_id", uid)
+          .is("arquivada_em", null)
           .order("data_abertura", { ascending: false, nullsFirst: false })
           .limit(100);
         return {
@@ -118,13 +122,15 @@ function VendasList() {
             valor: Number(v.valor_novo ?? 0),
             status: v.status,
             comissao: Number(v.comissao ?? 0),
+            data_instalacao: v.data_ativacao ?? null,
           })),
         };
       }
       const { data: rows } = await supabase
         .from("vendas_pap")
-        .select("id, nome_cliente, valor, status, data_venda, comissao")
+        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, comissao")
         .eq("vendedor_id", uid)
+        .is("arquivada_em", null)
         .order("data_venda", { ascending: false })
         .limit(100);
       return {
@@ -136,10 +142,46 @@ function VendasList() {
           valor: Number(v.valor ?? 0),
           status: v.status,
           comissao: Number(v.comissao ?? 0),
+          data_instalacao: v.data_ativacao ?? null,
         })),
       };
     },
   });
+
+  const prontasParaHistorico = useMemo(
+    () => (data?.rows ?? []).filter((r) => r.status === "instalado" && !!r.data_instalacao),
+    [data],
+  );
+
+  async function enviarParaHistorico() {
+    if (!data || prontasParaHistorico.length === 0) return;
+    setArquivando(true);
+    const table = data.canal === "pap" ? "vendas_pap" : "vendas_loja";
+    // agrupa por mês da data de instalação — a referência do lote é sempre a instalação
+    const porMes = new Map<string, string[]>();
+    for (const r of prontasParaHistorico) {
+      const mesRef = r.data_instalacao!.slice(0, 7) + "-01";
+      porMes.set(mesRef, [...(porMes.get(mesRef) ?? []), r.id]);
+    }
+    let erro: string | null = null;
+    for (const [mesRef, ids] of porMes) {
+      const { error } = await supabase
+        .from(table)
+        .update({ mes_ref: mesRef, arquivada_em: new Date().toISOString() })
+        .in("id", ids);
+      if (error) erro = error.message;
+    }
+    setArquivando(false);
+    setConfirmArquivar(false);
+    if (erro) {
+      toast.error("Erro ao enviar para o histórico: " + erro);
+      return;
+    }
+    toast.success(`${prontasParaHistorico.length} venda(s) enviada(s) para o histórico.`);
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+    qc.invalidateQueries({ queryKey: ["historico"] });
+  }
+
 
   type LinhaVenda = NonNullable<typeof data>["rows"][number];
   const opcoesOrdem = useMemo<OpcaoOrdenacao<LinhaVenda>[]>(
@@ -181,12 +223,23 @@ function VendasList() {
             .
           </p>
         </div>
-        <Button asChild>
-          <Link to="/vendas/nova" search={{}}>
-            <Plus className="mr-2 h-4 w-4" /> Nova venda
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={prontasParaHistorico.length === 0 || arquivando}
+            onClick={() => setConfirmArquivar(true)}
+          >
+            <Archive className="mr-2 h-4 w-4" /> Enviar para Histórico
+            {prontasParaHistorico.length > 0 ? ` (${prontasParaHistorico.length})` : ""}
+          </Button>
+          <Button asChild>
+            <Link to="/vendas/nova" search={{}}>
+              <Plus className="mr-2 h-4 w-4" /> Nova venda
+            </Link>
+          </Button>
+        </div>
       </div>
+
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
@@ -293,6 +346,32 @@ function VendasList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmArquivar} onOpenChange={(o) => !o && setConfirmArquivar(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar vendas instaladas para o Histórico?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {prontasParaHistorico.length} venda(s) instalada(s) sairão desta lista e ficarão
+              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As vendas
+              ainda não instaladas permanecem aqui.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={arquivando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={arquivando}
+              onClick={(e) => {
+                e.preventDefault();
+                enviarParaHistorico();
+              }}
+            >
+              {arquivando ? "Enviando..." : "Enviar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

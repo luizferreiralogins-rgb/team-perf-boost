@@ -706,6 +706,7 @@ export type Database = {
       vendas_loja: {
         Row: {
           agendamento_adiamentos: number
+          arquivada_em: string | null
           classe_protocolo: string | null
           comissao: number
           contem_movel: boolean
@@ -731,6 +732,7 @@ export type Database = {
         }
         Insert: {
           agendamento_adiamentos?: number
+          arquivada_em?: string | null
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
@@ -756,6 +758,7 @@ export type Database = {
         }
         Update: {
           agendamento_adiamentos?: number
+          arquivada_em?: string | null
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
@@ -784,6 +787,7 @@ export type Database = {
       vendas_pap: {
         Row: {
           agendamento_adiamentos: number
+          arquivada_em: string | null
           bairro: string | null
           cidade: string | null
           comissao: number
@@ -810,6 +814,7 @@ export type Database = {
         }
         Insert: {
           agendamento_adiamentos?: number
+          arquivada_em?: string | null
           bairro?: string | null
           cidade?: string | null
           comissao?: number
@@ -836,6 +841,7 @@ export type Database = {
         }
         Update: {
           agendamento_adiamentos?: number
+          arquivada_em?: string | null
           bairro?: string | null
           cidade?: string | null
           comissao?: number
