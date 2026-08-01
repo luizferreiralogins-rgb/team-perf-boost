@@ -346,6 +346,32 @@ function VendasList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={confirmArquivar} onOpenChange={(o) => !o && setConfirmArquivar(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar vendas instaladas para o Histórico?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {prontasParaHistorico.length} venda(s) instalada(s) sairão desta lista e ficarão
+              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As vendas
+              ainda não instaladas permanecem aqui.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={arquivando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={arquivando}
+              onClick={(e) => {
+                e.preventDefault();
+                enviarParaHistorico();
+              }}
+            >
+              {arquivando ? "Enviando..." : "Enviar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
