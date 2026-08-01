@@ -84,12 +84,15 @@ type Row = {
   valor: number;
   status: string;
   comissao: number;
+  data_instalacao: string | null;
 };
 
 function VendasList() {
   const qc = useQueryClient();
   const [toDelete, setToDelete] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [arquivando, setArquivando] = useState(false);
+  const [confirmArquivar, setConfirmArquivar] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
@@ -105,8 +108,9 @@ function VendasList() {
       if (canal === "loja") {
         const { data: rows } = await supabase
           .from("vendas_loja")
-          .select("id, nome_cliente, valor_novo, status, data_abertura, comissao")
+          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, comissao")
           .eq("vendedor_id", uid)
+          .is("arquivada_em", null)
           .order("data_abertura", { ascending: false, nullsFirst: false })
           .limit(100);
         return {
@@ -118,13 +122,15 @@ function VendasList() {
             valor: Number(v.valor_novo ?? 0),
             status: v.status,
             comissao: Number(v.comissao ?? 0),
+            data_instalacao: v.data_ativacao ?? null,
           })),
         };
       }
       const { data: rows } = await supabase
         .from("vendas_pap")
-        .select("id, nome_cliente, valor, status, data_venda, comissao")
+        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, comissao")
         .eq("vendedor_id", uid)
+        .is("arquivada_em", null)
         .order("data_venda", { ascending: false })
         .limit(100);
       return {
@@ -136,10 +142,46 @@ function VendasList() {
           valor: Number(v.valor ?? 0),
           status: v.status,
           comissao: Number(v.comissao ?? 0),
+          data_instalacao: v.data_ativacao ?? null,
         })),
       };
     },
   });
+
+  const prontasParaHistorico = useMemo(
+    () => (data?.rows ?? []).filter((r) => r.status === "instalado" && !!r.data_instalacao),
+    [data],
+  );
+
+  async function enviarParaHistorico() {
+    if (!data || prontasParaHistorico.length === 0) return;
+    setArquivando(true);
+    const table = data.canal === "pap" ? "vendas_pap" : "vendas_loja";
+    // agrupa por mês da data de instalação — a referência do lote é sempre a instalação
+    const porMes = new Map<string, string[]>();
+    for (const r of prontasParaHistorico) {
+      const mesRef = r.data_instalacao!.slice(0, 7) + "-01";
+      porMes.set(mesRef, [...(porMes.get(mesRef) ?? []), r.id]);
+    }
+    let erro: string | null = null;
+    for (const [mesRef, ids] of porMes) {
+      const { error } = await supabase
+        .from(table)
+        .update({ mes_ref: mesRef, arquivada_em: new Date().toISOString() })
+        .in("id", ids);
+      if (error) erro = error.message;
+    }
+    setArquivando(false);
+    setConfirmArquivar(false);
+    if (erro) {
+      toast.error("Erro ao enviar para o histórico: " + erro);
+      return;
+    }
+    toast.success(`${prontasParaHistorico.length} venda(s) enviada(s) para o histórico.`);
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+    qc.invalidateQueries({ queryKey: ["historico"] });
+  }
+
 
   type LinhaVenda = NonNullable<typeof data>["rows"][number];
   const opcoesOrdem = useMemo<OpcaoOrdenacao<LinhaVenda>[]>(
