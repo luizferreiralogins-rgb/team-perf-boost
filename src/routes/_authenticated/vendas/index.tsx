@@ -223,12 +223,23 @@ function VendasList() {
             .
           </p>
         </div>
-        <Button asChild>
-          <Link to="/vendas/nova" search={{}}>
-            <Plus className="mr-2 h-4 w-4" /> Nova venda
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={prontasParaHistorico.length === 0 || arquivando}
+            onClick={() => setConfirmArquivar(true)}
+          >
+            <Archive className="mr-2 h-4 w-4" /> Enviar para Histórico
+            {prontasParaHistorico.length > 0 ? ` (${prontasParaHistorico.length})` : ""}
+          </Button>
+          <Button asChild>
+            <Link to="/vendas/nova" search={{}}>
+              <Plus className="mr-2 h-4 w-4" /> Nova venda
+            </Link>
+          </Button>
+        </div>
       </div>
+
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
