@@ -124,7 +124,6 @@ function VendasList() {
             status: v.status,
             comissao: Number(v.comissao ?? 0),
             data_instalacao: v.data_ativacao ?? null,
-          data_agendamento: v.data_agendamento ?? null,
             data_agendamento: v.data_agendamento ?? null,
           })),
         };
