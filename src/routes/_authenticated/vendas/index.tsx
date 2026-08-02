@@ -85,6 +85,7 @@ type Row = {
   status: string;
   comissao: number;
   data_instalacao: string | null;
+  data_agendamento: string | null;
 };
 
 function VendasList() {
@@ -108,7 +109,7 @@ function VendasList() {
       if (canal === "loja") {
         const { data: rows } = await supabase
           .from("vendas_loja")
-          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, comissao")
+          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao")
           .eq("vendedor_id", uid)
           .is("arquivada_em", null)
           .order("data_abertura", { ascending: false, nullsFirst: false })
@@ -123,12 +124,14 @@ function VendasList() {
             status: v.status,
             comissao: Number(v.comissao ?? 0),
             data_instalacao: v.data_ativacao ?? null,
+          data_agendamento: v.data_agendamento ?? null,
+            data_agendamento: v.data_agendamento ?? null,
           })),
         };
       }
       const { data: rows } = await supabase
         .from("vendas_pap")
-        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, comissao")
+        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao")
         .eq("vendedor_id", uid)
         .is("arquivada_em", null)
         .order("data_venda", { ascending: false })
@@ -143,6 +146,7 @@ function VendasList() {
           status: v.status,
           comissao: Number(v.comissao ?? 0),
           data_instalacao: v.data_ativacao ?? null,
+          data_agendamento: v.data_agendamento ?? null,
         })),
       };
     },
@@ -267,6 +271,7 @@ function VendasList() {
                   <TableRow>
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Data do agendamento</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Comissão</TableHead>
                     <TableHead>Status</TableHead>
@@ -280,6 +285,11 @@ function VendasList() {
                         {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
                       </TableCell>
                       <TableCell>{v.cliente}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {v.data_agendamento
+                          ? new Date(v.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
+                          : "—"}
+                      </TableCell>
                       <TableCell className="font-medium">{brl(v.valor)}</TableCell>
                       <TableCell>{brl(v.comissao)}</TableCell>
                       <TableCell>
