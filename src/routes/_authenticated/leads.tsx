@@ -375,7 +375,20 @@ function LeadsPage() {
                   <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                     <div>{nomesVendedores[lead.vendedor_id] ?? "Consultor"}</div>
                     {lead.produto_interesse && <div>{lead.produto_interesse}</div>}
+                    {lead.proximo_contato_em && (
+                      <div
+                        className={
+                          lead.proximo_contato_em < new Date().toISOString().slice(0, 10)
+                            ? "font-medium text-destructive"
+                            : ""
+                        }
+                      >
+                        Próximo contato:{" "}
+                        {new Date(lead.proximo_contato_em + "T00:00:00").toLocaleDateString("pt-BR")}
+                      </div>
+                    )}
                   </div>
+
                 </button>
               ))}
 

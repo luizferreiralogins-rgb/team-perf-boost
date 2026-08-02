@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,7 @@ export function CadenciaLead({
   const [open, setOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [texto, setTexto] = useState("");
+  const [novaData, setNovaData] = useState("");
 
   const prazo = prazoDaEtapa(etapa);
   const hoje = new Date().toISOString().slice(0, 10);
@@ -72,16 +75,25 @@ export function CadenciaLead({
         observacao: texto.trim(),
       });
       if (error) throw error;
+      if (novaData) {
+        const { error: e2 } = await supabase
+          .from("leads")
+          .update({ proximo_contato_em: novaData })
+          .eq("id", leadId);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       toast.success("Contato registrado — próximo prazo atualizado.");
       setTexto("");
+      setNovaData("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["lead-contatos", leadId] });
       onRegistrado();
     },
     onError: (e: any) => toast.error(e.message ?? "Falha ao registrar contato."),
   });
+
 
   return (
     <div className="mt-2 space-y-1.5 border-t pt-2">
@@ -126,6 +138,20 @@ export function CadenciaLead({
             placeholder="O que foi tratado com o cliente neste contato?"
             onChange={(e) => setTexto(e.target.value)}
           />
+          <div className="space-y-1">
+            <Label htmlFor="prox-contato">Data do próximo contato (opcional)</Label>
+            <Input
+              id="prox-contato"
+              type="date"
+              min={hoje}
+              value={novaData}
+              onChange={(e) => setNovaData(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Em branco, o sistema calcula automaticamente pela cadência.
+            </p>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
