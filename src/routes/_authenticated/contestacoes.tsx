@@ -199,10 +199,11 @@ function Contestacoes() {
       const fimDate = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0);
       const fim = `${mes}-${String(fimDate.getDate()).padStart(2, "0")}`;
 
+       // O relatório de contestações é temporário (um por canal, substituído a cada mês).
+       // Ele NÃO é filtrado por mês: o filtro serve para listar as vendas por data de instalação.
        let importacoesQuery = supabase
          .from("contestacao_importacoes")
          .select("id, arquivo_nome, total_linhas, created_at, gerente_id, profiles!contestacao_importacoes_gerente_id_fkey(nome)")
-         .eq("mes_ref", inicio)
          .eq("canal", canalEfetivo);
        if (me.data?.isRegional && gerente !== "todos") importacoesQuery = importacoesQuery.eq("gerente_id", gerente);
 
@@ -537,7 +538,8 @@ function Contestacoes() {
             </CardTitle>
             <CardDescription>
               Copie no Excel as nove colunas na ordem exibida e cole na primeira célula abaixo de
-              Protocolo. A publicação substitui o seu relatório anterior de {mes} para este canal.
+              Protocolo. O relatório é temporário: a publicação substitui o relatório anterior da sua
+              equipe neste canal e serve apenas para comparar com as vendas do mês filtrado.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 overflow-x-auto">
@@ -602,18 +604,69 @@ function Contestacoes() {
           <Card>
             <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
               <div>
-                <CardTitle className="text-base">Relatório de contestações</CardTitle>
+                <CardTitle className="text-base">Vendas por data de instalação</CardTitle>
                 <CardDescription>
-                  {matrizFiltrada.length} protocolo(s) para o filtro selecionado.
+                  {vendasFiltradas.length} venda(s) instalada(s) no mês/canal/consultor selecionado —
+                  base de comparação com o relatório postado ({matrizFiltrada.length} protocolo(s)).
                 </CardDescription>
               </div>
-              <Button onClick={() => setVerificado(true)} disabled={!matrizFiltrada.length}>
+              <Button onClick={() => setVerificado(true)} disabled={!vendasFiltradas.length}>
                 <ScanSearch className="mr-2 h-4 w-4" /> Verificar
               </Button>
             </CardHeader>
             <CardContent className="overflow-x-auto">
+              {vendasFiltradas.length === 0 ? (
+                <Vazio texto="Nenhuma venda instalada para este mês, canal e consultor." />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Protocolo</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Vendedor</TableHead>
+                      <TableHead>Classe do Protocolo</TableHead>
+                      <TableHead>Tecnologia</TableHead>
+                      <TableHead>Instalação</TableHead>
+                      <TableHead className="text-right">Preço Novo</TableHead>
+                      <TableHead className="text-right">Preço Antigo</TableHead>
+                      <TableHead className="text-right">Diferença</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {vendasFiltradas.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="whitespace-nowrap">{v.protocolo ?? "—"}</TableCell>
+                        <TableCell>{v.cliente}</TableCell>
+                        <TableCell>{v.vendedor_nome}</TableCell>
+                        <TableCell>{v.classe || "—"}</TableCell>
+                        <TableCell>{v.tecnologia || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {v.data ? new Date(`${v.data}T00:00:00`).toLocaleDateString("pt-BR") : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">{brl(v.valor_novo)}</TableCell>
+                        <TableCell className="text-right">{brl(v.valor_antigo)}</TableCell>
+                        <TableCell className="text-right">{brl(v.diferenca)}</TableCell>
+                        <TableCell className="text-right">{brl(v.comissao)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Relatório de contestações postado</CardTitle>
+              <CardDescription>
+                Relatório temporário do canal, usado apenas para a comparação acima.
+                {" "}{matrizFiltrada.length} protocolo(s) para o filtro selecionado.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
               {matrizFiltrada.length === 0 ? (
-                <Vazio texto="Nenhum registro do relatório matriz para este mês, canal e consultor." />
+                <Vazio texto="Nenhum relatório de contestações postado para este canal e consultor." />
               ) : (
                 <Table>
                   <TableHeader>
@@ -648,6 +701,7 @@ function Contestacoes() {
               )}
             </CardContent>
           </Card>
+
 
           {verificado && (
             <>
