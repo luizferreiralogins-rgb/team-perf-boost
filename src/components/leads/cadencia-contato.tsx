@@ -136,6 +136,20 @@ export function CadenciaLead({
             placeholder="O que foi tratado com o cliente neste contato?"
             onChange={(e) => setTexto(e.target.value)}
           />
+          <div className="space-y-1">
+            <Label htmlFor="prox-contato">Data do próximo contato (opcional)</Label>
+            <Input
+              id="prox-contato"
+              type="date"
+              min={hoje}
+              value={novaData}
+              onChange={(e) => setNovaData(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Em branco, o sistema calcula automaticamente pela cadência.
+            </p>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
