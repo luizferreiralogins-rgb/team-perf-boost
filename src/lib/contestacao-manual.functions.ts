@@ -109,12 +109,10 @@ export const limparRelatorioContestacao = createServerFn({ method: "POST" })
       throw new Error("Apenas Gerentes podem limpar o relatório da própria equipe.");
     }
 
-    const mes = `${data.mes_ref}-01`;
     const { data: anteriores, error: buscaErro } = await context.supabase
       .from("contestacao_importacoes")
       .select("id")
       .eq("gerente_id", context.userId)
-      .eq("mes_ref", mes)
       .eq("canal", data.canal);
     if (buscaErro) throw new Error(buscaErro.message);
 
