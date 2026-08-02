@@ -38,11 +38,11 @@ export const salvarRelatorioContestacao = createServerFn({ method: "POST" })
     }
 
     const mes = `${data.mes_ref}-01`;
+    // Relatório temporário: existe apenas um por gerente/canal e é sempre substituído.
     const { data: anteriores, error: buscaErro } = await context.supabase
       .from("contestacao_importacoes")
       .select("id")
       .eq("gerente_id", context.userId)
-      .eq("mes_ref", mes)
       .eq("canal", data.canal);
     if (buscaErro) throw new Error(buscaErro.message);
 
