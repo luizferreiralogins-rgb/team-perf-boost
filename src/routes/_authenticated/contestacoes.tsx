@@ -538,7 +538,8 @@ function Contestacoes() {
             </CardTitle>
             <CardDescription>
               Copie no Excel as nove colunas na ordem exibida e cole na primeira célula abaixo de
-              Protocolo. A publicação substitui o seu relatório anterior de {mes} para este canal.
+              Protocolo. O relatório é temporário: a publicação substitui o relatório anterior da sua
+              equipe neste canal e serve apenas para comparar com as vendas do mês filtrado.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 overflow-x-auto">
