@@ -41,6 +41,7 @@ export function CadenciaLead({
   const [open, setOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [texto, setTexto] = useState("");
+  const [novaData, setNovaData] = useState("");
 
   const prazo = prazoDaEtapa(etapa);
   const hoje = new Date().toISOString().slice(0, 10);
@@ -72,16 +73,25 @@ export function CadenciaLead({
         observacao: texto.trim(),
       });
       if (error) throw error;
+      if (novaData) {
+        const { error: e2 } = await supabase
+          .from("leads")
+          .update({ proximo_contato_em: novaData })
+          .eq("id", leadId);
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       toast.success("Contato registrado — próximo prazo atualizado.");
       setTexto("");
+      setNovaData("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["lead-contatos", leadId] });
       onRegistrado();
     },
     onError: (e: any) => toast.error(e.message ?? "Falha ao registrar contato."),
   });
+
 
   return (
     <div className="mt-2 space-y-1.5 border-t pt-2">
