@@ -199,10 +199,11 @@ function Contestacoes() {
       const fimDate = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0);
       const fim = `${mes}-${String(fimDate.getDate()).padStart(2, "0")}`;
 
+       // O relatório de contestações é temporário (um por canal, substituído a cada mês).
+       // Ele NÃO é filtrado por mês: o filtro serve para listar as vendas por data de instalação.
        let importacoesQuery = supabase
          .from("contestacao_importacoes")
          .select("id, arquivo_nome, total_linhas, created_at, gerente_id, profiles!contestacao_importacoes_gerente_id_fkey(nome)")
-         .eq("mes_ref", inicio)
          .eq("canal", canalEfetivo);
        if (me.data?.isRegional && gerente !== "todos") importacoesQuery = importacoesQuery.eq("gerente_id", gerente);
 
