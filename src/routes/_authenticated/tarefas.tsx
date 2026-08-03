@@ -417,7 +417,10 @@ function NovaTarefa({
 }) {
   const [aberto, setAberto] = useState(Boolean(responsavelInicial));
   const [alvo, setAlvo] = useState<Alvo>(responsavelInicial ? "usuario" : "propria");
-  const [responsavel, setResponsavel] = useState(responsavelInicial ?? "");
+  const [responsaveis, setResponsaveis] = useState<string[]>(
+    responsavelInicial ? [responsavelInicial] : [],
+  );
+
   const [clienteNome, setClienteNome] = useState("");
   const [clienteContato, setClienteContato] = useState("");
   const [titulo, setTitulo] = useState("");
