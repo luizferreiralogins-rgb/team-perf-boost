@@ -433,7 +433,7 @@ function NovaTarefa({
 
   const limpar = () => {
     setAlvo("propria");
-    setResponsavel("");
+    setResponsaveis([]);
     setClienteNome("");
     setClienteContato("");
     setTitulo("");
@@ -450,16 +450,13 @@ function NovaTarefa({
       if (!meId) throw new Error("Sessão expirada.");
       const t = titulo.trim();
       if (!t) throw new Error("Informe o título da tarefa.");
-      if (alvo === "usuario" && !responsavel) throw new Error("Escolha o responsável.");
+      if (alvo === "usuario" && responsaveis.length === 0)
+        throw new Error("Escolha ao menos um responsável.");
       if (alvo === "cliente" && !clienteNome.trim()) throw new Error("Informe o nome do cliente.");
 
-      const responsaveis: string[] =
-        alvo === "usuario"
-          ? responsavel === TODOS
-            ? pessoas.map((p) => p.id)
-            : [responsavel]
-          : [meId];
-      if (responsaveis.length === 0) throw new Error("Nenhum usuário disponível.");
+      const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
+      if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
+
 
       const qtd =
         recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
