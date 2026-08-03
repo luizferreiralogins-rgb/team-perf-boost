@@ -481,6 +481,8 @@ function ProdutividadeTime() {
   });
 
   const diasDecorridos = Math.max(1, hoje.getDate());
+  const faixas = useFaixasEquipe((data ?? []).map((l) => l.id));
+
 
   const mapa = mapaTempos(tempos.data);
   const minutosDe = (l: {
