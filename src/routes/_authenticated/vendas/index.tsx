@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFaixaAtual } from "@/lib/faixa-atual";
+
 import { toast } from "sonner";
 import { Archive, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +96,13 @@ function VendasList() {
   const [deleting, setDeleting] = useState(false);
   const [arquivando, setArquivando] = useState(false);
   const [confirmArquivar, setConfirmArquivar] = useState(false);
+  const [uid, setUid] = useState<string>();
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id));
+  }, []);
+  const faixa = useFaixaAtual(uid);
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
@@ -225,7 +234,13 @@ function VendasList() {
             </span>
             .
           </p>
+          {faixa.data && (
+            <Badge variant="outline" className="mt-2 font-semibold">
+              Faixa atual do mês: {faixa.data.faixa} de {faixa.data.total}
+            </Badge>
+          )}
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"

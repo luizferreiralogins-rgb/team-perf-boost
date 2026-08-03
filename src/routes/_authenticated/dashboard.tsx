@@ -7,7 +7,10 @@ import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
+
 import {
   FiltrosBar,
   RankingEquipe,
@@ -82,6 +85,8 @@ function Dashboard() {
     () => fatorProjecao(isGestor ? filtros.mes : mesAtual()),
     [isGestor, filtros.mes],
   );
+  const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
+
 
 
 
@@ -247,6 +252,29 @@ function Dashboard() {
           projecao={isLoading ? null : `Projeção: ${brl((data?.comissao ?? 0) * fatorProj)}`}
         />
       </div>
+
+      {!isGestor && faixaAtual.data && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Faixa atual — {faixaAtual.data.canal === "pap" ? "PAP" : "Loja"}
+            </CardTitle>
+            <CardDescription>
+              Baseada nas vendas instaladas do mês atual
+              {faixaAtual.data.canal === "pap"
+                ? " (receita acumulada da Tabela 8.1)."
+                : " (receita de diferença de ticket e % de renovações com móvel)."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-baseline gap-3">
+            <span className="text-3xl font-bold">{faixaAtual.data.faixa}</span>
+            <span className="text-sm text-muted-foreground">
+              de {faixaAtual.data.total} faixas · base {brl(faixaAtual.data.base)}
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
 
 
       <div>
@@ -478,6 +506,8 @@ function ProdutividadeTime() {
   });
 
   const diasDecorridos = Math.max(1, hoje.getDate());
+  const faixas = useFaixasEquipe((data ?? []).map((l) => l.id));
+
 
   const mapa = mapaTempos(tempos.data);
   const minutosDe = (l: {
@@ -525,6 +555,13 @@ function ProdutividadeTime() {
         {(data ?? []).map((l) => (
           <div key={l.id} className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
             <span className="font-medium">{l.nome}</span>
+            {faixas.data?.get(l.id) && (
+              <Badge variant="outline" className="font-semibold">
+                {faixas.data.get(l.id)!.canal === "pap" ? "PAP" : "Loja"} ·{" "}
+                {rotuloFaixa(faixas.data.get(l.id))}
+              </Badge>
+            )}
+
             <span className="ml-auto text-xs text-muted-foreground">
               {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
               <br className="sm:hidden" />
