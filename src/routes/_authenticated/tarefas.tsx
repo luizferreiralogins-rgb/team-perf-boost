@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
@@ -95,7 +96,6 @@ const STATUS_BOTOES: { valor: Status; label: string }[] = [
 
 const emAberto = (s: Status) => s === "pendente" || s === "iniciada";
 
-const TODOS = "__todos__";
 
 type Recorrencia = "nenhuma" | "diaria" | "semanal" | "quinzenal" | "mensal";
 
@@ -417,7 +417,10 @@ function NovaTarefa({
 }) {
   const [aberto, setAberto] = useState(Boolean(responsavelInicial));
   const [alvo, setAlvo] = useState<Alvo>(responsavelInicial ? "usuario" : "propria");
-  const [responsavel, setResponsavel] = useState(responsavelInicial ?? "");
+  const [responsaveis, setResponsaveis] = useState<string[]>(
+    responsavelInicial ? [responsavelInicial] : [],
+  );
+
   const [clienteNome, setClienteNome] = useState("");
   const [clienteContato, setClienteContato] = useState("");
   const [titulo, setTitulo] = useState("");
@@ -430,7 +433,7 @@ function NovaTarefa({
 
   const limpar = () => {
     setAlvo("propria");
-    setResponsavel("");
+    setResponsaveis([]);
     setClienteNome("");
     setClienteContato("");
     setTitulo("");
@@ -447,22 +450,19 @@ function NovaTarefa({
       if (!meId) throw new Error("Sessão expirada.");
       const t = titulo.trim();
       if (!t) throw new Error("Informe o título da tarefa.");
-      if (alvo === "usuario" && !responsavel) throw new Error("Escolha o responsável.");
+      if (alvo === "usuario" && responsaveis.length === 0)
+        throw new Error("Escolha ao menos um responsável.");
       if (alvo === "cliente" && !clienteNome.trim()) throw new Error("Informe o nome do cliente.");
 
-      const responsaveis: string[] =
-        alvo === "usuario"
-          ? responsavel === TODOS
-            ? pessoas.map((p) => p.id)
-            : [responsavel]
-          : [meId];
-      if (responsaveis.length === 0) throw new Error("Nenhum usuário disponível.");
+      const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
+      if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
+
 
       const qtd =
         recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
       const datas = gerarDatas(data, recorrencia, qtd);
 
-      const linhas = responsaveis.flatMap((rid) =>
+      const linhas = alvos.flatMap((rid) =>
         datas.map((d) => ({
           criador_id: meId,
           alvo,
@@ -528,22 +528,42 @@ function NovaTarefa({
 
           {alvo === "usuario" && (
             <div className="space-y-1.5">
-              <Label>Responsável</Label>
-              <Select value={responsavel} onValueChange={setResponsavel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODOS}>Todos os usuários</SelectItem>
-                  {pessoas.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome || p.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Responsáveis ({responsaveis.length})</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setResponsaveis(
+                      responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
+                    )
+                  }
+                >
+                  {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
+                </Button>
+              </div>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                {pessoas.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum usuário disponível.</p>
+                )}
+                {pessoas.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={responsaveis.includes(p.id)}
+                      onCheckedChange={(c) =>
+                        setResponsaveis((prev) =>
+                          c ? [...prev, p.id] : prev.filter((x) => x !== p.id),
+                        )
+                      }
+                    />
+                    <span>{p.nome || p.email}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
+
 
           {alvo === "cliente" && (
             <>
