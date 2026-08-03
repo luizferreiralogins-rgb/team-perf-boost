@@ -528,22 +528,42 @@ function NovaTarefa({
 
           {alvo === "usuario" && (
             <div className="space-y-1.5">
-              <Label>Responsável</Label>
-              <Select value={responsavel} onValueChange={setResponsavel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TODOS}>Todos os usuários</SelectItem>
-                  {pessoas.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome || p.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Responsáveis ({responsaveis.length})</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setResponsaveis(
+                      responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
+                    )
+                  }
+                >
+                  {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
+                </Button>
+              </div>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                {pessoas.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum usuário disponível.</p>
+                )}
+                {pessoas.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={responsaveis.includes(p.id)}
+                      onCheckedChange={(c) =>
+                        setResponsaveis((prev) =>
+                          c ? [...prev, p.id] : prev.filter((x) => x !== p.id),
+                        )
+                      }
+                    />
+                    <span>{p.nome || p.email}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
+
 
           {alvo === "cliente" && (
             <>
