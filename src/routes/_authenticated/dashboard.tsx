@@ -85,6 +85,8 @@ function Dashboard() {
     () => fatorProjecao(isGestor ? filtros.mes : mesAtual()),
     [isGestor, filtros.mes],
   );
+  const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
+
 
 
 
