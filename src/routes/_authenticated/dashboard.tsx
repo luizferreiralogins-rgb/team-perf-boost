@@ -525,6 +525,13 @@ function ProdutividadeTime() {
         {(data ?? []).map((l) => (
           <div key={l.id} className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
             <span className="font-medium">{l.nome}</span>
+            {faixas.data?.get(l.id) && (
+              <Badge variant="outline" className="font-semibold">
+                {faixas.data.get(l.id)!.canal === "pap" ? "PAP" : "Loja"} ·{" "}
+                {rotuloFaixa(faixas.data.get(l.id))}
+              </Badge>
+            )}
+
             <span className="ml-auto text-xs text-muted-foreground">
               {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
               <br className="sm:hidden" />
