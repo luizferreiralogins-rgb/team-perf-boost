@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
@@ -95,7 +96,6 @@ const STATUS_BOTOES: { valor: Status; label: string }[] = [
 
 const emAberto = (s: Status) => s === "pendente" || s === "iniciada";
 
-const TODOS = "__todos__";
 
 type Recorrencia = "nenhuma" | "diaria" | "semanal" | "quinzenal" | "mensal";
 
@@ -462,7 +462,7 @@ function NovaTarefa({
         recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
       const datas = gerarDatas(data, recorrencia, qtd);
 
-      const linhas = responsaveis.flatMap((rid) =>
+      const linhas = alvos.flatMap((rid) =>
         datas.map((d) => ({
           criador_id: meId,
           alvo,
