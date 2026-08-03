@@ -225,7 +225,13 @@ function VendasList() {
             </span>
             .
           </p>
+          {faixa.data && (
+            <Badge variant="outline" className="mt-2 font-semibold">
+              Faixa atual do mês: {faixa.data.faixa} de {faixa.data.total}
+            </Badge>
+          )}
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
