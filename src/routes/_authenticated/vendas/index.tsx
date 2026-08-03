@@ -94,6 +94,13 @@ function VendasList() {
   const [deleting, setDeleting] = useState(false);
   const [arquivando, setArquivando] = useState(false);
   const [confirmArquivar, setConfirmArquivar] = useState(false);
+  const [uid, setUid] = useState<string>();
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id));
+  }, []);
+  const faixa = useFaixaAtual(uid);
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendas-list"],
