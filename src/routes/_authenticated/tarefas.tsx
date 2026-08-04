@@ -418,10 +418,169 @@ function TarefasPage() {
             </section>
           ))}
         </div>
+
+        <EditarTarefa
+          tarefa={editando}
+          onFechar={() => setEditando(null)}
+          onSalva={() => {
+            setEditando(null);
+            qc.invalidateQueries({ queryKey: ["tarefas"] });
+          }}
+        />
       </div>
     </AppShell>
   );
 }
+
+function EditarTarefa({
+  tarefa,
+  onFechar,
+  onSalva,
+}: {
+  tarefa: Tarefa | null;
+  onFechar: () => void;
+  onSalva: () => void;
+}) {
+  const [form, setForm] = useState({
+    titulo: "",
+    descricao: "",
+    data_venc: hoje(),
+    hora_venc: "",
+    prioridade: "media" as Prioridade,
+    cliente_nome: "",
+    cliente_contato: "",
+  });
+
+  useEffect(() => {
+    if (!tarefa) return;
+    setForm({
+      titulo: tarefa.titulo,
+      descricao: tarefa.descricao ?? "",
+      data_venc: tarefa.data_venc,
+      hora_venc: tarefa.hora_venc?.slice(0, 5) ?? "",
+      prioridade: tarefa.prioridade,
+      cliente_nome: tarefa.cliente_nome ?? "",
+      cliente_contato: tarefa.cliente_contato ?? "",
+    });
+  }, [tarefa]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!tarefa) return;
+      if (form.titulo.trim().length < 2) throw new Error("Informe o título da tarefa.");
+      const { error } = await supabase
+        .from("tarefas")
+        .update({
+          titulo: form.titulo.trim(),
+          descricao: form.descricao.trim() || null,
+          data_venc: form.data_venc,
+          hora_venc: form.hora_venc || null,
+          prioridade: form.prioridade,
+          cliente_nome: tarefa.alvo === "cliente" ? form.cliente_nome.trim() || null : null,
+          cliente_contato: tarefa.alvo === "cliente" ? form.cliente_contato.trim() || null : null,
+        })
+        .eq("id", tarefa.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tarefa atualizada.");
+      onSalva();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!tarefa} onOpenChange={(o) => !o && onFechar()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar tarefa</DialogTitle>
+          <DialogDescription>Somente quem criou a tarefa pode editá-la.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label>Título</Label>
+            <Input
+              value={form.titulo}
+              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              maxLength={140}
+            />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              value={form.descricao}
+              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              rows={3}
+            />
+          </div>
+          {tarefa?.alvo === "cliente" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Cliente</Label>
+                <Input
+                  value={form.cliente_nome}
+                  onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Contato</Label>
+                <Input
+                  value={form.cliente_contato}
+                  onChange={(e) => setForm({ ...form, cliente_contato: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={form.data_venc}
+                onChange={(e) => setForm({ ...form, data_venc: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Hora</Label>
+              <Input
+                type="time"
+                value={form.hora_venc}
+                onChange={(e) => setForm({ ...form, hora_venc: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Prioridade</Label>
+              <Select
+                value={form.prioridade}
+                onValueChange={(v) => setForm({ ...form, prioridade: v as Prioridade })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PRIORIDADE_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function NovaTarefa({
   meId,
