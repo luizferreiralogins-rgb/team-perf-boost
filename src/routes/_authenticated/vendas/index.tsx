@@ -319,7 +319,7 @@ function VendasList() {
                           idsElegiveis.length > 0 && selecionadas.length === idsElegiveis.length
                         }
                         disabled={idsElegiveis.length === 0}
-                        onCheckedChange={(c) => setSelecionadas(c ? idsElegiveis : [])}
+                        onCheckedChange={(c: boolean | "indeterminate") => setSelecionadas(c === true ? idsElegiveis : [])}
                       />
                     </TableHead>
                     <TableHead>Data</TableHead>
