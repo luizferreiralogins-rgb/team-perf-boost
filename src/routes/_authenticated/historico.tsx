@@ -7,15 +7,16 @@ import {
   type OpcaoOrdenacao,
 } from "@/components/ordenacao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Send, Trash2, Search } from "lucide-react";
+import { MoreHorizontal, Pencil, Send, Trash2, Search, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -93,6 +94,7 @@ type Registro = {
   produto: string;
   valor: number;
   comissao: number;
+  arquivada_em: string | null;
 };
 
 function firstDayOfMonth() {
@@ -102,6 +104,11 @@ function firstDayOfMonth() {
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
+function mesAtualPrefix() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 
 function useMe() {
   return useQuery({
@@ -134,6 +141,9 @@ function HistoricoPage() {
   const [vendedor, setVendedor] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [retornando, setRetornando] = useState(false);
+  const [confirmRetorno, setConfirmRetorno] = useState(false);
   const [transferir, setTransferir] = useState<Registro | null>(null);
   const [excluir, setExcluir] = useState<Registro | null>(null);
 
@@ -204,7 +214,7 @@ function HistoricoPage() {
         let q = supabase
           .from("vendas_loja")
           .select(
-            "id, vendedor_id, protocolo, nome_cliente, classe_protocolo, tecnologia, valor_novo, valor_antigo, comissao, data_ativacao",
+            "id, vendedor_id, protocolo, nome_cliente, classe_protocolo, tecnologia, valor_novo, valor_antigo, comissao, data_ativacao, arquivada_em",
           )
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
@@ -230,6 +240,7 @@ function HistoricoPage() {
                 ? Number(v.valor_novo ?? 0) - Number(v.valor_antigo ?? 0)
                 : Number(v.valor_novo ?? 0),
             comissao: Number(v.comissao ?? 0),
+            arquivada_em: v.arquivada_em ?? null,
           }),
         );
       }
@@ -238,7 +249,7 @@ function HistoricoPage() {
         let q = supabase
           .from("vendas_pap")
           .select(
-            "id, vendedor_id, protocolo, tipo_protocolo, nome_cliente, produto, valor, comissao, data_ativacao",
+            "id, vendedor_id, protocolo, tipo_protocolo, nome_cliente, produto, valor, comissao, data_ativacao, arquivada_em",
           )
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
@@ -261,6 +272,7 @@ function HistoricoPage() {
             produto: v.produto ?? "—",
             valor: Number(v.valor ?? 0),
             comissao: Number(v.comissao ?? 0),
+            arquivada_em: v.arquivada_em ?? null,
           }),
         );
       }
@@ -303,6 +315,53 @@ function HistoricoPage() {
     [rows],
   );
 
+  // Vendas que o próprio consultor pode devolver para a aba Vendas:
+  // arquivadas e com data de instalação dentro do mês atual.
+  const idsRetornaveis = useMemo(() => {
+    const mes = mesAtualPrefix();
+    return rows
+      .filter(
+        (r) =>
+          r.vendedor_id === meQ.data?.uid &&
+          !!r.arquivada_em &&
+          r.data_instalacao.slice(0, 7) === mes,
+      )
+      .map((r) => `${r.canal}-${r.id}`);
+  }, [rows, meQ.data?.uid]);
+
+  useEffect(() => {
+    setSelecionados((prev) => prev.filter((k) => idsRetornaveis.includes(k)));
+  }, [idsRetornaveis]);
+
+  async function devolverParaVendas() {
+    if (selecionados.length === 0) return;
+    setRetornando(true);
+    const porTabela: Record<string, string[]> = { vendas_loja: [], vendas_pap: [] };
+    for (const key of selecionados) {
+      const [canalKey, ...rest] = key.split("-");
+      porTabela[canalKey === "pap" ? "vendas_pap" : "vendas_loja"]!.push(rest.join("-"));
+    }
+    let erro: string | null = null;
+    for (const [table, ids] of Object.entries(porTabela)) {
+      if (ids.length === 0) continue;
+      const { error } = await supabase
+        .from(table as "vendas_loja" | "vendas_pap")
+        .update({ arquivada_em: null })
+        .in("id", ids);
+      if (error) erro = error.message;
+    }
+    setRetornando(false);
+    setConfirmRetorno(false);
+    if (erro) {
+      toast.error("Erro ao devolver para Vendas: " + erro);
+      return;
+    }
+    toast.success(`${selecionados.length} venda(s) devolvida(s) para a aba Vendas.`);
+    setSelecionados([]);
+    qc.invalidateQueries({ queryKey: ["historico"] });
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+  }
+
   async function confirmarExclusao() {
     if (!excluir) return;
     const table = excluir.canal === "pap" ? "vendas_pap" : "vendas_loja";
@@ -315,6 +374,7 @@ function HistoricoPage() {
     setExcluir(null);
     qc.invalidateQueries({ queryKey: ["historico"] });
   }
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -434,7 +494,20 @@ function HistoricoPage() {
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">Registros</CardTitle>
-          {rows.length > 0 && ordenarControl}
+          <div className="flex flex-wrap items-center gap-2">
+            {idsRetornaveis.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selecionados.length === 0 || retornando}
+                onClick={() => setConfirmRetorno(true)}
+              >
+                <Undo2 className="mr-2 h-4 w-4" /> Voltar para Vendas
+                {selecionados.length > 0 ? ` (${selecionados.length})` : ""}
+              </Button>
+            )}
+            {rows.length > 0 && ordenarControl}
+          </div>
         </CardHeader>
         <CardContent>
           {registrosQ.isLoading ? (
@@ -452,6 +525,20 @@ function HistoricoPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {idsRetornaveis.length > 0 && (
+                      <TableHead className="w-10">
+                        <Checkbox
+                          aria-label="Selecionar todas retornáveis"
+                          checked={
+                            selecionados.length > 0 &&
+                            selecionados.length === idsRetornaveis.length
+                          }
+                          onCheckedChange={(c: boolean | "indeterminate") =>
+                            setSelecionados(c === true ? idsRetornaveis : [])
+                          }
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Instalação</TableHead>
                     {isGestor && <TableHead>Consultor</TableHead>}
                     <TableHead>Cliente</TableHead>
@@ -465,11 +552,31 @@ function HistoricoPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhas.map((r) => (
-                    <TableRow key={`${r.canal}-${r.id}`}>
+                  {linhas.map((r) => {
+                    const key = `${r.canal}-${r.id}`;
+                    const retornavel = idsRetornaveis.includes(key);
+                    return (
+                    <TableRow key={key}>
+                      {idsRetornaveis.length > 0 && (
+                        <TableCell>
+                          <Checkbox
+                            aria-label={`Selecionar venda de ${r.cliente}`}
+                            disabled={!retornavel}
+                            checked={selecionados.includes(key)}
+                            onCheckedChange={() =>
+                              setSelecionados((prev) =>
+                                prev.includes(key)
+                                  ? prev.filter((x) => x !== key)
+                                  : [...prev, key],
+                              )
+                            }
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="whitespace-nowrap">{fmtDate(r.data_instalacao)}</TableCell>
                       {isGestor && <TableCell>{nomePorId[r.vendedor_id] ?? "—"}</TableCell>}
                       <TableCell>{r.cliente}</TableCell>
+
                       <TableCell className="whitespace-nowrap">{r.protocolo ?? "—"}</TableCell>
                       <TableCell>{r.tipo}</TableCell>
                       <TableCell className="max-w-[220px] truncate">{r.produto}</TableCell>
@@ -513,7 +620,9 @@ function HistoricoPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
+
                 </TableBody>
               </Table>
             </div>
@@ -526,6 +635,30 @@ function HistoricoPage() {
         onClose={() => setTransferir(null)}
         onDone={() => qc.invalidateQueries({ queryKey: ["historico"] })}
       />
+
+      <AlertDialog open={confirmRetorno} onOpenChange={(o) => !o && setConfirmRetorno(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Voltar vendas para a aba Vendas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selecionados.length} venda(s) sairão do histórico e voltarão para a sua lista de
+              vendas. Só é permitido para vendas instaladas no mês atual.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={retornando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={retornando}
+              onClick={(e) => {
+                e.preventDefault();
+                devolverParaVendas();
+              }}
+            >
+              {retornando ? "Devolvendo..." : "Voltar para Vendas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
         <AlertDialogContent>

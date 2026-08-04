@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -96,11 +97,14 @@ function VendasList() {
   const [deleting, setDeleting] = useState(false);
   const [arquivando, setArquivando] = useState(false);
   const [confirmArquivar, setConfirmArquivar] = useState(false);
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [uid, setUid] = useState<string>();
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUid(data.user?.id));
   }, []);
   const faixa = useFaixaAtual(uid);
+
+
 
 
 
@@ -165,13 +169,34 @@ function VendasList() {
     [data],
   );
 
+  const idsElegiveis = useMemo(
+    () => prontasParaHistorico.map((r) => r.id),
+    [prontasParaHistorico],
+  );
+
+  // mantém a seleção sempre dentro das vendas elegíveis
+  useEffect(() => {
+    setSelecionadas((prev) => prev.filter((id) => idsElegiveis.includes(id)));
+  }, [idsElegiveis]);
+
+  const selecionadasRows = useMemo(
+    () => prontasParaHistorico.filter((r) => selecionadas.includes(r.id)),
+    [prontasParaHistorico, selecionadas],
+  );
+
+  function toggleSelecao(id: string) {
+    setSelecionadas((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   async function enviarParaHistorico() {
-    if (!data || prontasParaHistorico.length === 0) return;
+    if (!data || selecionadasRows.length === 0) return;
     setArquivando(true);
     const table = data.canal === "pap" ? "vendas_pap" : "vendas_loja";
     // agrupa por mês da data de instalação — a referência do lote é sempre a instalação
     const porMes = new Map<string, string[]>();
-    for (const r of prontasParaHistorico) {
+    for (const r of selecionadasRows) {
       const mesRef = r.data_instalacao!.slice(0, 7) + "-01";
       porMes.set(mesRef, [...(porMes.get(mesRef) ?? []), r.id]);
     }
@@ -189,7 +214,10 @@ function VendasList() {
       toast.error("Erro ao enviar para o histórico: " + erro);
       return;
     }
-    toast.success(`${prontasParaHistorico.length} venda(s) enviada(s) para o histórico.`);
+    toast.success(`${selecionadasRows.length} venda(s) enviada(s) para o histórico.`);
+    setSelecionadas([]);
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+
     qc.invalidateQueries({ queryKey: ["vendas-list"] });
     qc.invalidateQueries({ queryKey: ["historico"] });
   }
@@ -244,12 +272,13 @@ function VendasList() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            disabled={prontasParaHistorico.length === 0 || arquivando}
+            disabled={selecionadas.length === 0 || arquivando}
             onClick={() => setConfirmArquivar(true)}
           >
-            <Archive className="mr-2 h-4 w-4" /> Enviar para Histórico
-            {prontasParaHistorico.length > 0 ? ` (${prontasParaHistorico.length})` : ""}
+            <Archive className="mr-2 h-4 w-4" /> Enviar selecionadas para Histórico
+            {selecionadas.length > 0 ? ` (${selecionadas.length})` : ""}
           </Button>
+
           <Button asChild>
             <Link to="/vendas/nova" search={{}}>
               <Plus className="mr-2 h-4 w-4" /> Nova venda
@@ -283,6 +312,16 @@ function VendasList() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        aria-label="Selecionar todas as instaladas"
+                        checked={
+                          idsElegiveis.length > 0 && selecionadas.length === idsElegiveis.length
+                        }
+                        disabled={idsElegiveis.length === 0}
+                        onCheckedChange={(c: boolean | "indeterminate") => setSelecionadas(c === true ? idsElegiveis : [])}
+                      />
+                    </TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data do agendamento</TableHead>
@@ -295,10 +334,19 @@ function VendasList() {
                 <TableBody>
                   {linhas.map((v) => (
                     <TableRow key={v.id}>
+                      <TableCell>
+                        <Checkbox
+                          aria-label={`Selecionar venda de ${v.cliente}`}
+                          disabled={!idsElegiveis.includes(v.id)}
+                          checked={selecionadas.includes(v.id)}
+                          onCheckedChange={() => toggleSelecao(v.id)}
+                        />
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
                       </TableCell>
                       <TableCell>{v.cliente}</TableCell>
+
                       <TableCell className="whitespace-nowrap">
                         {v.data_agendamento
                           ? new Date(v.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
@@ -374,11 +422,12 @@ function VendasList() {
       <AlertDialog open={confirmArquivar} onOpenChange={(o) => !o && setConfirmArquivar(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Enviar vendas instaladas para o Histórico?</AlertDialogTitle>
+            <AlertDialogTitle>Enviar vendas selecionadas para o Histórico?</AlertDialogTitle>
             <AlertDialogDescription>
-              {prontasParaHistorico.length} venda(s) instalada(s) sairão desta lista e ficarão
-              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As vendas
-              ainda não instaladas permanecem aqui.
+              {selecionadas.length} venda(s) instalada(s) sairão desta lista e ficarão
+              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As demais
+              vendas permanecem aqui.
+
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
