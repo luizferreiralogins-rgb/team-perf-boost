@@ -807,24 +807,14 @@ function NovaTarefa({
                 ))}
               </SelectContent>
             </Select>
+            {recorrencia !== "nenhuma" && (
+              <p className="text-xs text-muted-foreground">
+                Ao concluir, a própria tarefa avança para {formatarData(proximaData(data, recorrencia)!)}.
+              </p>
+            )}
           </div>
 
-          {recorrencia !== "nenhuma" && (
-            <div className="space-y-1.5">
-              <Label>Repetições</Label>
-              <Input
-                type="number"
-                min={1}
-                max={52}
-                value={repeticoes}
-                onChange={(e) => setRepeticoes(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Serão criadas {Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52)} ocorrências
-                a partir da data escolhida.
-              </p>
-            </div>
-          )}
+
 
 
 
