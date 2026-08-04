@@ -719,9 +719,9 @@ export function FormPap({
       const r = comissaoPap({
         tipoProtocolo: parsed.data.tipo_protocolo,
         produto: parsed.data.produto,
-        valor: parsed.data.valor,
+        valor: baseComissao,
         instalado: true,
-        totalCoreMes: coreOutras + (estaCore ? parsed.data.valor : 0),
+        totalCoreMes: coreOutras + (estaCore ? baseComissao : 0),
         faixas: (faixas ?? []) as PapFaixa[],
         produtos: listaProdutos,
       });
