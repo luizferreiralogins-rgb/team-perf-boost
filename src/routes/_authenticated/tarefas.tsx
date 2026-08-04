@@ -353,6 +353,13 @@ function TarefasPage() {
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
                           {STATUS_LABEL[t.status]}
+                          {t.recorrencia && t.recorrencia !== "nenhuma" && (
+                            <>
+                              {" · "}
+                              {RECORRENCIA_LABEL[t.recorrencia]} · próxima{" "}
+                              {formatarData(proximaData(t.data_venc, t.recorrencia)!)}
+                            </>
+                          )}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-1">
@@ -362,7 +369,7 @@ function TarefasPage() {
                             size="sm"
                             variant={t.status === s.valor ? "default" : "outline"}
                             disabled={atualizar.isPending}
-                            onClick={() => atualizar.mutate({ id: t.id, status: s.valor })}
+                            onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
                           >
                             {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
                             {s.label}
@@ -373,11 +380,12 @@ function TarefasPage() {
                             size="sm"
                             variant="ghost"
                             title="Cancelar tarefa"
-                            onClick={() => atualizar.mutate({ id: t.id, status: "cancelada" })}
+                            onClick={() => atualizar.mutate({ tarefa: t, status: "cancelada" })}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
+
 
                         {t.criador_id === me.data && (
                           <>
