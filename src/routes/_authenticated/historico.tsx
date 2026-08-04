@@ -93,6 +93,7 @@ type Registro = {
   produto: string;
   valor: number;
   comissao: number;
+  arquivada_em: string | null;
 };
 
 function firstDayOfMonth() {
@@ -102,6 +103,11 @@ function firstDayOfMonth() {
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
+function mesAtualPrefix() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 
 function useMe() {
   return useQuery({
