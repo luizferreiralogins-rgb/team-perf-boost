@@ -442,8 +442,20 @@ function Produtividade() {
                 variant="ghost"
                 size="sm"
                 className="ml-auto"
-                onClick={() => excluir.mutate(a.id)}
+                onClick={() => {
+                  setEditandoId(a.id);
+                  setNome(a.nome_cliente);
+                  setTipo(a.tipo as Tipo);
+                  setContato(a.contato_cliente ?? "");
+                  setData(a.data_atendimento);
+                  document
+                    .getElementById("form-atendimento")
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
               >
+                Editar
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => excluir.mutate(a.id)}>
                 Excluir
               </Button>
             </div>
