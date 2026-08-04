@@ -935,7 +935,7 @@ export function FormPap({
           editingId={editingId}
         />
 
-        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
+        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor_novo} />
       </aside>
     </div>
   );
