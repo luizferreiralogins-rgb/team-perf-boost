@@ -857,15 +857,30 @@ export function FormPap({
                 onChange={(e) => setForm({ ...form, data_agendamento: e.target.value })}
               />
             </Field>
-            <Field label="Valor da venda (R$)" required>
+            <Field label="Valor novo (R$)" required hint="Valor do novo plano/serviço.">
               <Input
                 type="number"
                 step="0.01"
                 min="0"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                value={form.valor_novo}
+                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
                 required
               />
+            </Field>
+            <Field
+              label="Valor antigo (R$)"
+              hint="Preencha em renovações. A comissão incide sobre a diferença de ticket."
+            >
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_antigo}
+                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
+              />
+            </Field>
+            <Field label="Base de comissão (R$)" hint="Diferença de ticket usada no cálculo.">
+              <Input readOnly value={baseTicket.toFixed(2)} />
             </Field>
             <Field label="Qtd. linhas móveis" hint="Informe 0 se não houver linha móvel.">
               <Input
