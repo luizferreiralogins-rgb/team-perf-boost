@@ -424,7 +424,12 @@ function TarefasPage() {
                 {data < hoje() && <span className="text-destructive">• atrasada</span>}
               </h2>
               <div className="space-y-2">
-                {itens.map((t) => (
+                {itens.map((t) => {
+                  const parts = porTarefa.get(t.id) ?? [];
+                  const minha = parts.find((p) => p.user_id === uid);
+                  const meuStatus = minha?.status ?? t.status;
+                  const souCriador = t.criador_id === uid;
+                  return (
                   <Card key={t.id} className={cn(!emAberto(t.status) && "opacity-60")}>
                     <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
                       <div className="min-w-0 space-y-1">
@@ -454,7 +459,11 @@ function TarefasPage() {
                               )}
                             </>
                           ) : (
-                            `Responsável: ${nomePessoa(t.responsavel_id)}`
+                            `Destinatários: ${
+                              parts.length
+                                ? parts.length
+                                : nomePessoa(t.responsavel_id)
+                            }`
                           )}
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
@@ -467,33 +476,79 @@ function TarefasPage() {
                             </>
                           )}
                         </p>
+
+                        {parts.length > 0 && (
+                          <div className="space-y-1 pt-2">
+                            <p className="text-xs font-medium">Fase por destinatário</p>
+                            <ul className="space-y-1">
+                              {parts.map((p) => {
+                                const podeMudar = p.user_id === uid || souCriador;
+                                return (
+                                  <li
+                                    key={p.id}
+                                    className="flex flex-wrap items-center gap-2 text-xs"
+                                  >
+                                    <span className="min-w-32">{nomePessoa(p.user_id)}</span>
+                                    {podeMudar ? (
+                                      STATUS_BOTOES.map((s) => (
+                                        <Button
+                                          key={s.valor}
+                                          size="sm"
+                                          className="h-6 px-2 text-[11px]"
+                                          variant={p.status === s.valor ? "default" : "outline"}
+                                          disabled={atualizar.isPending}
+                                          onClick={() =>
+                                            atualizar.mutate({
+                                              tarefa: t,
+                                              status: s.valor,
+                                              userId: p.user_id,
+                                            })
+                                          }
+                                        >
+                                          {s.label}
+                                        </Button>
+                                      ))
+                                    ) : (
+                                      <span className="rounded-md border px-2 py-0.5">
+                                        {STATUS_LABEL[p.status]}
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1">
-                        {STATUS_BOTOES.map((s) => (
-                          <Button
-                            key={s.valor}
-                            size="sm"
-                            variant={t.status === s.valor ? "default" : "outline"}
-                            disabled={atualizar.isPending}
-                            onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
-                          >
-                            {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
-                            {s.label}
-                          </Button>
-                        ))}
-                        {t.status !== "cancelada" && (
+                        {(parts.length === 0 || minha) &&
+                          STATUS_BOTOES.map((s) => (
+                            <Button
+                              key={s.valor}
+                              size="sm"
+                              variant={meuStatus === s.valor ? "default" : "outline"}
+                              disabled={atualizar.isPending}
+                              onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
+                            >
+                              {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
+                              {s.label}
+                            </Button>
+                          ))}
+                        {t.status !== "cancelada" && souCriador && (
                           <Button
                             size="sm"
                             variant="ghost"
                             title="Cancelar tarefa"
-                            onClick={() => atualizar.mutate({ tarefa: t, status: "cancelada" })}
+                            onClick={() =>
+                              atualizar.mutate({ tarefa: t, status: "cancelada" })
+                            }
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
 
 
-                        {t.criador_id === me.data && (
+                        {souCriador && (
                           <>
                             <Button
                               size="sm"
@@ -516,7 +571,9 @@ function TarefasPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
+
               </div>
             </section>
           ))}
