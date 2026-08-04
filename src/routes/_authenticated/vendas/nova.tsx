@@ -693,6 +693,10 @@ export function FormPap({
 
 
     const mesRefPap = mesRefFromDate(parsed.data.data_instalacao || parsed.data.data);
+    const antigoNum =
+      typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : 0;
+    const baseComissao =
+      antigoNum > 0 ? Math.max(parsed.data.valor_novo - antigoNum, 0) : parsed.data.valor_novo;
     let comissao = 0;
     if (parsed.data.instalado) {
       const [{ data: faixas }, { data: produtos }, { data: mesVendas }] = await Promise.all([
