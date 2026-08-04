@@ -631,7 +631,8 @@ export type FormPapState = {
   data: string;
   data_instalacao: string;
   data_agendamento: string;
-  valor: string;
+  valor_novo: string;
+  valor_antigo: string;
   qtd_linhas: string;
   instalado: boolean;
 };
