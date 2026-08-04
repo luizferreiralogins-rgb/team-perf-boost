@@ -926,7 +926,7 @@ export function FormPap({
       </Card>
       <aside className="space-y-4">
         <ProjecaoComissaoPap
-          valor={form.valor}
+          valor={String(baseTicket)}
           instalado={form.instalado}
           tipoProtocolo={form.tipo_protocolo}
           produto={form.produto}
