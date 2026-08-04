@@ -422,11 +422,12 @@ function VendasList() {
       <AlertDialog open={confirmArquivar} onOpenChange={(o) => !o && setConfirmArquivar(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Enviar vendas instaladas para o Histórico?</AlertDialogTitle>
+            <AlertDialogTitle>Enviar vendas selecionadas para o Histórico?</AlertDialogTitle>
             <AlertDialogDescription>
-              {prontasParaHistorico.length} venda(s) instalada(s) sairão desta lista e ficarão
-              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As vendas
-              ainda não instaladas permanecem aqui.
+              {selecionadas.length} venda(s) instalada(s) sairão desta lista e ficarão
+              disponíveis na aba Histórico, agrupadas pelo mês da data de instalação. As demais
+              vendas permanecem aqui.
+
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
