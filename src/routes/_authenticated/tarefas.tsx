@@ -168,10 +168,11 @@ function TarefasPage() {
     enabled: !!uid,
     queryKey: ["tarefas-participo", uid],
     queryFn: async () => {
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("tarefa_participantes")
         .select("tarefa_id")
-        .eq("user_id", uid!);
+        .eq("user_id", uid);
       if (error) throw error;
       return (data ?? []).map((r) => r.tarefa_id);
     },
@@ -298,39 +299,10 @@ function TarefasPage() {
         .eq("id", linha.id);
       if (error) throw error;
 
-      const novos = atuais.map((p) => (p.id === linha.id ? { ...p, status } : p));
-      const todosConcluidos = novos.every((p) => p.status === "concluida");
-
-      if (todosConcluidos) {
-        const prox = proximaData(tarefa.data_venc, tarefa.recorrencia);
-        if (prox) {
-          const { error: e1 } = await supabase
-            .from("tarefas")
-            .update({ status: "pendente" as Status, data_venc: prox })
-            .eq("id", tarefa.id);
-          if (e1) throw e1;
-          const { error: e2 } = await supabase
-            .from("tarefa_participantes")
-            .update({ status: "pendente" as Status })
-            .eq("tarefa_id", tarefa.id);
-          if (e2) throw e2;
-          return prox;
-        }
-        const { error: e3 } = await supabase
-          .from("tarefas")
-          .update({ status: "concluida" as Status })
-          .eq("id", tarefa.id);
-        if (e3) throw e3;
-        return null;
-      }
-
-      const algumAndamento = novos.some((p) => p.status !== "pendente");
-      const { error: e4 } = await supabase
-        .from("tarefas")
-        .update({ status: (algumAndamento ? "iniciada" : "pendente") as Status })
-        .eq("id", tarefa.id);
-      if (e4) throw e4;
-      return null;
+      const todosConcluidos = atuais.every((p) => p.id === linha.id || p.status === "concluida");
+      return status === "concluida" && todosConcluidos
+        ? proximaData(tarefa.data_venc, tarefa.recorrencia)
+        : null;
     },
     onSuccess: (prox) => {
       if (prox) toast.success(`Recorrência: próxima data ${formatarData(prox)}.`);
@@ -607,6 +579,7 @@ function EditarTarefa({
     data_venc: hoje(),
     hora_venc: "",
     prioridade: "media" as Prioridade,
+    recorrencia: "nenhuma" as Recorrencia,
     cliente_nome: "",
     cliente_contato: "",
   });
@@ -619,6 +592,7 @@ function EditarTarefa({
       data_venc: tarefa.data_venc,
       hora_venc: tarefa.hora_venc?.slice(0, 5) ?? "",
       prioridade: tarefa.prioridade,
+      recorrencia: tarefa.recorrencia,
       cliente_nome: tarefa.cliente_nome ?? "",
       cliente_contato: tarefa.cliente_contato ?? "",
     });
@@ -636,6 +610,7 @@ function EditarTarefa({
           data_venc: form.data_venc,
           hora_venc: form.hora_venc || null,
           prioridade: form.prioridade,
+          recorrencia: form.recorrencia,
           cliente_nome: tarefa.alvo === "cliente" ? form.cliente_nome.trim() || null : null,
           cliente_contato: tarefa.alvo === "cliente" ? form.cliente_contato.trim() || null : null,
         })
@@ -726,6 +701,24 @@ function EditarTarefa({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label>Recorrência</Label>
+            <Select
+              value={form.recorrencia}
+              onValueChange={(v) => setForm({ ...form, recorrencia: v as Recorrencia })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(RECORRENCIA_LABEL) as Recorrencia[]).map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {RECORRENCIA_LABEL[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

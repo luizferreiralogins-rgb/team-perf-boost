@@ -1055,6 +1055,10 @@ export type Database = {
         Args: { _manager: string; _target: string }
         Returns: boolean
       }
+      pode_ver_tarefa: {
+        Args: { _tarefa_id: string; _user_id: string }
+        Returns: boolean
+      }
       transferir_venda: {
         Args: { _para: string; _tabela: string; _venda_id: string }
         Returns: undefined
