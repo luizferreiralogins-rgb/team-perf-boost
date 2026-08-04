@@ -349,6 +349,7 @@ function Dashboard() {
           <KpiCard
             title="Banda Larga"
             qtd={isLoading ? null : data?.blQtd ?? 0}
+            qtdInst={isLoading ? null : data?.blInst ?? 0}
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
             fator={fatorProj}
@@ -356,6 +357,9 @@ function Dashboard() {
           <KpiCard
             title="Móvel"
             qtd={isLoading ? null : data?.mvQtd ?? 0}
+            qtdInst={isLoading ? null : data?.mvInst ?? 0}
+            linhas={isLoading ? null : data?.mvLinhas ?? 0}
+            linhasInst={isLoading ? null : data?.mvLinhasInst ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
             fator={fatorProj}
@@ -363,11 +367,13 @@ function Dashboard() {
           <KpiCard
             title="Renovações"
             qtd={isLoading ? null : data?.rvQtd ?? 0}
+            qtdInst={isLoading ? null : data?.rvInst ?? 0}
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
             fator={fatorProj}
             projecaoEm="rs"
           />
+
 
         </div>
       </div>
