@@ -362,6 +362,10 @@ function HistoricoPage() {
     setSelecionados([]);
     qc.invalidateQueries({ queryKey: ["historico"] });
     qc.invalidateQueries({ queryKey: ["vendas-list"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-mes"] });
+    qc.invalidateQueries({ queryKey: ["faixa-atual"] });
+    qc.invalidateQueries({ queryKey: ["faixas-equipe"] });
+    qc.invalidateQueries({ queryKey: ["nao-instaladas"] });
   }
 
   async function confirmarExclusao() {
