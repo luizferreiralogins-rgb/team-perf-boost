@@ -78,6 +78,7 @@ type Tarefa = {
   hora_venc: string | null;
   prioridade: Prioridade;
   status: Status;
+  recorrencia: Recorrencia;
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -115,24 +116,23 @@ const RECORRENCIA_LABEL: Record<Recorrencia, string> = {
   mensal: "Mensal",
 };
 
-function gerarDatas(inicio: string, recorrencia: Recorrencia, qtd: number) {
+/** Próxima data da tarefa conforme a recorrência configurada. */
+export function proximaData(inicio: string, recorrencia: Recorrencia) {
+  if (recorrencia === "nenhuma") return null;
   const [y, m, d] = inicio.split("-").map(Number);
-  const datas: string[] = [];
-  for (let i = 0; i < qtd; i++) {
-    const base = new Date(Date.UTC(y, m - 1, d));
-    if (recorrencia === "diaria") base.setUTCDate(base.getUTCDate() + i);
-    else if (recorrencia === "semanal") base.setUTCDate(base.getUTCDate() + i * 7);
-    else if (recorrencia === "quinzenal") base.setUTCDate(base.getUTCDate() + i * 14);
-    else if (recorrencia === "mensal") base.setUTCMonth(base.getUTCMonth() + i);
-    datas.push(base.toISOString().slice(0, 10));
-  }
-  return datas;
+  const base = new Date(Date.UTC(y, m - 1, d));
+  if (recorrencia === "diaria") base.setUTCDate(base.getUTCDate() + 1);
+  else if (recorrencia === "semanal") base.setUTCDate(base.getUTCDate() + 7);
+  else if (recorrencia === "quinzenal") base.setUTCDate(base.getUTCDate() + 14);
+  else if (recorrencia === "mensal") base.setUTCMonth(base.getUTCMonth() + 1);
+  return base.toISOString().slice(0, 10);
 }
 
 function formatarData(d: string) {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
 }
+
 
 function TarefasPage() {
   const qc = useQueryClient();
