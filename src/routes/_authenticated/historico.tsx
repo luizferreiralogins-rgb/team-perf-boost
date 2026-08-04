@@ -56,6 +56,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  HistoricoLeads,
+  HistoricoProdutividade,
+  HistoricoTarefas,
+} from "@/components/historico/outros-historicos";
 
 export const Route = createFileRoute("/_authenticated/historico")({
   head: () => ({
@@ -209,6 +214,23 @@ function HistoricoPage() {
     (pessoasQ.data ?? []).forEach((p) => (m[p.id] = p.nome));
     return m;
   }, [pessoasQ.data]);
+
+  const alvos = useMemo<string[] | null>(() => {
+    if (!meQ.data) return null;
+    if (!isGestor) return [meQ.data.uid];
+    if (vendedor !== "todos") return [vendedor];
+    if (idsDoGerente) return idsDoGerente;
+    return null;
+  }, [meQ.data, isGestor, vendedor, idsDoGerente]);
+
+  const filtroOutros = {
+    de,
+    ate,
+    busca,
+    alvos,
+    nomePorId,
+    isGestor,
+  };
 
   const registrosQ = useQuery({
     enabled: !!meQ.data,
@@ -433,6 +455,7 @@ function HistoricoPage() {
             <Label htmlFor="ate">Instalação até</Label>
             <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
           </div>
+          {aba === "vendas" && (
           <div className="space-y-1.5">
             <Label>Canal</Label>
             <Select value={canal} onValueChange={(v) => setCanal(v as typeof canal)}>
@@ -446,6 +469,7 @@ function HistoricoPage() {
               </SelectContent>
             </Select>
           </div>
+          )}
           {isRegional && (
             <div className="space-y-1.5">
               <Label>Gerente</Label>
@@ -504,6 +528,11 @@ function HistoricoPage() {
         </CardContent>
       </Card>
 
+      {aba === "tarefas" && <HistoricoTarefas {...filtroOutros} />}
+      {aba === "leads" && <HistoricoLeads {...filtroOutros} />}
+      {aba === "produtividade" && <HistoricoProdutividade {...filtroOutros} />}
+
+      {aba === "vendas" && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-5">
@@ -524,7 +553,9 @@ function HistoricoPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
+      {aba === "vendas" && (
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">Registros</CardTitle>
@@ -663,6 +694,7 @@ function HistoricoPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <TransferirVendaDialog
         venda={transferir}
