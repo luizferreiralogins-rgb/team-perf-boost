@@ -109,6 +109,8 @@ function PlanejamentoPage() {
   const uid = me.data?.uid;
   const isLider = !!me.data?.roles.includes("lider_pap");
 
+  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
+
   const opcoes = useQuery({
     queryKey: ["planejamento-opcoes"],
     queryFn: async () => {
@@ -170,6 +172,18 @@ function PlanejamentoPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const atualizarCampo = useMutation({
+    mutationFn: async (v: { id: string; campo: string; valor: string | number | null }) => {
+      const { error } = await supabase
+        .from("planejamento_acoes")
+        .update({ [v.campo]: v.valor })
+        .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["planejamento-acoes"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const excluir = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("planejamento_acoes").delete().eq("id", id);
@@ -185,7 +199,10 @@ function PlanejamentoPage() {
   const listaDe = (campo: Campo) =>
     (opcoes.data ?? []).filter((o) => o.campo === campo).map((o) => o.valor);
 
-  const linhas = acoes.data ?? [];
+  const linhas = useMemo(
+    () => (acoes.data ?? []).filter((a) => (a.data ?? "").slice(0, 7) === mes),
+    [acoes.data, mes],
+  );
   const totais = useMemo(
     () => ({
       leads: linhas.reduce((s, l) => s + (l.leads ?? 0), 0),
@@ -194,54 +211,81 @@ function PlanejamentoPage() {
     }),
     [linhas],
   );
+  const porTipo = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of linhas) {
+      const k = l.tipo_acao?.trim() || "Sem tipo";
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [linhas]);
 
   const abrirNova = () => {
     setEditId(null);
-    setForm(vazio());
+    setForm({ ...vazio(), data: `${mes}-01` });
     setAberto(true);
   };
-  const abrirEdicao = (a: Acao) => {
-    setEditId(a.id);
-    setForm({
-      data: a.data,
-      tipo_acao: a.tipo_acao ?? "",
-      cidade: a.cidade ?? "",
-      local: a.local ?? "",
-      consultores: a.consultores ?? "",
-      leads: a.leads == null ? "" : String(a.leads),
-      fechado_bl: a.fechado_bl == null ? "" : String(a.fechado_bl),
-      fechado_movel: a.fechado_movel == null ? "" : String(a.fechado_movel),
-      obs: a.obs ?? "",
-    });
-    setAberto(true);
+
+  const salvarCelula = (id: string, campo: string, valor: string, numerico = false) => {
+    const v = numerico ? (valor === "" ? null : Number(valor)) : valor.trim() || null;
+    atualizarCampo.mutate({ id, campo, valor: v });
   };
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-end gap-3">
           <div>
             <h1 className="text-2xl font-bold">Planejamento</h1>
             <p className="text-sm text-muted-foreground">
               {isLider
-                ? "Registre as ações do time PAP."
+                ? "Registre as ações do time PAP. Dê duplo clique em qualquer campo para editar."
                 : "Planejamento de ações registrado pelo Líder PAP."}
             </p>
           </div>
-          {isLider && (
-            <div className="ml-auto flex gap-2">
-              <OpcoesDialog uid={uid} opcoes={opcoes.data ?? []} />
-              <Button onClick={abrirNova}>
-                <Plus className="mr-2 h-4 w-4" /> Nova ação
-              </Button>
+          <div className="ml-auto flex items-end gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Mês</Label>
+              <Input
+                type="month"
+                value={mes}
+                onChange={(e) => setMes(e.target.value)}
+                className="w-[150px]"
+              />
             </div>
-          )}
+            {isLider && (
+              <>
+                <OpcoesDialog uid={uid} opcoes={opcoes.data ?? []} />
+                <Button onClick={abrirNova}>
+                  <Plus className="mr-2 h-4 w-4" /> Nova ação
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <Kpi titulo="Leads" valor={totais.leads} />
           <Kpi titulo="Fechado BL" valor={totais.bl} />
           <Kpi titulo="Fechado Móvel" valor={totais.movel} />
+          <Card className="sm:col-span-3 lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Ações por tipo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-x-4 gap-y-1 pt-0 text-sm">
+              {porTipo.length === 0 ? (
+                <span className="text-muted-foreground">Sem ações no mês.</span>
+              ) : (
+                porTipo.map(([tipo, qtd]) => (
+                  <span key={tipo} className="whitespace-nowrap">
+                    {tipo}: <strong>{qtd}</strong>
+                  </span>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -250,59 +294,119 @@ function PlanejamentoPage() {
               <Skeleton className="m-4 h-48" />
             ) : linhas.length === 0 ? (
               <p className="p-6 text-sm text-muted-foreground">
-                Nenhuma ação registrada até o momento.
+                Nenhuma ação registrada neste mês.
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full table-fixed text-sm">
                   <thead className="bg-muted/50 text-left">
-                    <tr className="[&>th]:whitespace-nowrap [&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
-                      <th>Data</th>
-                      <th>Tipo de Ação</th>
-                      <th>Cidade</th>
-                      <th>Local (Bairro/Condomínio)</th>
-                      <th>Consultores</th>
-                      <th>Leads</th>
-                      <th>Fechado BL</th>
-                      <th>Fechado Móvel</th>
+                    <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
+                      <th className="w-[92px]">Data</th>
+                      <th className="w-[150px]">Tipo de Ação</th>
+                      <th className="w-[110px]">Cidade</th>
+                      <th className="w-[170px]">Local</th>
+                      <th className="w-[140px]">Consultores</th>
+                      <th className="w-[70px]">Leads</th>
+                      <th className="w-[80px]">Fech. BL</th>
+                      <th className="w-[90px]">Fech. Móvel</th>
                       <th>Obs</th>
-                      {isLider && <th className="w-24" />}
+                      {isLider && <th className="w-[56px]" />}
                     </tr>
                   </thead>
                   <tbody>
                     {linhas.map((a) => (
-                      <tr key={a.id} className="border-t border-border [&>td]:px-3 [&>td]:py-2">
-                        <td className="whitespace-nowrap">
-                          {new Date(`${a.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                      <tr key={a.id} className="border-t border-border [&>td]:px-2 [&>td]:py-1">
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="date"
+                            valor={a.data ?? ""}
+                            exibicao={
+                              a.data
+                                ? new Date(`${a.data}T00:00:00`).toLocaleDateString("pt-BR")
+                                : "—"
+                            }
+                            onSalvar={(v) => v && salvarCelula(a.id, "data", v)}
+                          />
                         </td>
-                        <td>{a.tipo_acao ?? "—"}</td>
-                        <td>{a.cidade ?? "—"}</td>
-                        <td>{a.local ?? "—"}</td>
-                        <td>{a.consultores ?? "—"}</td>
-                        <td>{a.leads ?? "—"}</td>
-                        <td>{a.fechado_bl ?? "—"}</td>
-                        <td>{a.fechado_movel ?? "—"}</td>
-                        <td className="max-w-[280px]">{a.obs ?? ""}</td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="select"
+                            opcoes={listaDe("tipo_acao")}
+                            valor={a.tipo_acao ?? ""}
+                            onSalvar={(v) => salvarCelula(a.id, "tipo_acao", v)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="select"
+                            opcoes={listaDe("cidade")}
+                            valor={a.cidade ?? ""}
+                            onSalvar={(v) => salvarCelula(a.id, "cidade", v)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="select"
+                            opcoes={listaDe("local")}
+                            valor={a.local ?? ""}
+                            onSalvar={(v) => salvarCelula(a.id, "local", v)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="select"
+                            opcoes={listaDe("consultor")}
+                            valor={a.consultores ?? ""}
+                            onSalvar={(v) => salvarCelula(a.id, "consultores", v)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="number"
+                            valor={a.leads == null ? "" : String(a.leads)}
+                            onSalvar={(v) => salvarCelula(a.id, "leads", v, true)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="number"
+                            valor={a.fechado_bl == null ? "" : String(a.fechado_bl)}
+                            onSalvar={(v) => salvarCelula(a.id, "fechado_bl", v, true)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="number"
+                            valor={a.fechado_movel == null ? "" : String(a.fechado_movel)}
+                            onSalvar={(v) => salvarCelula(a.id, "fechado_movel", v, true)}
+                          />
+                        </td>
+                        <td>
+                          <Celula
+                            editavel={isLider}
+                            tipo="text"
+                            valor={a.obs ?? ""}
+                            onSalvar={(v) => salvarCelula(a.id, "obs", v)}
+                          />
+                        </td>
                         {isLider && (
                           <td>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => abrirEdicao(a)}
-                                aria-label="Editar ação"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => excluir.mutate(a.id)}
-                                aria-label="Excluir ação"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => excluir.mutate(a.id)}
+                              aria-label="Excluir ação"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </td>
                         )}
                       </tr>
@@ -314,6 +418,7 @@ function PlanejamentoPage() {
           </CardContent>
         </Card>
       </div>
+
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
