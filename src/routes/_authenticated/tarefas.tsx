@@ -782,18 +782,17 @@ function NovaTarefa({
         throw new Error("Escolha ao menos um responsável.");
       if (alvo === "cliente" && !clienteNome.trim()) throw new Error("Informe o nome do cliente.");
 
-      // Garante uma sessão válida (renovando o token se necessário) antes de gravar,
-      // caso contrário a requisição chega ao banco sem autenticação e a RLS bloqueia.
-      let sessao = (await supabase.auth.getSession()).data.session;
-      if (!sessao) sessao = (await supabase.auth.refreshSession()).data.session;
-      const autorId = sessao?.user?.id ?? null;
+      // Revalida a identidade com o backend. O banco define criador_id a partir
+      // do mesmo token da gravação, sem confiar em um ID enviado pelo navegador.
+      const { data: autenticacao, error: erroAutenticacao } = await supabase.auth.getUser();
+      if (erroAutenticacao) throw erroAutenticacao;
+      const autorId = autenticacao.user?.id ?? null;
       if (!autorId) throw new Error("Sessão expirada. Entre novamente para criar a tarefa.");
 
       const alvos: string[] = alvo === "usuario" ? responsaveis : [autorId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
       const linha = {
-        criador_id: autorId,
         alvo,
         responsavel_id: alvos[0],
         cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
