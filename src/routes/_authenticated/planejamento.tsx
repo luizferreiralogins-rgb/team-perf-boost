@@ -508,6 +508,91 @@ function PlanejamentoPage() {
   );
 }
 
+function Celula({
+  editavel,
+  tipo,
+  valor,
+  exibicao,
+  opcoes = [],
+  onSalvar,
+}: {
+  editavel: boolean;
+  tipo: "text" | "number" | "date" | "select";
+  valor: string;
+  exibicao?: string;
+  opcoes?: string[];
+  onSalvar: (v: string) => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState(valor);
+
+  const abrir = () => {
+    if (!editavel) return;
+    setRascunho(valor);
+    setEditando(true);
+  };
+
+  const texto = exibicao ?? (valor || "—");
+
+  if (!editando) {
+    return (
+      <div
+        onDoubleClick={abrir}
+        title={editavel ? "Duplo clique para editar" : undefined}
+        className={`min-h-7 truncate rounded px-1 py-1 ${
+          editavel ? "cursor-pointer hover:bg-muted" : ""
+        } ${valor ? "" : "text-muted-foreground"}`}
+      >
+        {texto}
+      </div>
+    );
+  }
+
+  if (tipo === "select") {
+    return (
+      <Select
+        open
+        value={valor || undefined}
+        onValueChange={(v) => {
+          setEditando(false);
+          onSalvar(v);
+        }}
+        onOpenChange={(o) => !o && setEditando(false)}
+      >
+        <SelectTrigger className="h-8">
+          <SelectValue placeholder="Selecione" />
+        </SelectTrigger>
+        <SelectContent>
+          {opcoes.map((o) => (
+            <SelectItem key={o} value={o}>
+              {o}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  return (
+    <Input
+      autoFocus
+      type={tipo}
+      className="h-8 px-1"
+      value={rascunho}
+      onChange={(e) => setRascunho(e.target.value)}
+      onBlur={() => {
+        setEditando(false);
+        if (rascunho !== valor) onSalvar(rascunho);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") setEditando(false);
+      }}
+    />
+  );
+}
+
+
 function Kpi({ titulo, valor }: { titulo: string; valor: number }) {
   return (
     <Card>
