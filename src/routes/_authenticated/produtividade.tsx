@@ -75,7 +75,16 @@ function Produtividade() {
   const [tipo, setTipo] = useState<Tipo>("suporte");
   const [contato, setContato] = useState("");
   const [data, setData] = useState(iso(hoje));
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const diasDecorridos = Math.max(1, hoje.getDate());
+
+  function limparForm() {
+    setEditandoId(null);
+    setNome("");
+    setContato("");
+    setTipo("suporte");
+    setData(iso(new Date()));
+  }
 
   const { data: prod, isLoading } = useQuery({
     queryKey: ["produtividade", inicioMes],
