@@ -6,7 +6,7 @@ import {
   cmpDataDesc,
   type OpcaoOrdenacao,
 } from "@/components/ordenacao";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
