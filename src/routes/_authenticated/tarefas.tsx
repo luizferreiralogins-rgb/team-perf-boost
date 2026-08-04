@@ -81,6 +81,13 @@ type Tarefa = {
   recorrencia: Recorrencia;
 };
 
+type Participante = {
+  id: string;
+  tarefa_id: string;
+  user_id: string;
+  status: Status;
+};
+
 const hoje = () => new Date().toISOString().slice(0, 10);
 const amanha = () => new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
