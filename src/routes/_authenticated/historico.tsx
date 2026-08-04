@@ -636,6 +636,30 @@ function HistoricoPage() {
         onDone={() => qc.invalidateQueries({ queryKey: ["historico"] })}
       />
 
+      <AlertDialog open={confirmRetorno} onOpenChange={(o) => !o && setConfirmRetorno(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Voltar vendas para a aba Vendas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selecionados.length} venda(s) sairão do histórico e voltarão para a sua lista de
+              vendas. Só é permitido para vendas instaladas no mês atual.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={retornando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={retornando}
+              onClick={(e) => {
+                e.preventDefault();
+                devolverParaVendas();
+              }}
+            >
+              {retornando ? "Devolvendo..." : "Voltar para Vendas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
