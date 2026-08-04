@@ -9,7 +9,7 @@ import {
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bell, CalendarDays, Check, Plus, Trash2, X } from "lucide-react";
+import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
