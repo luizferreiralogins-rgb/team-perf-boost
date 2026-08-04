@@ -391,14 +391,24 @@ function TarefasPage() {
                         )}
 
                         {t.criador_id === me.data && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Excluir"
-                            onClick={() => excluir.mutate(t.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Editar"
+                              onClick={() => setEditando(t)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Excluir"
+                              onClick={() => excluir.mutate(t.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </CardContent>
