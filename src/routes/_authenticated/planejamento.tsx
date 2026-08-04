@@ -176,7 +176,7 @@ function PlanejamentoPage() {
     mutationFn: async (v: { id: string; campo: string; valor: string | number | null }) => {
       const { error } = await supabase
         .from("planejamento_acoes")
-        .update({ [v.campo]: v.valor })
+        .update({ [v.campo]: v.valor } as never)
         .eq("id", v.id);
       if (error) throw error;
     },
