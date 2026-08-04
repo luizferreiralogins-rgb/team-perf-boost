@@ -75,7 +75,16 @@ function Produtividade() {
   const [tipo, setTipo] = useState<Tipo>("suporte");
   const [contato, setContato] = useState("");
   const [data, setData] = useState(iso(hoje));
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const diasDecorridos = Math.max(1, hoje.getDate());
+
+  function limparForm() {
+    setEditandoId(null);
+    setNome("");
+    setContato("");
+    setTipo("suporte");
+    setData(iso(new Date()));
+  }
 
   const { data: prod, isLoading } = useQuery({
     queryKey: ["produtividade", inicioMes],
@@ -201,22 +210,31 @@ function Produtividade() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       if (nome.trim().length < 2) throw new Error("Informe o nome do cliente.");
-      const { error } = await supabase.from("atendimentos").insert({
-        usuario_id: uid,
+      const payload = {
         nome_cliente: nome.trim(),
         tipo,
         contato_cliente: contato.trim() || null,
         data_atendimento: data,
-      });
+      };
+      if (editandoId) {
+        const { error } = await supabase
+          .from("atendimentos")
+          .update(payload)
+          .eq("id", editandoId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from("atendimentos")
+        .insert({ usuario_id: uid, ...payload });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Atendimento registrado.");
-      setNome("");
-      setContato("");
+      toast.success(editandoId ? "Atendimento atualizado." : "Atendimento registrado.");
+      limparForm();
       qc.invalidateQueries({ queryKey: ["produtividade"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao registrar atendimento."),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar atendimento."),
   });
 
   const excluir = useMutation({
@@ -295,10 +313,14 @@ function Produtividade() {
       {isMaster && <TemposConfig />}
 
 
-      <Card>
+      <Card id="form-atendimento">
         <CardHeader>
-          <CardTitle>Novo atendimento</CardTitle>
-          <CardDescription>Preencha os dados do atendimento realizado.</CardDescription>
+          <CardTitle>{editandoId ? "Editar atendimento" : "Novo atendimento"}</CardTitle>
+          <CardDescription>
+            {editandoId
+              ? "Altere os dados e salve para atualizar o registro."
+              : "Preencha os dados do atendimento realizado."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -347,9 +369,18 @@ function Produtividade() {
               <Label htmlFor="data">Data</Label>
               <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
-            <div className="flex items-end justify-end sm:col-span-2">
+            <div className="flex items-end justify-end gap-2 sm:col-span-2">
+              {editandoId && (
+                <Button type="button" variant="outline" onClick={limparForm}>
+                  Cancelar edição
+                </Button>
+              )}
               <Button type="submit" disabled={criar.isPending}>
-                {criar.isPending ? "Salvando..." : "Registrar atendimento"}
+                {criar.isPending
+                  ? "Salvando..."
+                  : editandoId
+                    ? "Salvar alterações"
+                    : "Registrar atendimento"}
               </Button>
             </div>
           </form>
@@ -411,8 +442,20 @@ function Produtividade() {
                 variant="ghost"
                 size="sm"
                 className="ml-auto"
-                onClick={() => excluir.mutate(a.id)}
+                onClick={() => {
+                  setEditandoId(a.id);
+                  setNome(a.nome_cliente);
+                  setTipo(a.tipo as Tipo);
+                  setContato(a.contato_cliente ?? "");
+                  setData(a.data_atendimento);
+                  document
+                    .getElementById("form-atendimento")
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
               >
+                Editar
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => excluir.mutate(a.id)}>
                 Excluir
               </Button>
             </div>

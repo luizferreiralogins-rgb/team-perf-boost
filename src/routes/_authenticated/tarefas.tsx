@@ -6,10 +6,10 @@ import {
   cmpDataDesc,
   type OpcaoOrdenacao,
 } from "@/components/ordenacao";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bell, CalendarDays, Check, Plus, Trash2, X } from "lucide-react";
+import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
@@ -130,6 +138,7 @@ function TarefasPage() {
   const qc = useQueryClient();
   const { responsavel: responsavelInicial } = Route.useSearch();
   const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
+  const [editando, setEditando] = useState<Tarefa | null>(null);
 
   const me = useQuery({
     queryKey: ["tarefas-me"],
@@ -382,14 +391,24 @@ function TarefasPage() {
                         )}
 
                         {t.criador_id === me.data && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            title="Excluir"
-                            onClick={() => excluir.mutate(t.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Editar"
+                              onClick={() => setEditando(t)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Excluir"
+                              onClick={() => excluir.mutate(t.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </CardContent>
@@ -399,10 +418,169 @@ function TarefasPage() {
             </section>
           ))}
         </div>
+
+        <EditarTarefa
+          tarefa={editando}
+          onFechar={() => setEditando(null)}
+          onSalva={() => {
+            setEditando(null);
+            qc.invalidateQueries({ queryKey: ["tarefas"] });
+          }}
+        />
       </div>
     </AppShell>
   );
 }
+
+function EditarTarefa({
+  tarefa,
+  onFechar,
+  onSalva,
+}: {
+  tarefa: Tarefa | null;
+  onFechar: () => void;
+  onSalva: () => void;
+}) {
+  const [form, setForm] = useState({
+    titulo: "",
+    descricao: "",
+    data_venc: hoje(),
+    hora_venc: "",
+    prioridade: "media" as Prioridade,
+    cliente_nome: "",
+    cliente_contato: "",
+  });
+
+  useEffect(() => {
+    if (!tarefa) return;
+    setForm({
+      titulo: tarefa.titulo,
+      descricao: tarefa.descricao ?? "",
+      data_venc: tarefa.data_venc,
+      hora_venc: tarefa.hora_venc?.slice(0, 5) ?? "",
+      prioridade: tarefa.prioridade,
+      cliente_nome: tarefa.cliente_nome ?? "",
+      cliente_contato: tarefa.cliente_contato ?? "",
+    });
+  }, [tarefa]);
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!tarefa) return;
+      if (form.titulo.trim().length < 2) throw new Error("Informe o título da tarefa.");
+      const { error } = await supabase
+        .from("tarefas")
+        .update({
+          titulo: form.titulo.trim(),
+          descricao: form.descricao.trim() || null,
+          data_venc: form.data_venc,
+          hora_venc: form.hora_venc || null,
+          prioridade: form.prioridade,
+          cliente_nome: tarefa.alvo === "cliente" ? form.cliente_nome.trim() || null : null,
+          cliente_contato: tarefa.alvo === "cliente" ? form.cliente_contato.trim() || null : null,
+        })
+        .eq("id", tarefa.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tarefa atualizada.");
+      onSalva();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!tarefa} onOpenChange={(o) => !o && onFechar()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar tarefa</DialogTitle>
+          <DialogDescription>Somente quem criou a tarefa pode editá-la.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div>
+            <Label>Título</Label>
+            <Input
+              value={form.titulo}
+              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              maxLength={140}
+            />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              value={form.descricao}
+              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              rows={3}
+            />
+          </div>
+          {tarefa?.alvo === "cliente" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Cliente</Label>
+                <Input
+                  value={form.cliente_nome}
+                  onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Contato</Label>
+                <Input
+                  value={form.cliente_contato}
+                  onChange={(e) => setForm({ ...form, cliente_contato: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={form.data_venc}
+                onChange={(e) => setForm({ ...form, data_venc: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Hora</Label>
+              <Input
+                type="time"
+                value={form.hora_venc}
+                onChange={(e) => setForm({ ...form, hora_venc: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Prioridade</Label>
+              <Select
+                value={form.prioridade}
+                onValueChange={(v) => setForm({ ...form, prioridade: v as Prioridade })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRIORIDADE_LABEL) as Prioridade[]).map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PRIORIDADE_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? "Salvando…" : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function NovaTarefa({
   meId,
