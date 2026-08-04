@@ -114,7 +114,7 @@ export function HistoricoTarefas({ de, ate, busca, alvos, nomePorId, isGestor }:
                       <Badge variant="secondary">{r.prioridade}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={r.status === "concluido" ? "default" : "outline"}>
+                      <Badge variant={r.status === "concluida" ? "default" : "outline"}>
                         {r.status}
                       </Badge>
                     </TableCell>
