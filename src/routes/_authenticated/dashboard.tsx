@@ -11,11 +11,20 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
 
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   FiltrosBar,
   RankingEquipe,
   aplicarFiltros,
   mesAtual,
+  mesesRecentes,
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
@@ -81,36 +90,36 @@ function Dashboard() {
     () => (membros ? aplicarFiltros(membros, filtros, role).map((m) => m.id) : []),
     [membros, filtros, role],
   );
-  const fatorProj = useMemo(
-    () => fatorProjecao(isGestor ? filtros.mes : mesAtual()),
-    [isGestor, filtros.mes],
-  );
+  const fatorProj = useMemo(() => fatorProjecao(filtros.mes), [filtros.mes]);
+  const ehMesAtual = filtros.mes === mesAtual();
+  /** Consultor no mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
+  const usarAtivas = !isGestor && ehMesAtual;
   const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
 
 
 
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(",")],
+    queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(","), usarAtivas],
     enabled: !isGestor || !!membros,
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
-      const mesRefISO = isGestor
-        ? `${filtros.mes}-01`
-        : (() => {
-            const hoje = new Date();
-            return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
-          })();
+      const mesRefISO = `${filtros.mes}-01`;
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel")
-        .eq("mes_ref", mesRefISO);
+        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel");
       const papQ = supabase
         .from("vendas_pap")
-        .select("valor, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas")
-        .eq("mes_ref", mesRefISO);
+        .select("valor, valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas");
+      if (usarAtivas) {
+        lojaQ.is("arquivada_em", null);
+        papQ.is("arquivada_em", null);
+      } else {
+        lojaQ.eq("mes_ref", mesRefISO);
+        papQ.eq("mes_ref", mesRefISO);
+      }
       if (!isGestor) {
         lojaQ.eq("vendedor_id", uid);
         papQ.eq("vendedor_id", uid);
@@ -136,16 +145,25 @@ function Dashboard() {
         const antigo = Number(v.valor_antigo ?? 0);
         return antigo > 0 ? novo - antigo : novo;
       };
+      const receitaPap = (v: {
+        valor: number | null;
+        valor_novo: number | null;
+        valor_antigo: number | null;
+      }) => {
+        const novo = Number(v.valor_novo ?? 0) || Number(v.valor ?? 0);
+        const antigo = Number(v.valor_antigo ?? 0);
+        return antigo > 0 ? novo - antigo : novo;
+      };
 
       // Totais (respeitando canal do consultor; gestor vê ambos)
       const vendas = isGestor
         ? [
             ...lojaRows.map((v) => ({ status: v.status, valor: receitaLoja(v), comissao: Number(v.comissao ?? 0) })),
-            ...papRows.map((v) => ({ status: v.status, valor: Number(v.valor ?? 0), comissao: Number(v.comissao ?? 0) })),
+            ...papRows.map((v) => ({ status: v.status, valor: receitaPap(v), comissao: Number(v.comissao ?? 0) })),
           ]
         : canal === "loja"
           ? lojaRows.map((v) => ({ status: v.status, valor: receitaLoja(v), comissao: Number(v.comissao ?? 0) }))
-          : papRows.map((v) => ({ status: v.status, valor: Number(v.valor ?? 0), comissao: Number(v.comissao ?? 0) }));
+          : papRows.map((v) => ({ status: v.status, valor: receitaPap(v), comissao: Number(v.comissao ?? 0) }));
 
       const total = vendas.length;
       const instaladas = vendas.filter((v) => v.status === "instalado").length;
@@ -153,12 +171,15 @@ function Dashboard() {
         (v) => v.status !== "instalado" && v.status !== "cancelado",
       ).length;
 
-      const receita = vendas.reduce((s, v) => s + v.valor, 0);
-      const comissao = vendas.reduce((s, v) => s + v.comissao, 0);
+      // Receita e comissão contabilizam apenas vendas instaladas
+      const soInstaladas = vendas.filter((v) => v.status === "instalado");
+      const receita = soInstaladas.reduce((s, v) => s + v.valor, 0);
+      const comissao = soInstaladas.reduce((s, v) => s + v.comissao, 0);
 
       // KPIs por categoria
-      const isBL = (t?: string | null) => !!t && /banda\s*larga/i.test(t);
-      const isMovel = (t?: string | null) => !!t && /m[óo]vel/i.test(t);
+      const isBL = (t?: string | null) =>
+        !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
+      const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
 
       const scopeLoja = isGestor || canal === "loja" ? lojaRows : [];
       const scopePap = isGestor || canal === "pap" ? papRows : [];
@@ -168,21 +189,24 @@ function Dashboard() {
       let rvQtd = 0, rvRs = 0;
 
       for (const v of scopeLoja) {
-        const val = receitaLoja(v);
-        const renovLoja = v.classe_protocolo === "Renovação Contratual";
+        const inst = v.status === "instalado";
+        const val = inst ? receitaLoja(v) : 0;
+        const renovLoja = (v.classe_protocolo ?? "").startsWith("Renovação");
         if (isBL(v.tecnologia) && !renovLoja) { blQtd++; blRs += val; }
         if (isMovel(v.tecnologia) || v.contem_movel) { mvQtd++; mvRs += val; }
-        if (v.classe_protocolo === "Renovação Contratual") { rvQtd++; rvRs += val; }
+        if (renovLoja) { rvQtd++; rvRs += val; }
       }
       for (const v of scopePap) {
-        const val = Number(v.valor ?? 0);
+        const inst = v.status === "instalado";
+        const val = inst ? receitaPap(v) : 0;
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
         const temMovel = isMovel(desc) || Number(v.qtd_linhas ?? 0) > 0;
         const renovPap = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if ((isBL(desc) || /fibra|fttx|internet/i.test(desc)) && !renovPap) { blQtd++; blRs += val; }
+        if (isBL(desc) && !renovPap) { blQtd++; blRs += val; }
         if (temMovel) { mvQtd++; mvRs += val; }
-        if ((v.tipo_protocolo ?? "").startsWith("Renovação")) { rvQtd++; rvRs += val; }
+        if (renovPap) { rvQtd++; rvRs += val; }
       }
+
 
       return {
         canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
@@ -228,6 +252,35 @@ function Dashboard() {
       {isGestor && membros && (
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
+
+      {!isGestor && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <Label className="text-sm text-muted-foreground">Mês</Label>
+            <Select
+              value={filtros.mes}
+              onValueChange={(mes) => setFiltros((f) => ({ ...f, mes }))}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {mesesRecentes(12).map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {ehMesAtual && (
+              <span className="text-xs text-muted-foreground">
+                Mês atual: considera todas as vendas da aba Vendas.
+              </span>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       <AgendamentosVencidos
         escopoIds={isGestor ? escopoIds : undefined}
@@ -323,12 +376,10 @@ function Dashboard() {
         uid={roleInfo?.uid}
         canalConsultor={data?.canal}
         escopoIds={escopoIds}
-        mesRefISO={
-          isGestor
-            ? `${filtros.mes}-01`
-            : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`
-        }
+        ativas={usarAtivas}
+        mesRefISO={`${filtros.mes}-01`}
       />
+
 
 
       {!isGestor && (

@@ -44,6 +44,7 @@ export function NaoInstaladasDialog({
   uid,
   isGestor,
   canalConsultor,
+  ativas,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -52,22 +53,30 @@ export function NaoInstaladasDialog({
   uid?: string;
   isGestor: boolean;
   canalConsultor?: "loja" | "pap";
+  /** Mês atual do consultor: usa as vendas ativas (não arquivadas) da aba Vendas. */
+  ativas?: boolean;
 }) {
   const q = useQuery({
     enabled: open,
-    queryKey: ["nao-instaladas", mesRefISO, isGestor, uid, escopoIds.join(",")],
+    queryKey: ["nao-instaladas", mesRefISO, isGestor, uid, escopoIds.join(","), !!ativas],
     queryFn: async (): Promise<{ itens: Item[]; nomes: Record<string, string> }> => {
       const vazio = ["00000000-0000-0000-0000-000000000000"];
       let lojaQ = supabase
         .from("vendas_loja")
         .select("id, vendedor_id, protocolo, nome_cliente, tecnologia, status, valor_novo, data_abertura, data_agendamento, agendamento_adiamentos")
-        .eq("mes_ref", mesRefISO)
         .not("status", "in", "(instalado,cancelado)");
       let papQ = supabase
         .from("vendas_pap")
         .select("id, vendedor_id, protocolo, nome_cliente, produto, status, valor, data_venda, data_agendamento, agendamento_adiamentos")
-        .eq("mes_ref", mesRefISO)
         .not("status", "in", "(instalado,cancelado)");
+
+      if (ativas) {
+        lojaQ = lojaQ.is("arquivada_em", null);
+        papQ = papQ.is("arquivada_em", null);
+      } else {
+        lojaQ = lojaQ.eq("mes_ref", mesRefISO);
+        papQ = papQ.eq("mes_ref", mesRefISO);
+      }
 
       if (isGestor) {
         lojaQ = lojaQ.in("vendedor_id", escopoIds.length ? escopoIds : vazio);
