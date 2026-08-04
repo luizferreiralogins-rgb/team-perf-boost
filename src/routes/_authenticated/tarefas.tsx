@@ -138,6 +138,7 @@ function TarefasPage() {
   const qc = useQueryClient();
   const { responsavel: responsavelInicial } = Route.useSearch();
   const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
+  const [editando, setEditando] = useState<Tarefa | null>(null);
 
   const me = useQuery({
     queryKey: ["tarefas-me"],
