@@ -620,7 +620,9 @@ function HistoricoPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
+
                 </TableBody>
               </Table>
             </div>
