@@ -221,7 +221,8 @@ function NovaVenda() {
         data: today(),
         data_instalacao: "",
         data_agendamento: "",
-        valor: "",
+        valor_novo: "",
+        valor_antigo: "",
         qtd_linhas: "0",
         instalado: false,
       }
