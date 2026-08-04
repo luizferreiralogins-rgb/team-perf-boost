@@ -793,6 +793,9 @@ function NovaTarefa({
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
       const linha = {
+        // Obrigatório no tipo gerado; o trigger do banco substitui este valor
+        // pelo usuário autenticado antes da validação RLS.
+        criador_id: autorId,
         alvo,
         responsavel_id: alvos[0],
         cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
