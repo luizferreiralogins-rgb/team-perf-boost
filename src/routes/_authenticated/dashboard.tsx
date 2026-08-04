@@ -109,7 +109,7 @@ function Dashboard() {
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel");
+        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel, qtd_linhas");
       const papQ = supabase
         .from("vendas_pap")
         .select("valor, valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas");
@@ -184,33 +184,44 @@ function Dashboard() {
       const scopeLoja = isGestor || canal === "loja" ? lojaRows : [];
       const scopePap = isGestor || canal === "pap" ? papRows : [];
 
-      let blQtd = 0, blRs = 0;
-      let mvQtd = 0, mvRs = 0;
-      let rvQtd = 0, rvRs = 0;
+      let blQtd = 0, blInst = 0, blRs = 0;
+      let mvQtd = 0, mvInst = 0, mvRs = 0;
+      let mvLinhas = 0, mvLinhasInst = 0;
+      let rvQtd = 0, rvInst = 0, rvRs = 0;
 
       for (const v of scopeLoja) {
         const inst = v.status === "instalado";
         const val = inst ? receitaLoja(v) : 0;
+        const linhas = Number(v.qtd_linhas ?? 0);
         const renovLoja = (v.classe_protocolo ?? "").startsWith("Renovação");
-        if (isBL(v.tecnologia) && !renovLoja) { blQtd++; blRs += val; }
-        if (isMovel(v.tecnologia) || v.contem_movel) { mvQtd++; mvRs += val; }
-        if (renovLoja) { rvQtd++; rvRs += val; }
+        if (isBL(v.tecnologia) && !renovLoja) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (isMovel(v.tecnologia) || v.contem_movel || linhas > 0) {
+          mvQtd++; if (inst) mvInst++; mvRs += val;
+          mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
+        }
+        if (renovLoja) { rvQtd++; if (inst) rvInst++; rvRs += val; }
       }
       for (const v of scopePap) {
         const inst = v.status === "instalado";
         const val = inst ? receitaPap(v) : 0;
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
-        const temMovel = isMovel(desc) || Number(v.qtd_linhas ?? 0) > 0;
+        const linhas = Number(v.qtd_linhas ?? 0);
+        const temMovel = isMovel(desc) || linhas > 0;
         const renovPap = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if (isBL(desc) && !renovPap) { blQtd++; blRs += val; }
-        if (temMovel) { mvQtd++; mvRs += val; }
-        if (renovPap) { rvQtd++; rvRs += val; }
+        if (isBL(desc) && !renovPap) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (temMovel) {
+          mvQtd++; if (inst) mvInst++; mvRs += val;
+          mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
+        }
+        if (renovPap) { rvQtd++; if (inst) rvInst++; rvRs += val; }
       }
 
 
       return {
         canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
-        blQtd, blRs, mvQtd, mvRs, rvQtd, rvRs,
+        blQtd, blInst, blRs,
+        mvQtd, mvInst, mvRs, mvLinhas, mvLinhasInst,
+        rvQtd, rvInst, rvRs,
       };
 
     },
@@ -338,6 +349,7 @@ function Dashboard() {
           <KpiCard
             title="Banda Larga"
             qtd={isLoading ? null : data?.blQtd ?? 0}
+            qtdInst={isLoading ? null : data?.blInst ?? 0}
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
             fator={fatorProj}
@@ -345,6 +357,9 @@ function Dashboard() {
           <KpiCard
             title="Móvel"
             qtd={isLoading ? null : data?.mvQtd ?? 0}
+            qtdInst={isLoading ? null : data?.mvInst ?? 0}
+            linhas={isLoading ? null : data?.mvLinhas ?? 0}
+            linhasInst={isLoading ? null : data?.mvLinhasInst ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
             fator={fatorProj}
@@ -352,11 +367,13 @@ function Dashboard() {
           <KpiCard
             title="Renovações"
             qtd={isLoading ? null : data?.rvQtd ?? 0}
+            qtdInst={isLoading ? null : data?.rvInst ?? 0}
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
             fator={fatorProj}
             projecaoEm="rs"
           />
+
 
         </div>
       </div>
@@ -446,6 +463,9 @@ function StatCard({
 function KpiCard({
   title,
   qtd,
+  qtdInst,
+  linhas,
+  linhasInst,
   valor,
   icon: Icon,
   fator = 1,
@@ -453,6 +473,9 @@ function KpiCard({
 }: {
   title: string;
   qtd: number | null;
+  qtdInst?: number | null;
+  linhas?: number | null;
+  linhasInst?: number | null;
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
@@ -468,9 +491,19 @@ function KpiCard({
         {qtd === null ? (
           <Skeleton className="h-7 w-16" />
         ) : (
-          <div className="text-2xl font-bold">{qtd}</div>
+          <div className="flex items-baseline gap-3">
+            <span className="text-2xl font-bold">{qtd}</span>
+            <span className="text-sm font-semibold text-muted-foreground">
+              Instaladas: {qtdInst ?? 0}
+            </span>
+          </div>
         )}
-        <p className="text-xs text-muted-foreground">Qtd. de vendas</p>
+        <p className="text-xs text-muted-foreground">Qtd. de vendas (total · instaladas)</p>
+        {linhas !== undefined && linhas !== null && (
+          <p className="text-xs text-muted-foreground">
+            Linhas — Total {linhas} · Instaladas {linhasInst ?? 0}
+          </p>
+        )}
         {valor === null ? (
           <Skeleton className="mt-2 h-5 w-24" />
         ) : (
@@ -482,7 +515,7 @@ function KpiCard({
           <p className="pt-1 text-xs font-medium text-muted-foreground">
             Projeção:{" "}
             {projecaoEm === "qtd"
-              ? `${Math.round(qtd * fator)} vendas`
+              ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
               : brl(valor * fator)}
           </p>
         )}
