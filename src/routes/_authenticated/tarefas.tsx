@@ -157,14 +157,30 @@ function TarefasPage() {
 
   const uid = me.data ?? null;
 
-  const tarefas = useQuery({
+  const participo = useQuery({
     enabled: !!uid,
-    queryKey: ["tarefas", uid],
+    queryKey: ["tarefas-participo", uid],
     queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tarefa_participantes")
+        .select("tarefa_id")
+        .eq("user_id", uid!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.tarefa_id);
+    },
+  });
+
+  const tarefas = useQuery({
+    enabled: !!uid && participo.isSuccess,
+    queryKey: ["tarefas", uid, participo.data],
+    queryFn: async () => {
+      const ids = participo.data ?? [];
+      const filtros = [`criador_id.eq.${uid}`, `responsavel_id.eq.${uid}`];
+      if (ids.length) filtros.push(`id.in.(${ids.join(",")})`);
       const { data, error } = await supabase
         .from("tarefas")
         .select("*")
-        .or(`criador_id.eq.${uid},responsavel_id.eq.${uid}`)
+        .or(filtros.join(","))
         .in("status", ["pendente", "iniciada"])
         .order("data_venc", { ascending: true })
         .order("hora_venc", { ascending: true, nullsFirst: true });
@@ -175,6 +191,30 @@ function TarefasPage() {
   });
 
   const lista = useMemo(() => tarefas.data ?? [], [tarefas.data]);
+  const idsLista = useMemo(() => lista.map((t) => t.id).sort(), [lista]);
+
+  const participantes = useQuery({
+    enabled: idsLista.length > 0,
+    queryKey: ["tarefa-participantes", idsLista],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tarefa_participantes")
+        .select("id, tarefa_id, user_id, status")
+        .in("tarefa_id", idsLista);
+      if (error) throw error;
+      return (data ?? []) as Participante[];
+    },
+  });
+
+  const porTarefa = useMemo(() => {
+    const map = new Map<string, Participante[]>();
+    for (const p of participantes.data ?? []) {
+      const arr = map.get(p.tarefa_id) ?? [];
+      arr.push(p);
+      map.set(p.tarefa_id, arr);
+    }
+    return map;
+  }, [participantes.data]);
 
 
 
@@ -214,22 +254,80 @@ function TarefasPage() {
     (t) => emAberto(t.status) && t.data_venc < hoje(),
   );
 
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ["tarefas"] });
+    qc.invalidateQueries({ queryKey: ["tarefa-participantes"] });
+    qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+  };
+
+  /** Atualiza a fase de um destinatário e consolida o status da tarefa. */
   const atualizar = useMutation({
-    mutationFn: async ({ tarefa, status }: { tarefa: Tarefa; status: Status }) => {
-      // Tarefa recorrente concluída: avança na própria tarefa para a próxima data.
-      const prox =
-        status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
-      const patch = prox
-        ? { status: "pendente" as Status, data_venc: prox }
-        : { status };
-      const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
+    mutationFn: async ({
+      tarefa,
+      status,
+      userId,
+    }: {
+      tarefa: Tarefa;
+      status: Status;
+      userId?: string | null;
+    }) => {
+      const atuais = porTarefa.get(tarefa.id) ?? [];
+      const alvo = userId ?? uid;
+
+      if (status === "cancelada" || atuais.length === 0) {
+        const prox =
+          status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
+        const patch = prox ? { status: "pendente" as Status, data_venc: prox } : { status };
+        const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
+        if (error) throw error;
+        return prox;
+      }
+
+      const linha = atuais.find((p) => p.user_id === alvo);
+      if (!linha) throw new Error("Você não é destinatário desta tarefa.");
+      const { error } = await supabase
+        .from("tarefa_participantes")
+        .update({ status })
+        .eq("id", linha.id);
       if (error) throw error;
-      return prox;
+
+      const novos = atuais.map((p) => (p.id === linha.id ? { ...p, status } : p));
+      const todosConcluidos = novos.every((p) => p.status === "concluida");
+
+      if (todosConcluidos) {
+        const prox = proximaData(tarefa.data_venc, tarefa.recorrencia);
+        if (prox) {
+          const { error: e1 } = await supabase
+            .from("tarefas")
+            .update({ status: "pendente" as Status, data_venc: prox })
+            .eq("id", tarefa.id);
+          if (e1) throw e1;
+          const { error: e2 } = await supabase
+            .from("tarefa_participantes")
+            .update({ status: "pendente" as Status })
+            .eq("tarefa_id", tarefa.id);
+          if (e2) throw e2;
+          return prox;
+        }
+        const { error: e3 } = await supabase
+          .from("tarefas")
+          .update({ status: "concluida" as Status })
+          .eq("id", tarefa.id);
+        if (e3) throw e3;
+        return null;
+      }
+
+      const algumAndamento = novos.some((p) => p.status !== "pendente");
+      const { error: e4 } = await supabase
+        .from("tarefas")
+        .update({ status: (algumAndamento ? "iniciada" : "pendente") as Status })
+        .eq("id", tarefa.id);
+      if (e4) throw e4;
+      return null;
     },
     onSuccess: (prox) => {
       if (prox) toast.success(`Recorrência: próxima data ${formatarData(prox)}.`);
-      qc.invalidateQueries({ queryKey: ["tarefas"] });
-      qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+      invalidar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -242,13 +340,14 @@ function TarefasPage() {
     },
     onSuccess: () => {
       toast.success("Tarefa excluída.");
-      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      invalidar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const nomePessoa = (id: string | null) =>
     pessoas.data?.find((p) => p.id === id)?.nome || "—";
+
 
   return (
     <AppShell>
