@@ -356,14 +356,13 @@ function Dashboard() {
           />
           <KpiCard
             title="Móvel"
-            qtd={isLoading ? null : data?.mvQtd ?? 0}
-            qtdInst={isLoading ? null : data?.mvInst ?? 0}
-            linhas={isLoading ? null : data?.mvLinhas ?? 0}
-            linhasInst={isLoading ? null : data?.mvLinhasInst ?? 0}
+            qtd={isLoading ? null : data?.mvLinhas ?? 0}
+            qtdInst={isLoading ? null : data?.mvLinhasInst ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
             fator={fatorProj}
           />
+
           <KpiCard
             title="Renovações"
             qtd={isLoading ? null : data?.rvQtd ?? 0}
