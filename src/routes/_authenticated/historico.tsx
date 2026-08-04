@@ -56,6 +56,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  HistoricoLeads,
+  HistoricoProdutividade,
+  HistoricoTarefas,
+} from "@/components/historico/outros-historicos";
 
 export const Route = createFileRoute("/_authenticated/historico")({
   head: () => ({
@@ -128,11 +133,21 @@ function useMe() {
   });
 }
 
+const ABAS = [
+  { value: "vendas", label: "Vendas", titulo: "Histórico de vendas" },
+  { value: "tarefas", label: "Tarefas", titulo: "Histórico de tarefas" },
+  { value: "leads", label: "Leads", titulo: "Histórico de leads" },
+  { value: "produtividade", label: "Produtividade", titulo: "Histórico de produtividade" },
+] as const;
+type Aba = (typeof ABAS)[number]["value"];
+
 function HistoricoPage() {
   const meQ = useMe();
   const qc = useQueryClient();
   const isGestor = !!meQ.data?.isGestor;
   const isRegional = !!meQ.data?.isRegional;
+  const [aba, setAba] = useState<Aba>("vendas");
+
 
   const [de, setDe] = useState(firstDayOfMonth());
   const [ate, setAte] = useState(todayStr());
@@ -199,6 +214,23 @@ function HistoricoPage() {
     (pessoasQ.data ?? []).forEach((p) => (m[p.id] = p.nome));
     return m;
   }, [pessoasQ.data]);
+
+  const alvos = useMemo<string[] | null>(() => {
+    if (!meQ.data) return null;
+    if (!isGestor) return [meQ.data.uid];
+    if (vendedor !== "todos") return [vendedor];
+    if (idsDoGerente) return idsDoGerente;
+    return null;
+  }, [meQ.data, isGestor, vendedor, idsDoGerente]);
+
+  const filtroOutros = {
+    de,
+    ate,
+    busca,
+    alvos,
+    nomePorId,
+    isGestor,
+  };
 
   const registrosQ = useQuery({
     enabled: !!meQ.data,
@@ -385,12 +417,30 @@ function HistoricoPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Histórico de vendas</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{ABAS.find((a) => a.value === aba)!.titulo}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Todas as vendas instaladas, organizadas pela <strong>data de instalação</strong>, para
-          consultas e análises de contestação.
+          Consulte os registros históricos por período. Use os botões abaixo para alternar entre os
+          históricos disponíveis.
         </p>
       </div>
+
+      <div className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+        {ABAS.map((a) => (
+          <button
+            key={a.value}
+            type="button"
+            onClick={() => setAba(a.value)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              aba === a.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
 
       <Card>
         <CardHeader>
@@ -405,6 +455,7 @@ function HistoricoPage() {
             <Label htmlFor="ate">Instalação até</Label>
             <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
           </div>
+          {aba === "vendas" && (
           <div className="space-y-1.5">
             <Label>Canal</Label>
             <Select value={canal} onValueChange={(v) => setCanal(v as typeof canal)}>
@@ -418,6 +469,7 @@ function HistoricoPage() {
               </SelectContent>
             </Select>
           </div>
+          )}
           {isRegional && (
             <div className="space-y-1.5">
               <Label>Gerente</Label>
@@ -476,6 +528,11 @@ function HistoricoPage() {
         </CardContent>
       </Card>
 
+      {aba === "tarefas" && <HistoricoTarefas {...filtroOutros} />}
+      {aba === "leads" && <HistoricoLeads {...filtroOutros} />}
+      {aba === "produtividade" && <HistoricoProdutividade {...filtroOutros} />}
+
+      {aba === "vendas" && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-5">
@@ -496,7 +553,9 @@ function HistoricoPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
+      {aba === "vendas" && (
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">Registros</CardTitle>
@@ -635,6 +694,7 @@ function HistoricoPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <TransferirVendaDialog
         venda={transferir}
