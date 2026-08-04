@@ -215,13 +215,25 @@ function TarefasPage() {
   );
 
   const atualizar = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
-      const { error } = await supabase.from("tarefas").update({ status }).eq("id", id);
+    mutationFn: async ({ tarefa, status }: { tarefa: Tarefa; status: Status }) => {
+      // Tarefa recorrente concluída: avança na própria tarefa para a próxima data.
+      const prox =
+        status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
+      const patch = prox
+        ? { status: "pendente" as Status, data_venc: prox }
+        : { status };
+      const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
       if (error) throw error;
+      return prox;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tarefas"] }),
+    onSuccess: (prox) => {
+      if (prox) toast.success(`Recorrência: próxima data ${formatarData(prox)}.`);
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
