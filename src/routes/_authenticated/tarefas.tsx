@@ -630,10 +630,10 @@ function NovaTarefa({
       const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
-      const linhas = alvos.map((rid) => ({
+      const linha = {
         criador_id: meId,
         alvo,
-        responsavel_id: rid,
+        responsavel_id: alvos[0],
         cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
         cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
         titulo: t.slice(0, 140),
@@ -642,15 +642,24 @@ function NovaTarefa({
         hora_venc: hora || null,
         prioridade,
         recorrencia,
-      }));
+      };
 
-
-      const { error } = await supabase.from("tarefas").insert(linhas);
+      const { data: criada, error } = await supabase
+        .from("tarefas")
+        .insert(linha)
+        .select("id")
+        .single();
       if (error) throw error;
-      return linhas.length;
+
+      const { error: errP } = await supabase.from("tarefa_participantes").insert(
+        alvos.map((uid) => ({ tarefa_id: criada.id, user_id: uid, status: "pendente" as Status })),
+      );
+      if (errP) throw errP;
+      return alvos.length;
     },
     onSuccess: (n) => {
-      toast.success(n && n > 1 ? `${n} tarefas criadas.` : "Tarefa criada.");
+      toast.success(n && n > 1 ? `Tarefa criada para ${n} pessoas.` : "Tarefa criada.");
+
       limpar();
       setAberto(false);
       onCriada();
