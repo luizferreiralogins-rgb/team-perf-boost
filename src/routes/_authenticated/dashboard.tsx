@@ -463,6 +463,9 @@ function StatCard({
 function KpiCard({
   title,
   qtd,
+  qtdInst,
+  linhas,
+  linhasInst,
   valor,
   icon: Icon,
   fator = 1,
@@ -470,6 +473,9 @@ function KpiCard({
 }: {
   title: string;
   qtd: number | null;
+  qtdInst?: number | null;
+  linhas?: number | null;
+  linhasInst?: number | null;
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
@@ -485,9 +491,19 @@ function KpiCard({
         {qtd === null ? (
           <Skeleton className="h-7 w-16" />
         ) : (
-          <div className="text-2xl font-bold">{qtd}</div>
+          <div className="flex items-baseline gap-3">
+            <span className="text-2xl font-bold">{qtd}</span>
+            <span className="text-sm font-semibold text-muted-foreground">
+              Instaladas: {qtdInst ?? 0}
+            </span>
+          </div>
         )}
-        <p className="text-xs text-muted-foreground">Qtd. de vendas</p>
+        <p className="text-xs text-muted-foreground">Qtd. de vendas (total · instaladas)</p>
+        {linhas !== undefined && linhas !== null && (
+          <p className="text-xs text-muted-foreground">
+            Linhas — Total {linhas} · Instaladas {linhasInst ?? 0}
+          </p>
+        )}
         {valor === null ? (
           <Skeleton className="mt-2 h-5 w-24" />
         ) : (
@@ -499,7 +515,7 @@ function KpiCard({
           <p className="pt-1 text-xs font-medium text-muted-foreground">
             Projeção:{" "}
             {projecaoEm === "qtd"
-              ? `${Math.round(qtd * fator)} vendas`
+              ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
               : brl(valor * fator)}
           </p>
         )}
