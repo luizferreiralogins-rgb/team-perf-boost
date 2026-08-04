@@ -604,7 +604,6 @@ function NovaTarefa({
   const [hora, setHora] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
   const [recorrencia, setRecorrencia] = useState<Recorrencia>("nenhuma");
-  const [repeticoes, setRepeticoes] = useState("4");
 
   const limpar = () => {
     setAlvo("propria");
@@ -617,7 +616,6 @@ function NovaTarefa({
     setHora("");
     setPrioridade("media");
     setRecorrencia("nenhuma");
-    setRepeticoes("4");
   };
 
   const criar = useMutation({
@@ -632,25 +630,20 @@ function NovaTarefa({
       const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
+      const linhas = alvos.map((rid) => ({
+        criador_id: meId,
+        alvo,
+        responsavel_id: rid,
+        cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
+        cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
+        titulo: t.slice(0, 140),
+        descricao: descricao.trim().slice(0, 1000) || null,
+        data_venc: data,
+        hora_venc: hora || null,
+        prioridade,
+        recorrencia,
+      }));
 
-      const qtd =
-        recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
-      const datas = gerarDatas(data, recorrencia, qtd);
-
-      const linhas = alvos.flatMap((rid) =>
-        datas.map((d) => ({
-          criador_id: meId,
-          alvo,
-          responsavel_id: rid,
-          cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
-          cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
-          titulo: t.slice(0, 140),
-          descricao: descricao.trim().slice(0, 1000) || null,
-          data_venc: d,
-          hora_venc: hora || null,
-          prioridade,
-        })),
-      );
 
       const { error } = await supabase.from("tarefas").insert(linhas);
       if (error) throw error;
