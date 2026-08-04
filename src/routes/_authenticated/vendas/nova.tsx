@@ -171,7 +171,8 @@ const papSchema = z.object({
   data: z.string().min(1, "Informe a data da venda"),
   data_instalacao: z.string().optional().or(z.literal("")),
   data_agendamento: z.string().optional().or(z.literal("")),
-  valor: z.coerce.number().positive("Valor deve ser maior que zero"),
+  valor_novo: z.coerce.number().positive("Valor novo deve ser maior que zero"),
+  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
   qtd_linhas: z.coerce.number().int().min(0),
   instalado: z.boolean(),
 });
