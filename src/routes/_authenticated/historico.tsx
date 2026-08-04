@@ -311,6 +311,53 @@ function HistoricoPage() {
     [rows],
   );
 
+  // Vendas que o próprio consultor pode devolver para a aba Vendas:
+  // arquivadas e com data de instalação dentro do mês atual.
+  const idsRetornaveis = useMemo(() => {
+    const mes = mesAtualPrefix();
+    return rows
+      .filter(
+        (r) =>
+          r.vendedor_id === meQ.data?.uid &&
+          !!r.arquivada_em &&
+          r.data_instalacao.slice(0, 7) === mes,
+      )
+      .map((r) => `${r.canal}-${r.id}`);
+  }, [rows, meQ.data?.uid]);
+
+  useEffect(() => {
+    setSelecionados((prev) => prev.filter((k) => idsRetornaveis.includes(k)));
+  }, [idsRetornaveis]);
+
+  async function devolverParaVendas() {
+    if (selecionados.length === 0) return;
+    setRetornando(true);
+    const porTabela: Record<string, string[]> = { vendas_loja: [], vendas_pap: [] };
+    for (const key of selecionados) {
+      const [canalKey, ...rest] = key.split("-");
+      porTabela[canalKey === "pap" ? "vendas_pap" : "vendas_loja"]!.push(rest.join("-"));
+    }
+    let erro: string | null = null;
+    for (const [table, ids] of Object.entries(porTabela)) {
+      if (ids.length === 0) continue;
+      const { error } = await supabase
+        .from(table as "vendas_loja" | "vendas_pap")
+        .update({ arquivada_em: null })
+        .in("id", ids);
+      if (error) erro = error.message;
+    }
+    setRetornando(false);
+    setConfirmRetorno(false);
+    if (erro) {
+      toast.error("Erro ao devolver para Vendas: " + erro);
+      return;
+    }
+    toast.success(`${selecionados.length} venda(s) devolvida(s) para a aba Vendas.`);
+    setSelecionados([]);
+    qc.invalidateQueries({ queryKey: ["historico"] });
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+  }
+
   async function confirmarExclusao() {
     if (!excluir) return;
     const table = excluir.canal === "pap" ? "vendas_pap" : "vendas_loja";
@@ -323,6 +370,7 @@ function HistoricoPage() {
     setExcluir(null);
     qc.invalidateQueries({ queryKey: ["historico"] });
   }
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
