@@ -128,11 +128,21 @@ function useMe() {
   });
 }
 
+const ABAS = [
+  { value: "vendas", label: "Vendas", titulo: "Histórico de vendas" },
+  { value: "tarefas", label: "Tarefas", titulo: "Histórico de tarefas" },
+  { value: "leads", label: "Leads", titulo: "Histórico de leads" },
+  { value: "produtividade", label: "Produtividade", titulo: "Histórico de produtividade" },
+] as const;
+type Aba = (typeof ABAS)[number]["value"];
+
 function HistoricoPage() {
   const meQ = useMe();
   const qc = useQueryClient();
   const isGestor = !!meQ.data?.isGestor;
   const isRegional = !!meQ.data?.isRegional;
+  const [aba, setAba] = useState<Aba>("vendas");
+
 
   const [de, setDe] = useState(firstDayOfMonth());
   const [ate, setAte] = useState(todayStr());
