@@ -385,12 +385,30 @@ function HistoricoPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Histórico de vendas</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{ABAS.find((a) => a.value === aba)!.titulo}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Todas as vendas instaladas, organizadas pela <strong>data de instalação</strong>, para
-          consultas e análises de contestação.
+          Consulte os registros históricos por período. Use os botões abaixo para alternar entre os
+          históricos disponíveis.
         </p>
       </div>
+
+      <div className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+        {ABAS.map((a) => (
+          <button
+            key={a.value}
+            type="button"
+            onClick={() => setAba(a.value)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              aba === a.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
 
       <Card>
         <CardHeader>
