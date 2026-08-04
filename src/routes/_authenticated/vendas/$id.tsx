@@ -67,7 +67,7 @@ function EditarVenda() {
       const { data: pap } = await supabase
         .from("vendas_pap")
         .select(
-          "vendedor_id, nome_cliente, protocolo, tipo_protocolo, data_venda, data_ativacao, data_agendamento, valor, produto, qtd_linhas, status",
+          "vendedor_id, nome_cliente, protocolo, tipo_protocolo, data_venda, data_ativacao, data_agendamento, valor, valor_novo, valor_antigo, produto, qtd_linhas, status",
         )
         .eq("id", id)
         .maybeSingle();
@@ -83,7 +83,8 @@ function EditarVenda() {
           data: pap.data_venda,
           data_instalacao: pap.data_ativacao ?? "",
           data_agendamento: pap.data_agendamento ?? "",
-          valor: String(pap.valor ?? ""),
+          valor_novo: String(pap.valor_novo || pap.valor || ""),
+          valor_antigo: pap.valor_antigo ? String(pap.valor_antigo) : "",
           qtd_linhas: String(pap.qtd_linhas ?? 0),
           instalado: pap.status === "instalado",
         },

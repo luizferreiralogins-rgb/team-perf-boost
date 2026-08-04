@@ -171,7 +171,8 @@ const papSchema = z.object({
   data: z.string().min(1, "Informe a data da venda"),
   data_instalacao: z.string().optional().or(z.literal("")),
   data_agendamento: z.string().optional().or(z.literal("")),
-  valor: z.coerce.number().positive("Valor deve ser maior que zero"),
+  valor_novo: z.coerce.number().positive("Valor novo deve ser maior que zero"),
+  valor_antigo: z.union([z.coerce.number().min(0), z.literal("")]).optional(),
   qtd_linhas: z.coerce.number().int().min(0),
   instalado: z.boolean(),
 });
@@ -220,7 +221,8 @@ function NovaVenda() {
         data: today(),
         data_instalacao: "",
         data_agendamento: "",
-        valor: "",
+        valor_novo: "",
+        valor_antigo: "",
         qtd_linhas: "0",
         instalado: false,
       }
@@ -629,7 +631,8 @@ export type FormPapState = {
   data: string;
   data_instalacao: string;
   data_agendamento: string;
-  valor: string;
+  valor_novo: string;
+  valor_antigo: string;
   qtd_linhas: string;
   instalado: boolean;
 };
@@ -655,7 +658,8 @@ export function FormPap({
       data: today(),
       data_instalacao: "",
       data_agendamento: "",
-      valor: "",
+      valor_novo: "",
+      valor_antigo: "",
       qtd_linhas: "0",
       instalado: false,
     },
@@ -664,6 +668,11 @@ export function FormPap({
   const [motivoReagendamento, setMotivoReagendamento] = useState("");
   const precisaJustificar =
     !!editingId && !!agendamentoOriginal && form.data_agendamento !== agendamentoOriginal;
+
+  const valorNovoNum = parseFloat(form.valor_novo) || 0;
+  const valorAntigoNum = parseFloat(form.valor_antigo) || 0;
+  const baseTicket =
+    valorAntigoNum > 0 ? Math.max(valorNovoNum - valorAntigoNum, 0) : valorNovoNum;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -684,6 +693,10 @@ export function FormPap({
 
 
     const mesRefPap = mesRefFromDate(parsed.data.data_instalacao || parsed.data.data);
+    const antigoNum =
+      typeof parsed.data.valor_antigo === "number" ? parsed.data.valor_antigo : 0;
+    const baseComissao =
+      antigoNum > 0 ? Math.max(parsed.data.valor_novo - antigoNum, 0) : parsed.data.valor_novo;
     let comissao = 0;
     if (parsed.data.instalado) {
       const [{ data: faixas }, { data: produtos }, { data: mesVendas }] = await Promise.all([
@@ -715,9 +728,9 @@ export function FormPap({
       const r = comissaoPap({
         tipoProtocolo: parsed.data.tipo_protocolo,
         produto: parsed.data.produto,
-        valor: parsed.data.valor,
+        valor: baseComissao,
         instalado: true,
-        totalCoreMes: coreOutras + (estaCore ? parsed.data.valor : 0),
+        totalCoreMes: coreOutras + (estaCore ? baseComissao : 0),
         faixas: (faixas ?? []) as PapFaixa[],
         produtos: listaProdutos,
       });
@@ -734,7 +747,9 @@ export function FormPap({
       data_ativacao: parsed.data.data_instalacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
       mes_ref: mesRefPap,
-      valor: parsed.data.valor,
+      valor: baseComissao,
+      valor_novo: parsed.data.valor_novo,
+      valor_antigo: antigoNum,
       qtd_linhas: parsed.data.qtd_linhas,
       produto: parsed.data.produto,
       status: parsed.data.instalado ? ("instalado" as const) : ("pendente" as const),
@@ -842,15 +857,30 @@ export function FormPap({
                 onChange={(e) => setForm({ ...form, data_agendamento: e.target.value })}
               />
             </Field>
-            <Field label="Valor da venda (R$)" required>
+            <Field label="Valor novo (R$)" required hint="Valor do novo plano/serviço.">
               <Input
                 type="number"
                 step="0.01"
                 min="0"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                value={form.valor_novo}
+                onChange={(e) => setForm({ ...form, valor_novo: e.target.value })}
                 required
               />
+            </Field>
+            <Field
+              label="Valor antigo (R$)"
+              hint="Preencha em renovações. A comissão incide sobre a diferença de ticket."
+            >
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valor_antigo}
+                onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
+              />
+            </Field>
+            <Field label="Base de comissão (R$)" hint="Diferença de ticket usada no cálculo.">
+              <Input readOnly value={baseTicket.toFixed(2)} />
             </Field>
             <Field label="Qtd. linhas móveis" hint="Informe 0 se não houver linha móvel.">
               <Input
@@ -896,7 +926,7 @@ export function FormPap({
       </Card>
       <aside className="space-y-4">
         <ProjecaoComissaoPap
-          valor={form.valor}
+          valor={String(baseTicket)}
           instalado={form.instalado}
           tipoProtocolo={form.tipo_protocolo}
           produto={form.produto}
@@ -905,7 +935,7 @@ export function FormPap({
           editingId={editingId}
         />
 
-        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor} />
+        <CalculadoraParcelaMedia defaultParcelaNormal={form.valor_novo} />
       </aside>
     </div>
   );
