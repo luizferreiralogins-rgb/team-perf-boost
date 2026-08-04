@@ -7,15 +7,16 @@ import {
   type OpcaoOrdenacao,
 } from "@/components/ordenacao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Send, Trash2, Search } from "lucide-react";
+import { MoreHorizontal, Pencil, Send, Trash2, Search, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -140,6 +141,9 @@ function HistoricoPage() {
   const [vendedor, setVendedor] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [retornando, setRetornando] = useState(false);
+  const [confirmRetorno, setConfirmRetorno] = useState(false);
   const [transferir, setTransferir] = useState<Registro | null>(null);
   const [excluir, setExcluir] = useState<Registro | null>(null);
 
