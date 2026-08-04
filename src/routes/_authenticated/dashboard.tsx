@@ -244,6 +244,35 @@ function Dashboard() {
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
 
+      {!isGestor && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <Label className="text-sm text-muted-foreground">Mês</Label>
+            <Select
+              value={filtros.mes}
+              onValueChange={(mes) => setFiltros((f) => ({ ...f, mes }))}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {mesesRecentes(12).map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {ehMesAtual && (
+              <span className="text-xs text-muted-foreground">
+                Mês atual: considera todas as vendas da aba Vendas.
+              </span>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
       <AgendamentosVencidos
         escopoIds={isGestor ? escopoIds : undefined}
         uid={isGestor ? undefined : roleInfo?.uid}
