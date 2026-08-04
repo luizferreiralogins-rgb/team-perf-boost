@@ -245,34 +245,12 @@ function TarefasPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Agenda / Tarefas</h1>
             <p className="text-sm text-muted-foreground">
-              Crie tarefas para você, para colegas ou para clientes e acompanhe os vencimentos.
+              Somente tarefas criadas por você ou atribuídas a você. As concluídas ficam na aba
+              Histórico.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={filtro === "pendentes" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("pendentes")}
-            >
-              Pendentes
-            </Button>
-            <Button
-              variant={filtro === "historico" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("historico")}
-            >
-              Histórico
-            </Button>
-            <Button
-              variant={filtro === "todas" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("todas")}
-            >
-              Todas
-            </Button>
-
-          </div>
         </header>
+
 
         {(vencemAmanha.length > 0 || atrasadas.length > 0) && (
           <div className="flex gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
