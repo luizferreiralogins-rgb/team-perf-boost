@@ -12,10 +12,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
 
 import {
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   FiltrosBar,
   RankingEquipe,
   aplicarFiltros,
   mesAtual,
+  mesesRecentes,
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
