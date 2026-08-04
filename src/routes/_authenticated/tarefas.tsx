@@ -137,7 +137,6 @@ function formatarData(d: string) {
 function TarefasPage() {
   const qc = useQueryClient();
   const { responsavel: responsavelInicial } = Route.useSearch();
-  const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
   const [editando, setEditando] = useState<Tarefa | null>(null);
 
   const me = useQuery({
@@ -156,13 +155,17 @@ function TarefasPage() {
     staleTime: 60_000,
   });
 
+  const uid = me.data ?? null;
 
   const tarefas = useQuery({
-    queryKey: ["tarefas"],
+    enabled: !!uid,
+    queryKey: ["tarefas", uid],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tarefas")
         .select("*")
+        .or(`criador_id.eq.${uid},responsavel_id.eq.${uid}`)
+        .in("status", ["pendente", "iniciada"])
         .order("data_venc", { ascending: true })
         .order("hora_venc", { ascending: true, nullsFirst: true });
       if (error) throw error;
@@ -171,12 +174,8 @@ function TarefasPage() {
     refetchInterval: 60_000,
   });
 
-  const lista = useMemo(() => {
-    const t = tarefas.data ?? [];
-    if (filtro === "pendentes") return t.filter((x) => emAberto(x.status));
-    if (filtro === "historico") return t.filter((x) => !emAberto(x.status));
-    return t;
-  }, [tarefas.data, filtro]);
+  const lista = useMemo(() => tarefas.data ?? [], [tarefas.data]);
+
 
 
   const PESO_PRIORIDADE: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
