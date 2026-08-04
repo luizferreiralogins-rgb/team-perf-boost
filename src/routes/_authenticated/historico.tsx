@@ -494,7 +494,20 @@ function HistoricoPage() {
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-base">Registros</CardTitle>
-          {rows.length > 0 && ordenarControl}
+          <div className="flex flex-wrap items-center gap-2">
+            {idsRetornaveis.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selecionados.length === 0 || retornando}
+                onClick={() => setConfirmRetorno(true)}
+              >
+                <Undo2 className="mr-2 h-4 w-4" /> Voltar para Vendas
+                {selecionados.length > 0 ? ` (${selecionados.length})` : ""}
+              </Button>
+            )}
+            {rows.length > 0 && ordenarControl}
+          </div>
         </CardHeader>
         <CardContent>
           {registrosQ.isLoading ? (
@@ -512,6 +525,20 @@ function HistoricoPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {idsRetornaveis.length > 0 && (
+                      <TableHead className="w-10">
+                        <Checkbox
+                          aria-label="Selecionar todas retornáveis"
+                          checked={
+                            selecionados.length > 0 &&
+                            selecionados.length === idsRetornaveis.length
+                          }
+                          onCheckedChange={(c: boolean | "indeterminate") =>
+                            setSelecionados(c === true ? idsRetornaveis : [])
+                          }
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Instalação</TableHead>
                     {isGestor && <TableHead>Consultor</TableHead>}
                     <TableHead>Cliente</TableHead>
@@ -525,11 +552,31 @@ function HistoricoPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhas.map((r) => (
-                    <TableRow key={`${r.canal}-${r.id}`}>
+                  {linhas.map((r) => {
+                    const key = `${r.canal}-${r.id}`;
+                    const retornavel = idsRetornaveis.includes(key);
+                    return (
+                    <TableRow key={key}>
+                      {idsRetornaveis.length > 0 && (
+                        <TableCell>
+                          <Checkbox
+                            aria-label={`Selecionar venda de ${r.cliente}`}
+                            disabled={!retornavel}
+                            checked={selecionados.includes(key)}
+                            onCheckedChange={() =>
+                              setSelecionados((prev) =>
+                                prev.includes(key)
+                                  ? prev.filter((x) => x !== key)
+                                  : [...prev, key],
+                              )
+                            }
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="whitespace-nowrap">{fmtDate(r.data_instalacao)}</TableCell>
                       {isGestor && <TableCell>{nomePorId[r.vendedor_id] ?? "—"}</TableCell>}
                       <TableCell>{r.cliente}</TableCell>
+
                       <TableCell className="whitespace-nowrap">{r.protocolo ?? "—"}</TableCell>
                       <TableCell>{r.tipo}</TableCell>
                       <TableCell className="max-w-[220px] truncate">{r.produto}</TableCell>
