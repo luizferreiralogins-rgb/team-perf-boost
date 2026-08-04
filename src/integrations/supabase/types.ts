@@ -888,6 +888,8 @@ export type Database = {
           tipo_protocolo: string | null
           updated_at: string
           valor: number
+          valor_antigo: number
+          valor_novo: number
           vendedor_id: string
         }
         Insert: {
@@ -915,6 +917,8 @@ export type Database = {
           tipo_protocolo?: string | null
           updated_at?: string
           valor?: number
+          valor_antigo?: number
+          valor_novo?: number
           vendedor_id: string
         }
         Update: {
@@ -942,6 +946,8 @@ export type Database = {
           tipo_protocolo?: string | null
           updated_at?: string
           valor?: number
+          valor_antigo?: number
+          valor_novo?: number
           vendedor_id?: string
         }
         Relationships: []
