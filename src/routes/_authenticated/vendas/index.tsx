@@ -96,11 +96,14 @@ function VendasList() {
   const [deleting, setDeleting] = useState(false);
   const [arquivando, setArquivando] = useState(false);
   const [confirmArquivar, setConfirmArquivar] = useState(false);
+  const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [uid, setUid] = useState<string>();
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUid(data.user?.id));
   }, []);
   const faixa = useFaixaAtual(uid);
+
+
 
 
 
