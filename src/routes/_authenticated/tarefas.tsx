@@ -78,6 +78,7 @@ type Tarefa = {
   hora_venc: string | null;
   prioridade: Prioridade;
   status: Status;
+  recorrencia: Recorrencia;
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -115,18 +116,16 @@ const RECORRENCIA_LABEL: Record<Recorrencia, string> = {
   mensal: "Mensal",
 };
 
-function gerarDatas(inicio: string, recorrencia: Recorrencia, qtd: number) {
+/** Próxima data da tarefa conforme a recorrência configurada. */
+export function proximaData(inicio: string, recorrencia: Recorrencia) {
+  if (recorrencia === "nenhuma") return null;
   const [y, m, d] = inicio.split("-").map(Number);
-  const datas: string[] = [];
-  for (let i = 0; i < qtd; i++) {
-    const base = new Date(Date.UTC(y, m - 1, d));
-    if (recorrencia === "diaria") base.setUTCDate(base.getUTCDate() + i);
-    else if (recorrencia === "semanal") base.setUTCDate(base.getUTCDate() + i * 7);
-    else if (recorrencia === "quinzenal") base.setUTCDate(base.getUTCDate() + i * 14);
-    else if (recorrencia === "mensal") base.setUTCMonth(base.getUTCMonth() + i);
-    datas.push(base.toISOString().slice(0, 10));
-  }
-  return datas;
+  const base = new Date(Date.UTC(y, m - 1, d));
+  if (recorrencia === "diaria") base.setUTCDate(base.getUTCDate() + 1);
+  else if (recorrencia === "semanal") base.setUTCDate(base.getUTCDate() + 7);
+  else if (recorrencia === "quinzenal") base.setUTCDate(base.getUTCDate() + 14);
+  else if (recorrencia === "mensal") base.setUTCMonth(base.getUTCMonth() + 1);
+  return base.toISOString().slice(0, 10);
 }
 
 function formatarData(d: string) {
@@ -134,10 +133,10 @@ function formatarData(d: string) {
   return `${day}/${m}/${y}`;
 }
 
+
 function TarefasPage() {
   const qc = useQueryClient();
   const { responsavel: responsavelInicial } = Route.useSearch();
-  const [filtro, setFiltro] = useState<"pendentes" | "historico" | "todas">("pendentes");
   const [editando, setEditando] = useState<Tarefa | null>(null);
 
   const me = useQuery({
@@ -156,13 +155,17 @@ function TarefasPage() {
     staleTime: 60_000,
   });
 
+  const uid = me.data ?? null;
 
   const tarefas = useQuery({
-    queryKey: ["tarefas"],
+    enabled: !!uid,
+    queryKey: ["tarefas", uid],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tarefas")
         .select("*")
+        .or(`criador_id.eq.${uid},responsavel_id.eq.${uid}`)
+        .in("status", ["pendente", "iniciada"])
         .order("data_venc", { ascending: true })
         .order("hora_venc", { ascending: true, nullsFirst: true });
       if (error) throw error;
@@ -171,12 +174,8 @@ function TarefasPage() {
     refetchInterval: 60_000,
   });
 
-  const lista = useMemo(() => {
-    const t = tarefas.data ?? [];
-    if (filtro === "pendentes") return t.filter((x) => emAberto(x.status));
-    if (filtro === "historico") return t.filter((x) => !emAberto(x.status));
-    return t;
-  }, [tarefas.data, filtro]);
+  const lista = useMemo(() => tarefas.data ?? [], [tarefas.data]);
+
 
 
   const PESO_PRIORIDADE: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
@@ -216,13 +215,25 @@ function TarefasPage() {
   );
 
   const atualizar = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
-      const { error } = await supabase.from("tarefas").update({ status }).eq("id", id);
+    mutationFn: async ({ tarefa, status }: { tarefa: Tarefa; status: Status }) => {
+      // Tarefa recorrente concluída: avança na própria tarefa para a próxima data.
+      const prox =
+        status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
+      const patch = prox
+        ? { status: "pendente" as Status, data_venc: prox }
+        : { status };
+      const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
       if (error) throw error;
+      return prox;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tarefas"] }),
+    onSuccess: (prox) => {
+      if (prox) toast.success(`Recorrência: próxima data ${formatarData(prox)}.`);
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const excluir = useMutation({
     mutationFn: async (id: string) => {
@@ -246,34 +257,12 @@ function TarefasPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Agenda / Tarefas</h1>
             <p className="text-sm text-muted-foreground">
-              Crie tarefas para você, para colegas ou para clientes e acompanhe os vencimentos.
+              Somente tarefas criadas por você ou atribuídas a você. As concluídas ficam na aba
+              Histórico.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={filtro === "pendentes" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("pendentes")}
-            >
-              Pendentes
-            </Button>
-            <Button
-              variant={filtro === "historico" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("historico")}
-            >
-              Histórico
-            </Button>
-            <Button
-              variant={filtro === "todas" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFiltro("todas")}
-            >
-              Todas
-            </Button>
-
-          </div>
         </header>
+
 
         {(vencemAmanha.length > 0 || atrasadas.length > 0) && (
           <div className="flex gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
@@ -364,6 +353,13 @@ function TarefasPage() {
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
                           {STATUS_LABEL[t.status]}
+                          {t.recorrencia && t.recorrencia !== "nenhuma" && (
+                            <>
+                              {" · "}
+                              {RECORRENCIA_LABEL[t.recorrencia]} · próxima{" "}
+                              {formatarData(proximaData(t.data_venc, t.recorrencia)!)}
+                            </>
+                          )}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-1">
@@ -373,7 +369,7 @@ function TarefasPage() {
                             size="sm"
                             variant={t.status === s.valor ? "default" : "outline"}
                             disabled={atualizar.isPending}
-                            onClick={() => atualizar.mutate({ id: t.id, status: s.valor })}
+                            onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
                           >
                             {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
                             {s.label}
@@ -384,11 +380,12 @@ function TarefasPage() {
                             size="sm"
                             variant="ghost"
                             title="Cancelar tarefa"
-                            onClick={() => atualizar.mutate({ id: t.id, status: "cancelada" })}
+                            onClick={() => atualizar.mutate({ tarefa: t, status: "cancelada" })}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
+
 
                         {t.criador_id === me.data && (
                           <>
@@ -607,7 +604,6 @@ function NovaTarefa({
   const [hora, setHora] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
   const [recorrencia, setRecorrencia] = useState<Recorrencia>("nenhuma");
-  const [repeticoes, setRepeticoes] = useState("4");
 
   const limpar = () => {
     setAlvo("propria");
@@ -620,7 +616,6 @@ function NovaTarefa({
     setHora("");
     setPrioridade("media");
     setRecorrencia("nenhuma");
-    setRepeticoes("4");
   };
 
   const criar = useMutation({
@@ -635,25 +630,20 @@ function NovaTarefa({
       const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
+      const linhas = alvos.map((rid) => ({
+        criador_id: meId,
+        alvo,
+        responsavel_id: rid,
+        cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
+        cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
+        titulo: t.slice(0, 140),
+        descricao: descricao.trim().slice(0, 1000) || null,
+        data_venc: data,
+        hora_venc: hora || null,
+        prioridade,
+        recorrencia,
+      }));
 
-      const qtd =
-        recorrencia === "nenhuma" ? 1 : Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52);
-      const datas = gerarDatas(data, recorrencia, qtd);
-
-      const linhas = alvos.flatMap((rid) =>
-        datas.map((d) => ({
-          criador_id: meId,
-          alvo,
-          responsavel_id: rid,
-          cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
-          cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
-          titulo: t.slice(0, 140),
-          descricao: descricao.trim().slice(0, 1000) || null,
-          data_venc: d,
-          hora_venc: hora || null,
-          prioridade,
-        })),
-      );
 
       const { error } = await supabase.from("tarefas").insert(linhas);
       if (error) throw error;
@@ -817,24 +807,14 @@ function NovaTarefa({
                 ))}
               </SelectContent>
             </Select>
+            {recorrencia !== "nenhuma" && (
+              <p className="text-xs text-muted-foreground">
+                Ao concluir, a própria tarefa avança para {formatarData(proximaData(data, recorrencia)!)}.
+              </p>
+            )}
           </div>
 
-          {recorrencia !== "nenhuma" && (
-            <div className="space-y-1.5">
-              <Label>Repetições</Label>
-              <Input
-                type="number"
-                min={1}
-                max={52}
-                value={repeticoes}
-                onChange={(e) => setRepeticoes(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Serão criadas {Math.min(Math.max(parseInt(repeticoes, 10) || 1, 1), 52)} ocorrências
-                a partir da data escolhida.
-              </p>
-            </div>
-          )}
+
 
 
 
