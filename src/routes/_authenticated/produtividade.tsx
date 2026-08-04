@@ -313,10 +313,14 @@ function Produtividade() {
       {isMaster && <TemposConfig />}
 
 
-      <Card>
+      <Card id="form-atendimento">
         <CardHeader>
-          <CardTitle>Novo atendimento</CardTitle>
-          <CardDescription>Preencha os dados do atendimento realizado.</CardDescription>
+          <CardTitle>{editandoId ? "Editar atendimento" : "Novo atendimento"}</CardTitle>
+          <CardDescription>
+            {editandoId
+              ? "Altere os dados e salve para atualizar o registro."
+              : "Preencha os dados do atendimento realizado."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form
