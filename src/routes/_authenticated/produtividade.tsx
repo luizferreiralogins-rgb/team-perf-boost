@@ -369,9 +369,18 @@ function Produtividade() {
               <Label htmlFor="data">Data</Label>
               <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
-            <div className="flex items-end justify-end sm:col-span-2">
+            <div className="flex items-end justify-end gap-2 sm:col-span-2">
+              {editandoId && (
+                <Button type="button" variant="outline" onClick={limparForm}>
+                  Cancelar edição
+                </Button>
+              )}
               <Button type="submit" disabled={criar.isPending}>
-                {criar.isPending ? "Salvando..." : "Registrar atendimento"}
+                {criar.isPending
+                  ? "Salvando..."
+                  : editandoId
+                    ? "Salvar alterações"
+                    : "Registrar atendimento"}
               </Button>
             </div>
           </form>
