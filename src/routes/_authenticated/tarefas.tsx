@@ -776,18 +776,24 @@ function NovaTarefa({
 
   const criar = useMutation({
     mutationFn: async () => {
-      if (!meId) throw new Error("Sessão expirada.");
       const t = titulo.trim();
       if (!t) throw new Error("Informe o título da tarefa.");
       if (alvo === "usuario" && responsaveis.length === 0)
         throw new Error("Escolha ao menos um responsável.");
       if (alvo === "cliente" && !clienteNome.trim()) throw new Error("Informe o nome do cliente.");
 
-      const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
+      // Garante uma sessão válida (renovando o token se necessário) antes de gravar,
+      // caso contrário a requisição chega ao banco sem autenticação e a RLS bloqueia.
+      let sessao = (await supabase.auth.getSession()).data.session;
+      if (!sessao) sessao = (await supabase.auth.refreshSession()).data.session;
+      const autorId = sessao?.user?.id ?? null;
+      if (!autorId) throw new Error("Sessão expirada. Entre novamente para criar a tarefa.");
+
+      const alvos: string[] = alvo === "usuario" ? responsaveis : [autorId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
       const linha = {
-        criador_id: meId,
+        criador_id: autorId,
         alvo,
         responsavel_id: alvos[0],
         cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
