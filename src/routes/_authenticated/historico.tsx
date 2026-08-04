@@ -210,7 +210,7 @@ function HistoricoPage() {
         let q = supabase
           .from("vendas_loja")
           .select(
-            "id, vendedor_id, protocolo, nome_cliente, classe_protocolo, tecnologia, valor_novo, valor_antigo, comissao, data_ativacao",
+            "id, vendedor_id, protocolo, nome_cliente, classe_protocolo, tecnologia, valor_novo, valor_antigo, comissao, data_ativacao, arquivada_em",
           )
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
@@ -236,6 +236,7 @@ function HistoricoPage() {
                 ? Number(v.valor_novo ?? 0) - Number(v.valor_antigo ?? 0)
                 : Number(v.valor_novo ?? 0),
             comissao: Number(v.comissao ?? 0),
+            arquivada_em: v.arquivada_em ?? null,
           }),
         );
       }
@@ -244,7 +245,7 @@ function HistoricoPage() {
         let q = supabase
           .from("vendas_pap")
           .select(
-            "id, vendedor_id, protocolo, tipo_protocolo, nome_cliente, produto, valor, comissao, data_ativacao",
+            "id, vendedor_id, protocolo, tipo_protocolo, nome_cliente, produto, valor, comissao, data_ativacao, arquivada_em",
           )
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
@@ -267,6 +268,7 @@ function HistoricoPage() {
             produto: v.produto ?? "—",
             valor: Number(v.valor ?? 0),
             comissao: Number(v.comissao ?? 0),
+            arquivada_em: v.arquivada_em ?? null,
           }),
         );
       }
