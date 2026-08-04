@@ -210,22 +210,31 @@ function Produtividade() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       if (nome.trim().length < 2) throw new Error("Informe o nome do cliente.");
-      const { error } = await supabase.from("atendimentos").insert({
-        usuario_id: uid,
+      const payload = {
         nome_cliente: nome.trim(),
         tipo,
         contato_cliente: contato.trim() || null,
         data_atendimento: data,
-      });
+      };
+      if (editandoId) {
+        const { error } = await supabase
+          .from("atendimentos")
+          .update(payload)
+          .eq("id", editandoId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from("atendimentos")
+        .insert({ usuario_id: uid, ...payload });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Atendimento registrado.");
-      setNome("");
-      setContato("");
+      toast.success(editandoId ? "Atendimento atualizado." : "Atendimento registrado.");
+      limparForm();
       qc.invalidateQueries({ queryKey: ["produtividade"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao registrar atendimento."),
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar atendimento."),
   });
 
   const excluir = useMutation({
