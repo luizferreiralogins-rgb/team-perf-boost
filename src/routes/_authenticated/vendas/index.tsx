@@ -89,6 +89,8 @@ type Row = {
   comissao: number;
   data_instalacao: string | null;
   data_agendamento: string | null;
+  tipo_protocolo: string | null;
+  qtd_linhas: number;
 };
 
 function VendasList() {
@@ -122,7 +124,7 @@ function VendasList() {
       if (canal === "loja") {
         const { data: rows } = await supabase
           .from("vendas_loja")
-          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao")
+          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas")
           .eq("vendedor_id", uid)
           .is("arquivada_em", null)
           .order("data_abertura", { ascending: false, nullsFirst: false })
@@ -138,12 +140,14 @@ function VendasList() {
             comissao: Number(v.comissao ?? 0),
             data_instalacao: v.data_ativacao ?? null,
             data_agendamento: v.data_agendamento ?? null,
+            tipo_protocolo: v.classe_protocolo ?? null,
+            qtd_linhas: Number(v.qtd_linhas ?? 0),
           })),
         };
       }
       const { data: rows } = await supabase
         .from("vendas_pap")
-        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao")
+        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas")
         .eq("vendedor_id", uid)
         .is("arquivada_em", null)
         .order("data_venda", { ascending: false })
@@ -159,6 +163,8 @@ function VendasList() {
           comissao: Number(v.comissao ?? 0),
           data_instalacao: v.data_ativacao ?? null,
           data_agendamento: v.data_agendamento ?? null,
+          tipo_protocolo: v.tipo_protocolo ?? null,
+          qtd_linhas: Number(v.qtd_linhas ?? 0),
         })),
       };
     },
@@ -325,6 +331,9 @@ function VendasList() {
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data do agendamento</TableHead>
+                    <TableHead>Tipo de protocolo</TableHead>
+                    <TableHead className="text-center">Qtd linhas</TableHead>
+                    <TableHead>Data instalação</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Comissão</TableHead>
                     <TableHead>Status</TableHead>
@@ -350,6 +359,13 @@ function VendasList() {
                       <TableCell className="whitespace-nowrap">
                         {v.data_agendamento
                           ? new Date(v.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
+                          : "—"}
+                      </TableCell>
+                      <TableCell>{v.tipo_protocolo || "—"}</TableCell>
+                      <TableCell className="text-center">{v.qtd_linhas || 0}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {v.data_instalacao
+                          ? new Date(v.data_instalacao + "T00:00:00").toLocaleDateString("pt-BR")
                           : "—"}
                       </TableCell>
                       <TableCell className="font-medium">{brl(v.valor)}</TableCell>
