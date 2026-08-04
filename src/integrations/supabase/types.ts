@@ -724,6 +724,7 @@ export type Database = {
           hora_venc: string | null
           id: string
           prioridade: Database["public"]["Enums"]["tarefa_prioridade"]
+          recorrencia: string
           responsavel_id: string | null
           status: Database["public"]["Enums"]["tarefa_status"]
           titulo: string
@@ -740,6 +741,7 @@ export type Database = {
           hora_venc?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
+          recorrencia?: string
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo: string
@@ -756,6 +758,7 @@ export type Database = {
           hora_venc?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
+          recorrencia?: string
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo?: string
