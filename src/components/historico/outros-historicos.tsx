@@ -53,6 +53,7 @@ export function HistoricoTarefas({ de, ate, busca, alvos, nomePorId, isGestor }:
       let query = supabase
         .from("tarefas")
         .select("id, titulo, descricao, cliente_nome, status, prioridade, data_venc, hora_venc, responsavel_id, criador_id")
+        .in("status", ["concluida", "cancelada"])
         .gte("data_venc", de)
         .lte("data_venc", ate)
         .order("data_venc", { ascending: false });
@@ -62,6 +63,7 @@ export function HistoricoTarefas({ de, ate, busca, alvos, nomePorId, isGestor }:
       return data ?? [];
     },
   });
+
 
   const rows = useMemo(() => {
     const t = busca.trim().toLowerCase();
