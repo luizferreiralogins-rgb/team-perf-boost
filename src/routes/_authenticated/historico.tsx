@@ -202,7 +202,7 @@ function HistoricoPage() {
 
   const registrosQ = useQuery({
     enabled: !!meQ.data,
-    queryKey: ["historico", meQ.data?.uid, de, ate, canal, vendedor, gerente, idsDoGerente],
+    queryKey: ["historico", meQ.data?.uid, isGestor, de, ate, canal, vendedor, gerente, idsDoGerente],
     queryFn: async (): Promise<Registro[]> => {
       const uid = meQ.data!.uid;
       const alvo = isGestor ? (vendedor === "todos" ? null : vendedor) : uid;
