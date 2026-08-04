@@ -257,6 +257,7 @@ function HistoricoPage() {
           .gte("data_ativacao", de)
           .lte("data_ativacao", ate)
           .order("data_ativacao", { ascending: false });
+        if (!isGestor) q = q.not("arquivada_em", "is", null);
         if (alvo) q = q.eq("vendedor_id", alvo);
         else if (equipe) q = q.in("vendedor_id", equipe.length ? equipe : ["00000000-0000-0000-0000-000000000000"]);
         const { data, error } = await q;
