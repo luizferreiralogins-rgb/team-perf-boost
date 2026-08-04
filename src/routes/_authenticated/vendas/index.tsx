@@ -271,12 +271,13 @@ function VendasList() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            disabled={prontasParaHistorico.length === 0 || arquivando}
+            disabled={selecionadas.length === 0 || arquivando}
             onClick={() => setConfirmArquivar(true)}
           >
-            <Archive className="mr-2 h-4 w-4" /> Enviar para Histórico
-            {prontasParaHistorico.length > 0 ? ` (${prontasParaHistorico.length})` : ""}
+            <Archive className="mr-2 h-4 w-4" /> Enviar selecionadas para Histórico
+            {selecionadas.length > 0 ? ` (${selecionadas.length})` : ""}
           </Button>
+
           <Button asChild>
             <Link to="/vendas/nova" search={{}}>
               <Plus className="mr-2 h-4 w-4" /> Nova venda
