@@ -168,13 +168,34 @@ function VendasList() {
     [data],
   );
 
+  const idsElegiveis = useMemo(
+    () => prontasParaHistorico.map((r) => r.id),
+    [prontasParaHistorico],
+  );
+
+  // mantém a seleção sempre dentro das vendas elegíveis
+  useEffect(() => {
+    setSelecionadas((prev) => prev.filter((id) => idsElegiveis.includes(id)));
+  }, [idsElegiveis]);
+
+  const selecionadasRows = useMemo(
+    () => prontasParaHistorico.filter((r) => selecionadas.includes(r.id)),
+    [prontasParaHistorico, selecionadas],
+  );
+
+  function toggleSelecao(id: string) {
+    setSelecionadas((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
   async function enviarParaHistorico() {
-    if (!data || prontasParaHistorico.length === 0) return;
+    if (!data || selecionadasRows.length === 0) return;
     setArquivando(true);
     const table = data.canal === "pap" ? "vendas_pap" : "vendas_loja";
     // agrupa por mês da data de instalação — a referência do lote é sempre a instalação
     const porMes = new Map<string, string[]>();
-    for (const r of prontasParaHistorico) {
+    for (const r of selecionadasRows) {
       const mesRef = r.data_instalacao!.slice(0, 7) + "-01";
       porMes.set(mesRef, [...(porMes.get(mesRef) ?? []), r.id]);
     }
@@ -192,7 +213,10 @@ function VendasList() {
       toast.error("Erro ao enviar para o histórico: " + erro);
       return;
     }
-    toast.success(`${prontasParaHistorico.length} venda(s) enviada(s) para o histórico.`);
+    toast.success(`${selecionadasRows.length} venda(s) enviada(s) para o histórico.`);
+    setSelecionadas([]);
+    qc.invalidateQueries({ queryKey: ["vendas-list"] });
+
     qc.invalidateQueries({ queryKey: ["vendas-list"] });
     qc.invalidateQueries({ queryKey: ["historico"] });
   }
