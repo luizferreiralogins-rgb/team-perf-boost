@@ -669,6 +669,11 @@ export function FormPap({
   const precisaJustificar =
     !!editingId && !!agendamentoOriginal && form.data_agendamento !== agendamentoOriginal;
 
+  const valorNovoNum = parseFloat(form.valor_novo) || 0;
+  const valorAntigoNum = parseFloat(form.valor_antigo) || 0;
+  const baseTicket =
+    valorAntigoNum > 0 ? Math.max(valorNovoNum - valorAntigoNum, 0) : valorNovoNum;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = papSchema.safeParse(form);
