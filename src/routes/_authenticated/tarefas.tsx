@@ -81,6 +81,13 @@ type Tarefa = {
   recorrencia: Recorrencia;
 };
 
+type Participante = {
+  id: string;
+  tarefa_id: string;
+  user_id: string;
+  status: Status;
+};
+
 const hoje = () => new Date().toISOString().slice(0, 10);
 const amanha = () => new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
@@ -157,14 +164,30 @@ function TarefasPage() {
 
   const uid = me.data ?? null;
 
-  const tarefas = useQuery({
+  const participo = useQuery({
     enabled: !!uid,
-    queryKey: ["tarefas", uid],
+    queryKey: ["tarefas-participo", uid],
     queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tarefa_participantes")
+        .select("tarefa_id")
+        .eq("user_id", uid!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.tarefa_id);
+    },
+  });
+
+  const tarefas = useQuery({
+    enabled: !!uid && participo.isSuccess,
+    queryKey: ["tarefas", uid, participo.data],
+    queryFn: async () => {
+      const ids = participo.data ?? [];
+      const filtros = [`criador_id.eq.${uid}`, `responsavel_id.eq.${uid}`];
+      if (ids.length) filtros.push(`id.in.(${ids.join(",")})`);
       const { data, error } = await supabase
         .from("tarefas")
         .select("*")
-        .or(`criador_id.eq.${uid},responsavel_id.eq.${uid}`)
+        .or(filtros.join(","))
         .in("status", ["pendente", "iniciada"])
         .order("data_venc", { ascending: true })
         .order("hora_venc", { ascending: true, nullsFirst: true });
@@ -175,6 +198,30 @@ function TarefasPage() {
   });
 
   const lista = useMemo(() => tarefas.data ?? [], [tarefas.data]);
+  const idsLista = useMemo(() => lista.map((t) => t.id).sort(), [lista]);
+
+  const participantes = useQuery({
+    enabled: idsLista.length > 0,
+    queryKey: ["tarefa-participantes", idsLista],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tarefa_participantes")
+        .select("id, tarefa_id, user_id, status")
+        .in("tarefa_id", idsLista);
+      if (error) throw error;
+      return (data ?? []) as Participante[];
+    },
+  });
+
+  const porTarefa = useMemo(() => {
+    const map = new Map<string, Participante[]>();
+    for (const p of participantes.data ?? []) {
+      const arr = map.get(p.tarefa_id) ?? [];
+      arr.push(p);
+      map.set(p.tarefa_id, arr);
+    }
+    return map;
+  }, [participantes.data]);
 
 
 
@@ -214,22 +261,80 @@ function TarefasPage() {
     (t) => emAberto(t.status) && t.data_venc < hoje(),
   );
 
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ["tarefas"] });
+    qc.invalidateQueries({ queryKey: ["tarefa-participantes"] });
+    qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+  };
+
+  /** Atualiza a fase de um destinatário e consolida o status da tarefa. */
   const atualizar = useMutation({
-    mutationFn: async ({ tarefa, status }: { tarefa: Tarefa; status: Status }) => {
-      // Tarefa recorrente concluída: avança na própria tarefa para a próxima data.
-      const prox =
-        status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
-      const patch = prox
-        ? { status: "pendente" as Status, data_venc: prox }
-        : { status };
-      const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
+    mutationFn: async ({
+      tarefa,
+      status,
+      userId,
+    }: {
+      tarefa: Tarefa;
+      status: Status;
+      userId?: string | null;
+    }) => {
+      const atuais = porTarefa.get(tarefa.id) ?? [];
+      const alvo = userId ?? uid;
+
+      if (status === "cancelada" || atuais.length === 0) {
+        const prox =
+          status === "concluida" ? proximaData(tarefa.data_venc, tarefa.recorrencia) : null;
+        const patch = prox ? { status: "pendente" as Status, data_venc: prox } : { status };
+        const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefa.id);
+        if (error) throw error;
+        return prox;
+      }
+
+      const linha = atuais.find((p) => p.user_id === alvo);
+      if (!linha) throw new Error("Você não é destinatário desta tarefa.");
+      const { error } = await supabase
+        .from("tarefa_participantes")
+        .update({ status })
+        .eq("id", linha.id);
       if (error) throw error;
-      return prox;
+
+      const novos = atuais.map((p) => (p.id === linha.id ? { ...p, status } : p));
+      const todosConcluidos = novos.every((p) => p.status === "concluida");
+
+      if (todosConcluidos) {
+        const prox = proximaData(tarefa.data_venc, tarefa.recorrencia);
+        if (prox) {
+          const { error: e1 } = await supabase
+            .from("tarefas")
+            .update({ status: "pendente" as Status, data_venc: prox })
+            .eq("id", tarefa.id);
+          if (e1) throw e1;
+          const { error: e2 } = await supabase
+            .from("tarefa_participantes")
+            .update({ status: "pendente" as Status })
+            .eq("tarefa_id", tarefa.id);
+          if (e2) throw e2;
+          return prox;
+        }
+        const { error: e3 } = await supabase
+          .from("tarefas")
+          .update({ status: "concluida" as Status })
+          .eq("id", tarefa.id);
+        if (e3) throw e3;
+        return null;
+      }
+
+      const algumAndamento = novos.some((p) => p.status !== "pendente");
+      const { error: e4 } = await supabase
+        .from("tarefas")
+        .update({ status: (algumAndamento ? "iniciada" : "pendente") as Status })
+        .eq("id", tarefa.id);
+      if (e4) throw e4;
+      return null;
     },
     onSuccess: (prox) => {
       if (prox) toast.success(`Recorrência: próxima data ${formatarData(prox)}.`);
-      qc.invalidateQueries({ queryKey: ["tarefas"] });
-      qc.invalidateQueries({ queryKey: ["historico-tarefas"] });
+      invalidar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -242,13 +347,14 @@ function TarefasPage() {
     },
     onSuccess: () => {
       toast.success("Tarefa excluída.");
-      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      invalidar();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const nomePessoa = (id: string | null) =>
     pessoas.data?.find((p) => p.id === id)?.nome || "—";
+
 
   return (
     <AppShell>
@@ -318,7 +424,12 @@ function TarefasPage() {
                 {data < hoje() && <span className="text-destructive">• atrasada</span>}
               </h2>
               <div className="space-y-2">
-                {itens.map((t) => (
+                {itens.map((t) => {
+                  const parts = porTarefa.get(t.id) ?? [];
+                  const minha = parts.find((p) => p.user_id === uid);
+                  const meuStatus = minha?.status ?? t.status;
+                  const souCriador = t.criador_id === uid;
+                  return (
                   <Card key={t.id} className={cn(!emAberto(t.status) && "opacity-60")}>
                     <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
                       <div className="min-w-0 space-y-1">
@@ -348,7 +459,11 @@ function TarefasPage() {
                               )}
                             </>
                           ) : (
-                            `Responsável: ${nomePessoa(t.responsavel_id)}`
+                            `Destinatários: ${
+                              parts.length
+                                ? parts.length
+                                : nomePessoa(t.responsavel_id)
+                            }`
                           )}
                           {" · "}Prioridade {PRIORIDADE_LABEL[t.prioridade]}
                           {" · "}
@@ -361,33 +476,79 @@ function TarefasPage() {
                             </>
                           )}
                         </p>
+
+                        {parts.length > 0 && (
+                          <div className="space-y-1 pt-2">
+                            <p className="text-xs font-medium">Fase por destinatário</p>
+                            <ul className="space-y-1">
+                              {parts.map((p) => {
+                                const podeMudar = p.user_id === uid || souCriador;
+                                return (
+                                  <li
+                                    key={p.id}
+                                    className="flex flex-wrap items-center gap-2 text-xs"
+                                  >
+                                    <span className="min-w-32">{nomePessoa(p.user_id)}</span>
+                                    {podeMudar ? (
+                                      STATUS_BOTOES.map((s) => (
+                                        <Button
+                                          key={s.valor}
+                                          size="sm"
+                                          className="h-6 px-2 text-[11px]"
+                                          variant={p.status === s.valor ? "default" : "outline"}
+                                          disabled={atualizar.isPending}
+                                          onClick={() =>
+                                            atualizar.mutate({
+                                              tarefa: t,
+                                              status: s.valor,
+                                              userId: p.user_id,
+                                            })
+                                          }
+                                        >
+                                          {s.label}
+                                        </Button>
+                                      ))
+                                    ) : (
+                                      <span className="rounded-md border px-2 py-0.5">
+                                        {STATUS_LABEL[p.status]}
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1">
-                        {STATUS_BOTOES.map((s) => (
-                          <Button
-                            key={s.valor}
-                            size="sm"
-                            variant={t.status === s.valor ? "default" : "outline"}
-                            disabled={atualizar.isPending}
-                            onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
-                          >
-                            {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
-                            {s.label}
-                          </Button>
-                        ))}
-                        {t.status !== "cancelada" && (
+                        {(parts.length === 0 || minha) &&
+                          STATUS_BOTOES.map((s) => (
+                            <Button
+                              key={s.valor}
+                              size="sm"
+                              variant={meuStatus === s.valor ? "default" : "outline"}
+                              disabled={atualizar.isPending}
+                              onClick={() => atualizar.mutate({ tarefa: t, status: s.valor })}
+                            >
+                              {s.valor === "concluida" && <Check className="mr-1 h-3.5 w-3.5" />}
+                              {s.label}
+                            </Button>
+                          ))}
+                        {t.status !== "cancelada" && souCriador && (
                           <Button
                             size="sm"
                             variant="ghost"
                             title="Cancelar tarefa"
-                            onClick={() => atualizar.mutate({ tarefa: t, status: "cancelada" })}
+                            onClick={() =>
+                              atualizar.mutate({ tarefa: t, status: "cancelada" })
+                            }
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         )}
 
 
-                        {t.criador_id === me.data && (
+                        {souCriador && (
                           <>
                             <Button
                               size="sm"
@@ -410,7 +571,9 @@ function TarefasPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
+
               </div>
             </section>
           ))}
@@ -630,10 +793,10 @@ function NovaTarefa({
       const alvos: string[] = alvo === "usuario" ? responsaveis : [meId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
-      const linhas = alvos.map((rid) => ({
+      const linha = {
         criador_id: meId,
         alvo,
-        responsavel_id: rid,
+        responsavel_id: alvos[0],
         cliente_nome: alvo === "cliente" ? clienteNome.trim().slice(0, 120) : null,
         cliente_contato: alvo === "cliente" ? clienteContato.trim().slice(0, 60) || null : null,
         titulo: t.slice(0, 140),
@@ -642,15 +805,24 @@ function NovaTarefa({
         hora_venc: hora || null,
         prioridade,
         recorrencia,
-      }));
+      };
 
-
-      const { error } = await supabase.from("tarefas").insert(linhas);
+      const { data: criada, error } = await supabase
+        .from("tarefas")
+        .insert(linha)
+        .select("id")
+        .single();
       if (error) throw error;
-      return linhas.length;
+
+      const { error: errP } = await supabase.from("tarefa_participantes").insert(
+        alvos.map((uid) => ({ tarefa_id: criada.id, user_id: uid, status: "pendente" as Status })),
+      );
+      if (errP) throw errP;
+      return alvos.length;
     },
     onSuccess: (n) => {
-      toast.success(n && n > 1 ? `${n} tarefas criadas.` : "Tarefa criada.");
+      toast.success(n && n > 1 ? `Tarefa criada para ${n} pessoas.` : "Tarefa criada.");
+
       limpar();
       setAberto(false);
       onCriada();
