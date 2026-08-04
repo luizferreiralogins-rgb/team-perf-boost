@@ -792,7 +792,9 @@ function NovaTarefa({
       const alvos: string[] = alvo === "usuario" ? responsaveis : [autorId];
       if (alvos.length === 0) throw new Error("Nenhum usuário disponível.");
 
+      const tarefaId = crypto.randomUUID();
       const linha = {
+        id: tarefaId,
         // Obrigatório no tipo gerado; o trigger do banco substitui este valor
         // pelo usuário autenticado antes da validação RLS.
         criador_id: autorId,
@@ -808,15 +810,13 @@ function NovaTarefa({
         recorrencia,
       };
 
-      const { data: criada, error } = await supabase
-        .from("tarefas")
-        .insert(linha)
-        .select("id")
-        .single();
+      // Não encadear .select() aqui: o RETURNING também aplica a política de
+      // leitura antes de os participantes desta nova tarefa existirem.
+      const { error } = await supabase.from("tarefas").insert(linha);
       if (error) throw error;
 
       const { error: errP } = await supabase.from("tarefa_participantes").insert(
-        alvos.map((uid) => ({ tarefa_id: criada.id, user_id: uid, status: "pendente" as Status })),
+        alvos.map((uid) => ({ tarefa_id: tarefaId, user_id: uid, status: "pendente" as Status })),
       );
       if (errP) throw errP;
       return alvos.length;
