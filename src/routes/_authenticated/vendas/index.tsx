@@ -311,6 +311,16 @@ function VendasList() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        aria-label="Selecionar todas as instaladas"
+                        checked={
+                          idsElegiveis.length > 0 && selecionadas.length === idsElegiveis.length
+                        }
+                        disabled={idsElegiveis.length === 0}
+                        onCheckedChange={(c) => setSelecionadas(c ? idsElegiveis : [])}
+                      />
+                    </TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data do agendamento</TableHead>
@@ -323,10 +333,19 @@ function VendasList() {
                 <TableBody>
                   {linhas.map((v) => (
                     <TableRow key={v.id}>
+                      <TableCell>
+                        <Checkbox
+                          aria-label={`Selecionar venda de ${v.cliente}`}
+                          disabled={!idsElegiveis.includes(v.id)}
+                          checked={selecionadas.includes(v.id)}
+                          onCheckedChange={() => toggleSelecao(v.id)}
+                        />
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
                       </TableCell>
                       <TableCell>{v.cliente}</TableCell>
+
                       <TableCell className="whitespace-nowrap">
                         {v.data_agendamento
                           ? new Date(v.data_agendamento + "T00:00:00").toLocaleDateString("pt-BR")
