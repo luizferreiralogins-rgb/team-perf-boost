@@ -338,12 +338,10 @@ function Dashboard() {
         uid={roleInfo?.uid}
         canalConsultor={data?.canal}
         escopoIds={escopoIds}
-        mesRefISO={
-          isGestor
-            ? `${filtros.mes}-01`
-            : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`
-        }
+        ativas={usarAtivas}
+        mesRefISO={`${filtros.mes}-01`}
       />
+
 
 
       {!isGestor && (
