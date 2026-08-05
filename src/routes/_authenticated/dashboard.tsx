@@ -84,6 +84,8 @@ function Dashboard() {
   const role = roleInfo?.role ?? "consultor";
 
   const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
+  const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
+  const comercial = !isGestor || aba === "comercial";
   const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
   const { data: membros } = useEquipe(roleInfo?.uid, isGestor ? role : undefined);
   const escopoIds = useMemo(
