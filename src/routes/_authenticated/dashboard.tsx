@@ -30,6 +30,7 @@ import {
 } from "@/components/dashboard/filtros-ranking";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
+import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
