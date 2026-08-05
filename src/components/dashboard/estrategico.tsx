@@ -128,13 +128,13 @@ export function Estrategico() {
       if (atual) {
         const { error } = await supabase
           .from("estrategico_mensal")
-          .update({ [p.campo]: p.valor })
+          .update({ [p.campo]: p.valor } as never)
           .eq("id", atual.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("estrategico_mensal")
-          .insert({ cidade_id: p.cidade_id, mes: p.mes, [p.campo]: p.valor });
+          .insert({ cidade_id: p.cidade_id, mes: p.mes, [p.campo]: p.valor } as never);
         if (error) throw error;
       }
     },
@@ -146,7 +146,7 @@ export function Estrategico() {
     mutationFn: async (p: { id: string; campo: string; valor: number | string }) => {
       const { error } = await supabase
         .from("estrategico_cidades")
-        .update({ [p.campo]: p.valor })
+        .update({ [p.campo]: p.valor } as never)
         .eq("id", p.id);
       if (error) throw error;
     },
