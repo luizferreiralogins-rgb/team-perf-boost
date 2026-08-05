@@ -314,7 +314,8 @@ function Dashboard() {
         </Card>
       )}
 
-
+      {comercial && (
+      <>
       <AgendamentosVencidos
         escopoIds={isGestor ? escopoIds : undefined}
         uid={isGestor ? undefined : roleInfo?.uid}
