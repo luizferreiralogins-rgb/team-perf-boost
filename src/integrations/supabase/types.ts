@@ -228,6 +228,101 @@ export type Database = {
           },
         ]
       }
+      estrategico_cidades: {
+        Row: {
+          ano: number
+          cidade: string
+          created_at: string
+          id: string
+          owner_id: string
+          portas_ocupadas: number
+          portas_total: number
+          updated_at: string
+        }
+        Insert: {
+          ano?: number
+          cidade: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          portas_ocupadas?: number
+          portas_total?: number
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          cidade?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          portas_ocupadas?: number
+          portas_total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      estrategico_mensal: {
+        Row: {
+          acessos_anatel: number
+          ativacoes: number
+          cancel_involuntario: number
+          cancel_voluntario: number
+          cidade_id: string
+          created_at: string
+          id: string
+          market_share: number
+          mes: number
+          meta_ativacoes: number
+          meta_vendas: number
+          quebra_venda: number
+          updated_at: string
+          vendas: number
+          vendas_brutas: number
+        }
+        Insert: {
+          acessos_anatel?: number
+          ativacoes?: number
+          cancel_involuntario?: number
+          cancel_voluntario?: number
+          cidade_id: string
+          created_at?: string
+          id?: string
+          market_share?: number
+          mes: number
+          meta_ativacoes?: number
+          meta_vendas?: number
+          quebra_venda?: number
+          updated_at?: string
+          vendas?: number
+          vendas_brutas?: number
+        }
+        Update: {
+          acessos_anatel?: number
+          ativacoes?: number
+          cancel_involuntario?: number
+          cancel_voluntario?: number
+          cidade_id?: string
+          created_at?: string
+          id?: string
+          market_share?: number
+          mes?: number
+          meta_ativacoes?: number
+          meta_vendas?: number
+          quebra_venda?: number
+          updated_at?: string
+          vendas?: number
+          vendas_brutas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estrategico_mensal_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "estrategico_cidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_contatos: {
         Row: {
           created_at: string

@@ -30,6 +30,7 @@ import {
 } from "@/components/dashboard/filtros-ranking";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
+import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -84,6 +85,8 @@ function Dashboard() {
   const role = roleInfo?.role ?? "consultor";
 
   const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
+  const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
+  const comercial = !isGestor || aba === "comercial";
   const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
   const { data: membros } = useEquipe(roleInfo?.uid, isGestor ? role : undefined);
   const escopoIds = useMemo(
@@ -260,9 +263,31 @@ function Dashboard() {
         )}
       </div>
 
-      {isGestor && membros && (
+      {isGestor && (
+        <div className="inline-flex rounded-lg border bg-muted/40 p-1">
+          {(["comercial", "estrategico"] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setAba(a)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                aba === a
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {a === "comercial" ? "Comercial" : "Estratégico"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isGestor && aba === "estrategico" && <Estrategico />}
+
+      {isGestor && aba === "comercial" && membros && (
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
+
 
       {!isGestor && (
         <Card>
@@ -292,7 +317,8 @@ function Dashboard() {
         </Card>
       )}
 
-
+      {comercial && (
+      <>
       <AgendamentosVencidos
         escopoIds={isGestor ? escopoIds : undefined}
         uid={isGestor ? undefined : roleInfo?.uid}
@@ -409,6 +435,8 @@ function Dashboard() {
             <p>• A comissão é calculada quando a venda é marcada como <span className="font-semibold text-foreground">instalada</span>.</p>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
     </div>
   );
