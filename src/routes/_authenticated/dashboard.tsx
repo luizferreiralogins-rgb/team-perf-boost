@@ -260,9 +260,31 @@ function Dashboard() {
         )}
       </div>
 
-      {isGestor && membros && (
+      {isGestor && (
+        <div className="inline-flex rounded-lg border bg-muted/40 p-1">
+          {(["comercial", "estrategico"] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setAba(a)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                aba === a
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {a === "comercial" ? "Comercial" : "Estratégico"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isGestor && aba === "estrategico" && <Estrategico />}
+
+      {isGestor && aba === "comercial" && membros && (
         <FiltrosBar role={role} membros={membros} filtros={filtros} onChange={setFiltros} />
       )}
+
 
       {!isGestor && (
         <Card>
