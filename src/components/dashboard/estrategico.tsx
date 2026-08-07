@@ -5,8 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -16,6 +14,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
+const AZUL = "#2563eb";
+const ROXO = "#7c3aed";
+const AZUL_CLARO = "#38bdf8";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
