@@ -5,8 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -16,6 +14,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
+const AZUL = "#2563eb";
+const ROXO = "#7c3aed";
+const AZUL_CLARO = "#38bdf8";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -317,63 +319,64 @@ export function Estrategico() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Grafico titulo="Vendas x Meta" descricao="Acompanhamento mensal">
-          <BarChart data={serie}>
+          <LineChart data={serie}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
             <Tooltip /><Legend />
-            <Bar dataKey="meta_vendas" name="Meta" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="vendas" name="Vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="meta_vendas" name="Meta" stroke={ROXO} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="vendas" name="Vendas" stroke={AZUL} strokeWidth={2} dot={false} />
+          </LineChart>
         </Grafico>
 
         <Grafico titulo="Ativações x Meta" descricao="Acompanhamento mensal">
-          <BarChart data={serie}>
+          <LineChart data={serie}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
             <Tooltip /><Legend />
-            <Bar dataKey="meta_ativacoes" name="Meta" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="ativacoes" name="Ativações" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="meta_ativacoes" name="Meta" stroke={ROXO} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="ativacoes" name="Ativações" stroke={AZUL} strokeWidth={2} dot={false} />
+          </LineChart>
         </Grafico>
 
         <Grafico titulo="Churn (%)" descricao="Voluntário, involuntário e geral">
           <LineChart data={grafChurn}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} unit="%" />
+            <XAxis dataKey="mes" fontSize={12} />
+            <YAxis fontSize={12} unit="%" domain={[0, "auto"]} />
             <Tooltip /><Legend />
-            <Line type="monotone" dataKey="Churn geral" stroke="hsl(var(--destructive))" strokeWidth={2} />
-            <Line type="monotone" dataKey="Voluntário" stroke="hsl(var(--primary))" strokeWidth={2} />
-            <Line type="monotone" dataKey="Involuntário" stroke="hsl(var(--muted-foreground))" strokeWidth={2} />
+            <Line type="monotone" dataKey="Churn geral" stroke={AZUL} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="Voluntário" stroke={ROXO} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="Involuntário" stroke={AZUL_CLARO} strokeWidth={2} strokeDasharray="4 4" dot={false} />
           </LineChart>
         </Grafico>
 
         <Grafico titulo="Ativações líquidas e Net Ads" descricao="Crescimento da base">
-          <BarChart data={serie}>
+          <LineChart data={serie}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
             <Tooltip /><Legend />
-            <Bar dataKey="liquidas" name="Ativações líquidas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="netAds" name="Net Ads" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="liquidas" name="Ativações líquidas" stroke={AZUL} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="netAds" name="Net Ads" stroke={ROXO} strokeWidth={2} dot={false} />
+          </LineChart>
         </Grafico>
 
         <Grafico titulo="Acessos Anatel" descricao="Base total por mês">
           <LineChart data={serie}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
+            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} domain={[0, "auto"]} />
             <Tooltip />
-            <Line type="monotone" dataKey="anatel" name="Acessos" stroke="hsl(var(--primary))" strokeWidth={2} />
+            <Line type="monotone" dataKey="anatel" name="Acessos" stroke={AZUL} strokeWidth={2} dot={false} />
           </LineChart>
         </Grafico>
 
         <Grafico titulo="Quebra de venda" descricao="Vendas brutas x quebra">
-          <BarChart data={serie}>
+          <LineChart data={serie}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
             <Tooltip /><Legend />
-            <Bar dataKey="brutas" name="Brutas" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="quebra" name="Quebra" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="brutas" name="Brutas" stroke={AZUL} strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="quebra" name="Quebra" stroke={ROXO} strokeWidth={2} dot={false} />
+          </LineChart>
         </Grafico>
       </div>
 

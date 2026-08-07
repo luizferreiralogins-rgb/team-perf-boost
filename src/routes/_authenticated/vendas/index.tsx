@@ -288,7 +288,7 @@ function VendasList() {
           </Button>
 
           <Button asChild>
-            <Link to="/vendas/nova" search={{}}>
+            <Link to="/vendas/nova">
               <Plus className="mr-2 h-4 w-4" /> Nova venda
             </Link>
           </Button>
@@ -312,7 +312,7 @@ function VendasList() {
             <div className="rounded-lg border border-dashed p-10 text-center">
               <p className="text-sm text-muted-foreground">Você ainda não cadastrou vendas neste canal.</p>
               <Button asChild className="mt-4">
-                <Link to="/vendas/nova" search={{}}>Registrar primeira venda</Link>
+                <Link to="/vendas/nova">Registrar primeira venda</Link>
               </Button>
             </div>
           ) : (
