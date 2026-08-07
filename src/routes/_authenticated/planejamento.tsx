@@ -298,21 +298,22 @@ function PlanejamentoPage() {
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed text-sm">
+                <table className="w-full min-w-[960px] table-fixed text-sm">
                   <thead className="bg-muted/50 text-left">
                     <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:font-medium">
-                      <th className="w-[92px]">Data</th>
-                      <th className="w-[150px]">Tipo de Ação</th>
-                      <th className="w-[110px]">Cidade</th>
-                      <th className="w-[170px]">Local</th>
-                      <th className="w-[140px]">Consultores</th>
-                      <th className="w-[70px]">Leads</th>
-                      <th className="w-[80px]">Fech. BL</th>
-                      <th className="w-[90px]">Fech. Móvel</th>
-                      <th>Obs</th>
-                      {isLider && <th className="w-[56px]" />}
+                      <th className="w-[8%]">Data</th>
+                      <th className="w-[13%]">Tipo de Ação</th>
+                      <th className="w-[10%]">Cidade</th>
+                      <th className="w-[15%]">Local</th>
+                      <th className="w-[13%]">Consultores</th>
+                      <th className="w-[6%]">Leads</th>
+                      <th className="w-[7%]">Fech. BL</th>
+                      <th className="w-[8%]">Fech. Móvel</th>
+                      <th className="w-auto">Obs</th>
+                      {isLider && <th className="w-[5%]" />}
                     </tr>
                   </thead>
+
                   <tbody>
                     {linhas.map((a) => (
                       <tr key={a.id} className="border-t border-border [&>td]:px-2 [&>td]:py-1">
