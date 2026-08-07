@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Pencil, Plus, Settings2, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -232,8 +231,7 @@ function PlanejamentoPage() {
   };
 
   return (
-    <AppShell>
-      <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <h1 className="text-2xl font-bold">Planejamento</h1>
@@ -418,9 +416,6 @@ function PlanejamentoPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-
-
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
@@ -505,7 +500,7 @@ function PlanejamentoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </div>
   );
 }
 
