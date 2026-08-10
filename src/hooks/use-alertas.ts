@@ -28,7 +28,7 @@ export function useAlertas() {
     staleTime: 30_000,
     queryFn: async (): Promise<Alertas> => {
       const uid = (await supabase.auth.getUser()).data.user?.id;
-      if (!uid) return { chat: 0, leads: 0, vendas: 0, contestacoes: 0, tarefas: 0 };
+      if (!uid) return { leads: 0, vendas: 0, contestacoes: 0, tarefas: 0 };
 
       const hj = hoje();
       const mes = mesAtual();
@@ -37,12 +37,7 @@ export function useAlertas() {
       const fim = `${mes}-${String(fimDate.getDate()).padStart(2, "0")}`;
       const abertos = ["pendente", "em_analise"] as const;
 
-      const [chat, leads, vLoja, vPap, tarefas, nativas, instLoja, instPap] = await Promise.all([
-        supabase
-          .from("mensagens_chat")
-          .select("id", { count: "exact", head: true })
-          .eq("destinatario_id", uid)
-          .eq("lida", false),
+      const [leads, vLoja, vPap, tarefas, nativas, instLoja, instPap] = await Promise.all([
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
