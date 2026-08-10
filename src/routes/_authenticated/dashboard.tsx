@@ -78,8 +78,10 @@ function Dashboard() {
       return {
         isGestor: role !== "consultor",
         role,
+        isLiderPap: list.includes("lider_pap") && !list.includes("gerente"),
         uid,
       };
+
     },
     staleTime: 30_000,
   });
