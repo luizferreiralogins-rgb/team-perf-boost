@@ -265,6 +265,14 @@ function Dashboard() {
             )}
           </p>
         </div>
+        <RitmoDiario
+          mes={filtros.mes}
+          metas={metasKpi}
+          semRenovacao={(roleInfo?.isLiderPap ?? false) || (!isGestor && data?.canal === "pap")}
+          bl={data?.blInst ?? 0}
+          movel={data?.mvLinhasInst ?? 0}
+          renovRs={data?.rvRs ?? 0}
+        />
         {!isGestor && (
           <Button asChild size="lg">
             <Link to="/vendas/nova">
@@ -273,6 +281,7 @@ function Dashboard() {
           </Button>
         )}
       </div>
+
 
       {isGestor && (
         <div className="inline-flex rounded-lg border bg-muted/40 p-1">
