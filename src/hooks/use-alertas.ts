@@ -97,7 +97,6 @@ export function useAlertas() {
 
       return {
         leads: leads.count ?? 0,
-        leads: leads.count ?? 0,
         vendas: (vLoja.count ?? 0) + (vPap.count ?? 0),
         contestacoes,
         tarefas: tarefas.count ?? 0,
