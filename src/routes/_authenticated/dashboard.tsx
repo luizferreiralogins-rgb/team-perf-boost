@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
+import { metasConsultor, metasEquipe } from "@/lib/metas-kpi";
+
 
 import { Label } from "@/components/ui/label";
 import {
@@ -94,6 +96,8 @@ function Dashboard() {
     [membros, filtros, role],
   );
   const fatorProj = useMemo(() => fatorProjecao(filtros.mes), [filtros.mes]);
+
+
   const ehMesAtual = filtros.mes === mesAtual();
   /** Consultor no mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
   const usarAtivas = !isGestor && ehMesAtual;
@@ -229,6 +233,11 @@ function Dashboard() {
 
     },
   });
+
+  const metasKpi = isGestor
+    ? metasEquipe(membros ? aplicarFiltros(membros, filtros, role) : [])
+    : metasConsultor(data?.canal);
+
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -379,6 +388,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
             fator={fatorProj}
+            meta={metasKpi.bl}
           />
           <KpiCard
             title="Móvel"
@@ -387,6 +397,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
             fator={fatorProj}
+            meta={metasKpi.movel}
           />
 
           <KpiCard
@@ -397,7 +408,10 @@ function Dashboard() {
             icon={RefreshCw}
             fator={fatorProj}
             projecaoEm="rs"
+            meta={metasKpi.renovRs}
+            metaEm="rs"
           />
+
 
 
         </div>
@@ -497,6 +511,8 @@ function KpiCard({
   icon: Icon,
   fator = 1,
   projecaoEm = "qtd",
+  meta,
+  metaEm = "qtd",
 }: {
   title: string;
   qtd: number | null;
@@ -507,7 +523,10 @@ function KpiCard({
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
   projecaoEm?: "qtd" | "rs";
+  meta?: number | null;
+  metaEm?: "qtd" | "rs";
 }) {
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -534,13 +553,22 @@ function KpiCard({
           </div>
         )}
         {qtd !== null && valor !== null && (
-          <p className="pt-1 text-xs font-medium text-muted-foreground">
-            Projeção:{" "}
-            {projecaoEm === "qtd"
-              ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
-              : brl(valor * fator)}
-          </p>
+          <div className="flex items-end justify-between gap-2 pt-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Projeção:{" "}
+              {projecaoEm === "qtd"
+                ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
+                : brl(valor * fator)}
+            </p>
+            {meta != null && meta > 0 && (
+              <p className="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2 py-1 text-xs font-semibold">
+                <span className="text-muted-foreground">Meta: </span>
+                {metaEm === "rs" ? brl(meta) : meta}
+              </p>
+            )}
+          </div>
         )}
+
       </CardContent>
     </Card>
   );
