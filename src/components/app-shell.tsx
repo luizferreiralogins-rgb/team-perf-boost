@@ -11,7 +11,7 @@ import {
   X,
   KanbanSquare,
   FileText,
-  MessageCircle,
+  
   CalendarCheck,
   Activity,
   History,
@@ -145,7 +145,7 @@ function Sidebar({
     },
     { to: "/historico", label: "Histórico", icon: History, show: true },
     { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
-    { to: "/chat", label: "Chat", icon: MessageCircle, show: true, badge: alertas?.chat },
+    
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true, badge: alertas?.tarefas },
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/regras-comissionamento", label: "Regras de Comissionamento", icon: FileText, show: isGestor },

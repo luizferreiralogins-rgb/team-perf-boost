@@ -14,7 +14,6 @@ const norm = (s: string | null | undefined) =>
 const normProt = (s: string | null | undefined) => (s ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
 export type Alertas = {
-  chat: number;
   leads: number;
   vendas: number;
   contestacoes: number;
