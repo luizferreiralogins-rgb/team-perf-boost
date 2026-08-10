@@ -58,6 +58,69 @@ function fatorProjecao(mesISO: string) {
   return diasTotais / diasAtuais;
 }
 
+/** Frase com o ritmo diário necessário para bater as metas do mês. */
+function RitmoDiario({
+  mes,
+  metas,
+  semRenovacao,
+  bl,
+  movel,
+  renovRs,
+}: {
+  mes: string;
+  metas: { bl: number; movel: number; renovRs: number };
+  semRenovacao: boolean;
+  bl: number;
+  movel: number;
+  renovRs: number;
+}) {
+  const [y, m] = mes.split("-").map(Number);
+  const hoje = new Date();
+  if (y !== hoje.getFullYear() || m !== hoje.getMonth() + 1) return null;
+
+  const diasTotais = new Date(y, m, 0).getDate();
+  const diasRestantes = Math.max(1, diasTotais - hoje.getDate() + 1);
+  const porDia = (meta: number, feito: number) =>
+    Math.max(0, Math.ceil((Math.max(0, meta - feito) / diasRestantes) * 100) / 100);
+
+  const dBl = Math.ceil(porDia(metas.bl, bl));
+  const dMv = Math.ceil(porDia(metas.movel, movel));
+  const dRv = porDia(metas.renovRs, renovRs);
+
+  const partes: string[] = [];
+  if (metas.bl > 0) partes.push(`${dBl} Banda Larga`);
+  if (metas.movel > 0) partes.push(`${dMv} Móvel`);
+  if (!semRenovacao && metas.renovRs > 0)
+    partes.push(`${brl(Math.ceil(dRv))} em Renovações`);
+  if (!partes.length) return null;
+
+  const lista =
+    partes.length > 1
+      ? `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`
+      : partes[0];
+
+  const batido = dBl === 0 && dMv === 0 && (semRenovacao || dRv === 0);
+
+  return (
+    <div className="min-w-[260px] flex-1 rounded-xl border bg-muted/30 p-4">
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        {batido ? (
+          <>
+            🎉 Metas do mês já atingidas. Todo resultado a partir de agora é
+            acelerador de comissão.
+          </>
+        ) : (
+          <>
+            Hoje, para estar dentro das projeções das suas metas do mês, você
+            precisará entregar{" "}
+            <span className="font-semibold text-foreground">{lista}</span>.
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 
 function Dashboard() {
   const { data: roleInfo } = useQuery({
@@ -78,8 +141,10 @@ function Dashboard() {
       return {
         isGestor: role !== "consultor",
         role,
+        isLiderPap: list.includes("lider_pap") && !list.includes("gerente"),
         uid,
       };
+
     },
     staleTime: 30_000,
   });
@@ -263,6 +328,14 @@ function Dashboard() {
             )}
           </p>
         </div>
+        <RitmoDiario
+          mes={filtros.mes}
+          metas={metasKpi}
+          semRenovacao={(roleInfo?.isLiderPap ?? false) || (!isGestor && data?.canal === "pap")}
+          bl={data?.blInst ?? 0}
+          movel={data?.mvLinhasInst ?? 0}
+          renovRs={data?.rvRs ?? 0}
+        />
         {!isGestor && (
           <Button asChild size="lg">
             <Link to="/vendas/nova">
@@ -271,6 +344,7 @@ function Dashboard() {
           </Button>
         )}
       </div>
+
 
       {isGestor && (
         <div className="inline-flex rounded-lg border bg-muted/40 p-1">
