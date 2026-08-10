@@ -232,6 +232,11 @@ function Dashboard() {
     },
   });
 
+  const metasKpi = isGestor
+    ? metasEquipe(membros ? aplicarFiltros(membros, filtros, role) : [])
+    : metasConsultor(data?.canal);
+
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
