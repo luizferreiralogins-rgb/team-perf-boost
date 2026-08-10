@@ -534,13 +534,22 @@ function KpiCard({
           </div>
         )}
         {qtd !== null && valor !== null && (
-          <p className="pt-1 text-xs font-medium text-muted-foreground">
-            Projeção:{" "}
-            {projecaoEm === "qtd"
-              ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
-              : brl(valor * fator)}
-          </p>
+          <div className="flex items-end justify-between gap-2 pt-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Projeção:{" "}
+              {projecaoEm === "qtd"
+                ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
+                : brl(valor * fator)}
+            </p>
+            {meta != null && meta > 0 && (
+              <p className="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2 py-1 text-xs font-semibold">
+                <span className="text-muted-foreground">Meta: </span>
+                {metaEm === "rs" ? brl(meta) : meta}
+              </p>
+            )}
+          </div>
         )}
+
       </CardContent>
     </Card>
   );
