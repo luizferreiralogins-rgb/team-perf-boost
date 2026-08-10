@@ -94,6 +94,15 @@ function Dashboard() {
     [membros, filtros, role],
   );
   const fatorProj = useMemo(() => fatorProjecao(filtros.mes), [filtros.mes]);
+  const metasKpi = useMemo(
+    () =>
+      isGestor
+        ? metasEquipe(membros ? aplicarFiltros(membros, filtros, role) : [])
+        : metasConsultor(data?.canal),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isGestor, membros, filtros, role, dataCanal],
+  );
+
   const ehMesAtual = filtros.mes === mesAtual();
   /** Consultor no mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
   const usarAtivas = !isGestor && ehMesAtual;
