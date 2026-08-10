@@ -96,7 +96,7 @@ export function useAlertas() {
       }
 
       return {
-        chat: chat.count ?? 0,
+        leads: leads.count ?? 0,
         leads: leads.count ?? 0,
         vendas: (vLoja.count ?? 0) + (vPap.count ?? 0),
         contestacoes,
