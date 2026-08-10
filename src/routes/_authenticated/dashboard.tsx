@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
+import { metasConsultor, metasEquipe } from "@/lib/metas-kpi";
+
 
 import { Label } from "@/components/ui/label";
 import {
