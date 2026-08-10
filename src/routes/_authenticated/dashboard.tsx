@@ -379,6 +379,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
             fator={fatorProj}
+            meta={metasKpi.bl}
           />
           <KpiCard
             title="Móvel"
@@ -387,6 +388,7 @@ function Dashboard() {
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
             fator={fatorProj}
+            meta={metasKpi.movel}
           />
 
           <KpiCard
@@ -397,7 +399,10 @@ function Dashboard() {
             icon={RefreshCw}
             fator={fatorProj}
             projecaoEm="rs"
+            meta={metasKpi.renovRs}
+            metaEm="rs"
           />
+
 
 
         </div>
