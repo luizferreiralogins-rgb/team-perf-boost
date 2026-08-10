@@ -497,6 +497,8 @@ function KpiCard({
   icon: Icon,
   fator = 1,
   projecaoEm = "qtd",
+  meta,
+  metaEm = "qtd",
 }: {
   title: string;
   qtd: number | null;
@@ -507,7 +509,10 @@ function KpiCard({
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
   projecaoEm?: "qtd" | "rs";
+  meta?: number | null;
+  metaEm?: "qtd" | "rs";
 }) {
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
