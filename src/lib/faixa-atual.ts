@@ -18,6 +18,8 @@ export type FaixaAtual = {
   faixa: number;
   total: number;
   base: number;
+  /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
+  proxima: { movel: number; receita: number } | null;
 };
 
 export function mesRefAtual() {
