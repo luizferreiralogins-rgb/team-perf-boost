@@ -361,6 +361,7 @@ function Dashboard() {
           bl={data?.blInst ?? 0}
           movel={data?.mvLinhasInst ?? 0}
           renovRs={data?.rvRs ?? 0}
+          faixa={!isGestor ? faixaAtual.data : null}
         />
         {!isGestor && (
           <Button asChild size="lg">
