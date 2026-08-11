@@ -18,6 +18,10 @@ export type FaixaAtual = {
   faixa: number;
   total: number;
   base: number;
+  /** Loja: faixa considerando apenas % de renovações com móvel. */
+  faixaMovel?: number;
+  /** Loja: faixa considerando apenas a receita acumulada. */
+  faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
   proxima: { movel: number; receita: number } | null;
 };
@@ -134,12 +138,18 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
         }
         proxima = { movel, receita };
       }
+      let lvlMovel = ord.length ? ord[0].faixa : 1;
+      for (const x of ord) if (ratio >= Number(x.meta_renov_movel)) lvlMovel = x.faixa;
+      const alvoRec = ord.find((x) => a.receitaLoja <= Number(x.meta_receita));
+      const lvlReceita = alvoRec ? alvoRec.faixa : (ord.length ? ord[ord.length - 1].faixa : 1);
       out.set(p.id, {
         canal,
         faixa,
         total: 3,
         base: a.receitaLoja,
         proxima,
+        faixaMovel: Math.max(1, Math.min(3, lvlMovel)),
+        faixaReceita: Math.max(1, Math.min(3, lvlReceita)),
       });
     }
   }
