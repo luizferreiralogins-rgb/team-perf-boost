@@ -103,19 +103,43 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
     const a = acc.get(p.id) ?? { receitaLoja: 0, renovTotal: 0, renovMovel: 0, corePap: 0 };
     if (canal === "pap") {
       const row = faixaPap(faixasP, a.corePap);
+      const ordP = [...faixasP].sort((x, y) => Number(x.receita_de) - Number(y.receita_de));
+      const prox = ordP.find((f) => Number(f.receita_de) > a.corePap);
       out.set(p.id, {
         canal,
         faixa: Number(row?.faixa ?? 1),
         total: totalPap,
         base: a.corePap,
+        proxima: prox
+          ? { movel: 0, receita: Math.max(0, Number(prox.receita_de) - a.corePap) }
+          : null,
       });
     } else {
       const ratio = a.renovTotal > 0 ? a.renovMovel / a.renovTotal : 0;
+      const faixa = faixaEfetivaLoja(metasL, a.receitaLoja, ratio);
+      const ord = [...metasL].sort((x, y) => x.faixa - y.faixa);
+      const atualRow = ord.find((x) => x.faixa === faixa);
+      const proxRow = ord.find((x) => x.faixa === faixa + 1);
+      let proxima: { movel: number; receita: number } | null = null;
+      if (proxRow) {
+        const metaReceita = Number(atualRow?.meta_receita ?? 0);
+        const receita = a.receitaLoja > metaReceita ? 0 : Math.max(0, metaReceita - a.receitaLoja);
+        const metaRatio = Number(proxRow.meta_renov_movel ?? 0);
+        let movel = 0;
+        if (ratio < metaRatio && metaRatio < 1) {
+          movel = Math.max(
+            0,
+            Math.ceil((metaRatio * a.renovTotal - a.renovMovel) / (1 - metaRatio)),
+          );
+        }
+        proxima = { movel, receita };
+      }
       out.set(p.id, {
         canal,
-        faixa: faixaEfetivaLoja(metasL, a.receitaLoja, ratio),
+        faixa,
         total: 3,
         base: a.receitaLoja,
+        proxima,
       });
     }
   }
