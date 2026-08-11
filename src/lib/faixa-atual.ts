@@ -18,6 +18,10 @@ export type FaixaAtual = {
   faixa: number;
   total: number;
   base: number;
+  /** Loja: faixa considerando apenas % de renovações com móvel. */
+  faixaMovel?: number;
+  /** Loja: faixa considerando apenas a receita acumulada. */
+  faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
   proxima: { movel: number; receita: number } | null;
 };
