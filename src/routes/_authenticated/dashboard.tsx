@@ -66,6 +66,7 @@ function RitmoDiario({
   bl,
   movel,
   renovRs,
+  faixa,
 }: {
   mes: string;
   metas: { bl: number; movel: number; renovRs: number };
@@ -73,6 +74,7 @@ function RitmoDiario({
   bl: number;
   movel: number;
   renovRs: number;
+  faixa?: { canal: "loja" | "pap"; faixa: number; proxima: { movel: number; receita: number } | null } | null;
 }) {
   const [y, m] = mes.split("-").map(Number);
   const hoje = new Date();
@@ -101,6 +103,27 @@ function RitmoDiario({
 
   const batido = dBl === 0 && dMv === 0 && (semRenovacao || dRv === 0);
 
+  // Complemento: o que falta para avançar de faixa.
+  let faixaTexto: string | null = null;
+  if (faixa) {
+    if (!faixa.proxima) {
+      faixaTexto = "Você já está na faixa máxima de comissionamento.";
+    } else {
+      const itens: string[] = [];
+      if (faixa.canal === "loja" && faixa.proxima.movel > 0)
+        itens.push(
+          `mais ${faixa.proxima.movel} ${faixa.proxima.movel === 1 ? "Móvel" : "Móveis"}`,
+        );
+      if (faixa.proxima.receita > 0)
+        itens.push(`${brl(Math.ceil(faixa.proxima.receita))} em Receita`);
+      if (itens.length) {
+        const listaFaixa =
+          itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0];
+        faixaTexto = `E para você avançar para a próxima faixa, é necessário entregar ${listaFaixa}.`;
+      }
+    }
+  }
+
   return (
     <div className="min-w-[260px] flex-1 rounded-xl border bg-muted/30 p-4">
       <p className="text-sm leading-relaxed text-muted-foreground">
@@ -115,6 +138,9 @@ function RitmoDiario({
             precisará entregar{" "}
             <span className="font-semibold text-foreground">{lista}</span>.
           </>
+        )}
+        {faixaTexto && (
+          <> <span className="font-semibold text-foreground">{faixaTexto}</span></>
         )}
       </p>
     </div>
@@ -335,6 +361,7 @@ function Dashboard() {
           bl={data?.blInst ?? 0}
           movel={data?.mvLinhasInst ?? 0}
           renovRs={data?.rvRs ?? 0}
+          faixa={!isGestor ? faixaAtual.data : null}
         />
         {!isGestor && (
           <Button asChild size="lg">
