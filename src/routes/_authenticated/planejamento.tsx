@@ -547,13 +547,16 @@ function Celula({
   if (tipo === "select") {
     return (
       <Select
-        open
-        value={valor || undefined}
+        defaultOpen
+        value={rascunho || undefined}
         onValueChange={(v) => {
-          setEditando(false);
+          setRascunho(v);
           onSalvar(v);
+          setEditando(false);
         }}
-        onOpenChange={(o) => !o && setEditando(false)}
+        onOpenChange={(o) => {
+          if (!o) setTimeout(() => setEditando(false), 0);
+        }}
       >
         <SelectTrigger className="h-8">
           <SelectValue placeholder="Selecione" />
@@ -568,6 +571,7 @@ function Celula({
       </Select>
     );
   }
+
 
   return (
     <Input
