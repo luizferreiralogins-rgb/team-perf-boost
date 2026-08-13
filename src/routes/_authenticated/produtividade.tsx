@@ -284,11 +284,13 @@ function Produtividade() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Produtividade</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Registre os atendimentos realizados no dia e acompanhe o acumulado do mês.
+          {isMaster
+            ? "Produtividade consolidada de todos os Gerentes e Líderes PAP no mês."
+            : "Registre os atendimentos realizados no dia e acompanhe o acumulado do mês."}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Stat
           title="Atendimentos"
           value={prod?.totais.atendimentos}
@@ -300,6 +302,13 @@ function Produtividade() {
           title="Vendas"
           value={prod?.totais.vendas}
           media={(prod?.totais.vendas ?? 0) / diasDecorridos}
+          loading={isLoading}
+          icon={ShoppingBag}
+        />
+        <Stat
+          title="Renovações"
+          value={prod?.totais.renovacoes}
+          media={(prod?.totais.renovacoes ?? 0) / diasDecorridos}
           loading={isLoading}
           icon={ShoppingBag}
         />
@@ -318,6 +327,7 @@ function Produtividade() {
           icon={Activity}
         />
       </div>
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
