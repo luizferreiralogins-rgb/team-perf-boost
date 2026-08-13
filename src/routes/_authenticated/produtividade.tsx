@@ -108,11 +108,12 @@ function Produtividade() {
 
       let ids: string[] = [uid];
       if (isMaster) {
-        const { data: gestores } = await supabase
+        const { data: consultores, error: consultoresError } = await supabase
           .from("user_roles")
-          .select("user_id, role")
-          .in("role", ["gerente", "lider_pap"]);
-        ids = [...new Set((gestores ?? []).map((g) => g.user_id))];
+          .select("user_id")
+          .eq("role", "consultor");
+        if (consultoresError) throw consultoresError;
+        ids = [...new Set((consultores ?? []).map((consultor) => consultor.user_id))];
       }
       if (ids.length === 0) {
         return {
