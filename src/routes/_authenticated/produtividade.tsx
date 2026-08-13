@@ -450,7 +450,7 @@ function Produtividade() {
               </div>
               <span className="w-8 shrink-0 text-right text-sm font-semibold">{l.total}</span>
               <span className="hidden w-44 shrink-0 text-right text-xs text-muted-foreground sm:block">
-                {l.atendimentos} atend. · {l.vendas} vendas · {l.leads} leads
+                {l.atendimentos} atend. · {l.vendas} vendas · {l.renovacoes} renov. · {l.leads} leads
               </span>
             </div>
           ))}
