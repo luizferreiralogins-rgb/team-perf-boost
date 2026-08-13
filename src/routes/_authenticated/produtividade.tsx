@@ -86,51 +86,85 @@ function Produtividade() {
     setData(iso(new Date()));
   }
 
+  const { data: roles } = useQuery({
+    queryKey: ["meus-roles-produtividade"],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", sess.user!.id);
+      return (data ?? []).map((r) => r.role as string);
+    },
+  });
+  const isMaster = !!roles?.some((r) => r === "regional" || r === "admin");
+
   const { data: prod, isLoading } = useQuery({
-    queryKey: ["produtividade", inicioMes],
+    queryKey: ["produtividade", inicioMes, isMaster],
+    enabled: !!roles,
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
+
+      let ids: string[] = [uid];
+      if (isMaster) {
+        const { data: gestores } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("role", ["gerente", "lider_pap"]);
+        ids = [...new Set((gestores ?? []).map((g) => g.user_id))];
+      }
+      if (ids.length === 0) {
+        return {
+          atendimentos: [],
+          linhas: [],
+          totais: { atendimentos: 0, vendas: 0, renovacoes: 0, leads: 0, total: 0 },
+        };
+      }
+
       const [atend, loja, pap, leads] = await Promise.all([
         supabase
           .from("atendimentos")
           .select("id, nome_cliente, tipo, contato_cliente, data_atendimento, created_at")
-          .eq("usuario_id", uid)
+          .in("usuario_id", ids)
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes)
           .order("created_at", { ascending: false }),
         supabase
           .from("vendas_loja")
-          .select("id, created_at")
-          .eq("vendedor_id", uid)
+          .select("id, created_at, valor_antigo")
+          .in("vendedor_id", ids)
           .gte("created_at", `${inicioMes}T00:00:00`),
         supabase
           .from("vendas_pap")
-          .select("id, created_at")
-          .eq("vendedor_id", uid)
+          .select("id, created_at, valor_antigo")
+          .in("vendedor_id", ids)
           .gte("created_at", `${inicioMes}T00:00:00`),
         supabase
           .from("leads")
           .select("id, created_at, updated_at")
-          .eq("vendedor_id", uid)
+          .in("vendedor_id", ids)
           .or(`created_at.gte.${inicioMes}T00:00:00,updated_at.gte.${inicioMes}T00:00:00`),
       ]);
 
       const atendimentos = atend.data ?? [];
       const dias = new Map<
         string,
-        { atendimentos: number; vendas: number; leads: number }
+        { atendimentos: number; vendas: number; renovacoes: number; leads: number }
       >();
-      const bump = (dia: string, k: "atendimentos" | "vendas" | "leads") => {
+      const bump = (dia: string, k: "atendimentos" | "vendas" | "renovacoes" | "leads") => {
         if (dia < inicioMes || dia > fimMes) return;
-        const cur = dias.get(dia) ?? { atendimentos: 0, vendas: 0, leads: 0 };
+        const cur = dias.get(dia) ?? { atendimentos: 0, vendas: 0, renovacoes: 0, leads: 0 };
         cur[k] += 1;
         dias.set(dia, cur);
       };
 
       for (const a of atendimentos) bump(a.data_atendimento, "atendimentos");
       for (const v of [...(loja.data ?? []), ...(pap.data ?? [])])
-        bump(iso(new Date(v.created_at)), "vendas");
+        bump(
+          iso(new Date(v.created_at)),
+          Number(v.valor_antigo ?? 0) > 0 ? "renovacoes" : "vendas",
+        );
       for (const l of leads.data ?? []) {
         const criado = iso(new Date(l.created_at));
         bump(criado, "leads");
@@ -139,7 +173,11 @@ function Produtividade() {
       }
 
       const linhas = [...dias.entries()]
-        .map(([dia, v]) => ({ dia, ...v, total: v.atendimentos + v.vendas + v.leads }))
+        .map(([dia, v]) => ({
+          dia,
+          ...v,
+          total: v.atendimentos + v.vendas + v.renovacoes + v.leads,
+        }))
         .sort((a, b) => (a.dia < b.dia ? 1 : -1));
 
       return {
@@ -149,14 +187,16 @@ function Produtividade() {
           (s, l) => ({
             atendimentos: s.atendimentos + l.atendimentos,
             vendas: s.vendas + l.vendas,
+            renovacoes: s.renovacoes + l.renovacoes,
             leads: s.leads + l.leads,
             total: s.total + l.total,
           }),
-          { atendimentos: 0, vendas: 0, leads: 0, total: 0 },
+          { atendimentos: 0, vendas: 0, renovacoes: 0, leads: 0, total: 0 },
         ),
       };
     },
   });
+
 
   type Atendimento = NonNullable<typeof prod>["atendimentos"][number];
   const opcoesOrdem = useMemo<OpcaoOrdenacao<Atendimento>[]>(
