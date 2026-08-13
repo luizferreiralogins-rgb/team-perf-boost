@@ -51,7 +51,14 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
       { name: "description", content: "Registre uma nova venda Unifique (Loja ou PAP)." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    lead_nome?: string;
+    lead_produto?: string;
+    lead_whatsapp?: string;
+    lead_cidade?: string;
+  } => ({
     lead_nome: typeof search.lead_nome === "string" ? search.lead_nome : undefined,
     lead_produto: typeof search.lead_produto === "string" ? search.lead_produto : undefined,
     lead_whatsapp: typeof search.lead_whatsapp === "string" ? search.lead_whatsapp : undefined,
