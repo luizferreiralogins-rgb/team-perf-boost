@@ -1,10 +1,12 @@
-// Aba "Estratégico" do dashboard de gestores: indicadores de portas, vendas,
-// ativações, cancelamentos, churn, net ads e market share por cidade/mês.
+// Aba "Estratégico" do dashboard: seleção múltipla de cidades e meses,
+// indicadores de Banda Larga e Móvel e KPIs em gráfico de linhas ou colunas.
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -15,16 +17,18 @@ import {
   YAxis,
 } from "recharts";
 
-const AZUL = "#2563eb";
-const ROXO = "#7c3aed";
-const AZUL_CLARO = "#38bdf8";
-
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -40,6 +44,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+const AZUL = "#2563eb";
+const ROXO = "#7c3aed";
 
 export const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -57,18 +64,30 @@ type Mensal = {
   cancel_voluntario: number;
   cancel_involuntario: number;
   market_share: number;
+  mv_linhas_vendidas: number;
+  mv_meta_vendidas: number;
+  mv_linhas_ativadas: number;
+  mv_meta_ativadas: number;
+  mv_acessos_anatel: number;
+  mv_cancel_voluntario: number;
+  mv_cancel_involuntario: number;
+  mv_market_share: number;
 };
 
 type Cidade = {
   id: string;
   cidade: string;
+  unidade: string;
+  regional: string;
   ano: number;
   portas_total: number;
   portas_ocupadas: number;
   owner_id: string;
 };
 
-const CAMPOS: { key: keyof Mensal; label: string; pct?: boolean }[] = [
+type CampoEdit = { key: keyof Mensal; label: string; pct?: boolean };
+
+const CAMPOS_BL: CampoEdit[] = [
   { key: "vendas", label: "Vendas" },
   { key: "meta_vendas", label: "Meta de vendas" },
   { key: "quebra_venda", label: "Quebra de venda" },
@@ -81,6 +100,17 @@ const CAMPOS: { key: keyof Mensal; label: string; pct?: boolean }[] = [
   { key: "market_share", label: "Market share (%)", pct: true },
 ];
 
+const CAMPOS_MV: CampoEdit[] = [
+  { key: "mv_linhas_vendidas", label: "Linhas vendidas" },
+  { key: "mv_meta_vendidas", label: "Meta linhas vendidas" },
+  { key: "mv_linhas_ativadas", label: "Linhas ativadas" },
+  { key: "mv_meta_ativadas", label: "Meta linhas ativadas" },
+  { key: "mv_acessos_anatel", label: "Acessos Anatel" },
+  { key: "mv_cancel_voluntario", label: "Cancel. voluntário" },
+  { key: "mv_cancel_involuntario", label: "Cancel. involuntário" },
+  { key: "mv_market_share", label: "Market share (%)", pct: true },
+];
+
 const num = (n: number) => (n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const pct = (n: number) => `${((n || 0) * 100).toFixed(1).replace(".", ",")}%`;
 const anosDisponiveis = () => {
@@ -88,10 +118,69 @@ const anosDisponiveis = () => {
   return [y + 1, y, y - 1, y - 2];
 };
 
+/** Agregação de um conjunto de linhas mensais. */
+function agregar(rows: Mensal[]) {
+  const acc = rows.reduce(
+    (s, r) => ({
+      vendas: s.vendas + Number(r.vendas),
+      metaVendas: s.metaVendas + Number(r.meta_vendas),
+      quebra: s.quebra + Number(r.quebra_venda),
+      brutas: s.brutas + Number(r.vendas_brutas),
+      ativacoes: s.ativacoes + Number(r.ativacoes),
+      metaAtivacoes: s.metaAtivacoes + Number(r.meta_ativacoes),
+      anatel: s.anatel + Number(r.acessos_anatel),
+      cvol: s.cvol + Number(r.cancel_voluntario),
+      cinv: s.cinv + Number(r.cancel_involuntario),
+      share: s.share + Number(r.market_share),
+      nShare: s.nShare + (Number(r.market_share) > 0 ? 1 : 0),
+      mvVendidas: s.mvVendidas + Number(r.mv_linhas_vendidas),
+      mvMetaVendidas: s.mvMetaVendidas + Number(r.mv_meta_vendidas),
+      mvAtivadas: s.mvAtivadas + Number(r.mv_linhas_ativadas),
+      mvMetaAtivadas: s.mvMetaAtivadas + Number(r.mv_meta_ativadas),
+      mvAnatel: s.mvAnatel + Number(r.mv_acessos_anatel),
+      mvCvol: s.mvCvol + Number(r.mv_cancel_voluntario),
+      mvCinv: s.mvCinv + Number(r.mv_cancel_involuntario),
+      mvShare: s.mvShare + Number(r.mv_market_share),
+      nMvShare: s.nMvShare + (Number(r.mv_market_share) > 0 ? 1 : 0),
+    }),
+    {
+      vendas: 0, metaVendas: 0, quebra: 0, brutas: 0, ativacoes: 0, metaAtivacoes: 0,
+      anatel: 0, cvol: 0, cinv: 0, share: 0, nShare: 0, mvVendidas: 0, mvMetaVendidas: 0,
+      mvAtivadas: 0, mvMetaAtivadas: 0, mvAnatel: 0, mvCvol: 0, mvCinv: 0, mvShare: 0, nMvShare: 0,
+    },
+  );
+  const cancel = acc.cvol + acc.cinv;
+  const mvCancel = acc.mvCvol + acc.mvCinv;
+  return {
+    ...acc,
+    cancel,
+    mvCancel,
+    pctVendas: acc.metaVendas ? acc.vendas / acc.metaVendas : 0,
+    pctAtivacoes: acc.metaAtivacoes ? acc.ativacoes / acc.metaAtivacoes : 0,
+    churnVol: acc.anatel ? acc.cvol / acc.anatel : 0,
+    churnInv: acc.anatel ? acc.cinv / acc.anatel : 0,
+    churnGeral: acc.anatel ? cancel / acc.anatel : 0,
+    liquidas: acc.ativacoes - cancel,
+    marketShare: acc.nShare ? acc.share / acc.nShare : 0,
+    mvPctVendidas: acc.mvMetaVendidas ? acc.mvVendidas / acc.mvMetaVendidas : 0,
+    mvPctAtivadas: acc.mvMetaAtivadas ? acc.mvAtivadas / acc.mvMetaAtivadas : 0,
+    mvChurnVol: acc.mvAnatel ? acc.mvCvol / acc.mvAnatel : 0,
+    mvChurnInv: acc.mvAnatel ? acc.mvCinv / acc.mvAnatel : 0,
+    mvChurnGeral: acc.mvAnatel ? mvCancel / acc.mvAnatel : 0,
+    mvLiquidas: acc.mvAtivadas - mvCancel,
+    mvMarketShare: acc.nMvShare ? acc.mvShare / acc.nMvShare : 0,
+  };
+}
+
 export function Estrategico() {
   const qc = useQueryClient();
   const [ano, setAno] = useState(new Date().getFullYear());
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [cidadesSel, setCidadesSel] = useState<string[] | null>(null);
+  const [mesesSel, setMesesSel] = useState<number[]>(
+    Array.from({ length: new Date().getMonth() + 1 }, (_, i) => i + 1),
+  );
+  const [tipoGrafico, setTipoGrafico] = useState<"linha" | "coluna">("linha");
+  const [mesEdicao, setMesEdicao] = useState(new Date().getMonth() + 1);
   const [novaCidade, setNovaCidade] = useState("");
   const [abrirNova, setAbrirNova] = useState(false);
 
@@ -100,7 +189,7 @@ export function Estrategico() {
     queryFn: async () => {
       const { data: cidades, error } = await supabase
         .from("estrategico_cidades")
-        .select("id, cidade, ano, portas_total, portas_ocupadas, owner_id")
+        .select("id, cidade, unidade, regional, ano, portas_total, portas_ocupadas, owner_id")
         .eq("ano", ano)
         .order("cidade");
       if (error) throw error;
@@ -112,14 +201,16 @@ export function Estrategico() {
           .select("*")
           .in("cidade_id", ids);
         if (e2) throw e2;
-        mensais = (m ?? []) as Mensal[];
+        mensais = (m ?? []) as unknown as Mensal[];
       }
-      return { cidades: (cidades ?? []) as Cidade[], mensais };
+      return { cidades: (cidades ?? []) as unknown as Cidade[], mensais };
     },
   });
 
-  const cidades = data?.cidades ?? [];
-  const mensais = data?.mensais ?? [];
+  const cidades = useMemo(() => data?.cidades ?? [], [data]);
+  const mensais = useMemo(() => data?.mensais ?? [], [data]);
+  const idsSel = cidadesSel ?? cidades.map((c) => c.id);
+  const idsSelKey = idsSel.join(",");
 
   const linha = (cidadeId: string, m: number) =>
     mensais.find((x) => x.cidade_id === cidadeId && x.mes === m);
@@ -187,67 +278,91 @@ export function Estrategico() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  /** Consolidado por mês (todas as cidades visíveis). */
-  const serie = useMemo(() => {
-    return MESES.map((label, i) => {
-      const m = i + 1;
-      const rows = mensais.filter((x) => x.mes === m);
-      const acc = rows.reduce(
-        (s, r) => ({
-          vendas: s.vendas + Number(r.vendas),
-          meta_vendas: s.meta_vendas + Number(r.meta_vendas),
-          quebra: s.quebra + Number(r.quebra_venda),
-          brutas: s.brutas + Number(r.vendas_brutas),
-          ativacoes: s.ativacoes + Number(r.ativacoes),
-          meta_ativacoes: s.meta_ativacoes + Number(r.meta_ativacoes),
-          anatel: s.anatel + Number(r.acessos_anatel),
-          cvol: s.cvol + Number(r.cancel_voluntario),
-          cinv: s.cinv + Number(r.cancel_involuntario),
-          share: s.share + Number(r.market_share),
-          nShare: s.nShare + (Number(r.market_share) > 0 ? 1 : 0),
-        }),
-        {
-          vendas: 0, meta_vendas: 0, quebra: 0, brutas: 0, ativacoes: 0,
-          meta_ativacoes: 0, anatel: 0, cvol: 0, cinv: 0, share: 0, nShare: 0,
-        },
-      );
-      const cancelTotal = acc.cvol + acc.cinv;
-      return {
-        mes: label,
-        ...acc,
-        cancelTotal,
-        pctVendas: acc.meta_vendas ? acc.vendas / acc.meta_vendas : 0,
-        pctAtivacoes: acc.meta_ativacoes ? acc.ativacoes / acc.meta_ativacoes : 0,
-        churnVol: acc.anatel ? acc.cvol / acc.anatel : 0,
-        churnInv: acc.anatel ? acc.cinv / acc.anatel : 0,
-        churnGeral: acc.anatel ? cancelTotal / acc.anatel : 0,
-        liquidas: acc.ativacoes - cancelTotal,
-        marketShare: acc.nShare ? acc.share / acc.nShare : 0,
-      };
-    }).map((r, i, arr) => ({
+  /** Série anual (12 meses) das cidades selecionadas, com Net Ads mês a mês. */
+  const serieAno = useMemo(() => {
+    const sel = new Set(idsSel);
+    const base = MESES.map((label, i) => {
+      const rows = mensais.filter((x) => x.mes === i + 1 && sel.has(x.cidade_id));
+      return { mes: label, num: i + 1, ...agregar(rows) };
+    });
+    return base.map((r, i, arr) => ({
       ...r,
       netAds: i > 0 && arr[i - 1].anatel && r.anatel ? r.anatel - arr[i - 1].anatel : 0,
+      mvNetAds: i > 0 && arr[i - 1].mvAnatel && r.mvAnatel ? r.mvAnatel - arr[i - 1].mvAnatel : 0,
     }));
-  }, [mensais]);
+  }, [mensais, idsSelKey]);
 
-  const atual = serie[mes - 1];
-  const portas = cidades.reduce(
-    (s, c) => ({
-      total: s.total + Number(c.portas_total),
-      ocupadas: s.ocupadas + Number(c.portas_ocupadas),
-    }),
-    { total: 0, ocupadas: 0 },
+  const serie = useMemo(
+    () => serieAno.filter((s) => mesesSel.includes(s.num)),
+    [serieAno, mesesSel],
   );
+
+  /** Consolidado do período (cidades x meses selecionados). */
+  const total = useMemo(() => {
+    const sel = new Set(idsSel);
+    const rows = mensais.filter((x) => sel.has(x.cidade_id) && mesesSel.includes(x.mes));
+    const t = agregar(rows);
+    return {
+      ...t,
+      netAds: serie.reduce((s, r) => s + r.netAds, 0),
+      mvNetAds: serie.reduce((s, r) => s + r.mvNetAds, 0),
+      anatel: serie.length ? serie[serie.length - 1].anatel : 0,
+      mvAnatel: serie.length ? serie[serie.length - 1].mvAnatel : 0,
+      churnGeral: serie.length
+        ? serie.reduce((s, r) => s + r.churnGeral, 0) / serie.length
+        : 0,
+      mvChurnGeral: serie.length
+        ? serie.reduce((s, r) => s + r.mvChurnGeral, 0) / serie.length
+        : 0,
+    };
+  }, [mensais, idsSelKey, mesesSel, serie]);
+
+  const portas = cidades
+    .filter((c) => idsSel.includes(c.id))
+    .reduce(
+      (s, c) => ({
+        total: s.total + Number(c.portas_total),
+        ocupadas: s.ocupadas + Number(c.portas_ocupadas),
+      }),
+      { total: 0, ocupadas: 0 },
+    );
   const ocupacao = portas.total ? portas.ocupadas / portas.total : 0;
 
-  const grafChurn = serie.map((s) => ({
+  const dadosChurn = serie.map((s) => ({
     mes: s.mes,
     "Churn geral": Number((s.churnGeral * 100).toFixed(2)),
-    "Voluntário": Number((s.churnVol * 100).toFixed(2)),
-    "Involuntário": Number((s.churnInv * 100).toFixed(2)),
+    "Churn geral móvel": Number((s.mvChurnGeral * 100).toFixed(2)),
   }));
 
   if (isLoading) return <Skeleton className="h-96 w-full" />;
+
+  const G = (props: { titulo: string; series: { key: string; nome: string; cor: string }[]; dados: Record<string, unknown>[]; unidade?: string }) => (
+    <Grafico titulo={props.titulo}>
+      {tipoGrafico === "linha" ? (
+        <LineChart data={props.dados}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis dataKey="mes" fontSize={12} />
+          <YAxis fontSize={12} unit={props.unidade} />
+          <Tooltip />
+          <Legend />
+          {props.series.map((s) => (
+            <Line key={s.key} type="monotone" dataKey={s.key} name={s.nome} stroke={s.cor} strokeWidth={2} dot={false} />
+          ))}
+        </LineChart>
+      ) : (
+        <BarChart data={props.dados}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis dataKey="mes" fontSize={12} />
+          <YAxis fontSize={12} unit={props.unidade} />
+          <Tooltip />
+          <Legend />
+          {props.series.map((s) => (
+            <Bar key={s.key} dataKey={s.key} name={s.nome} fill={s.cor} radius={[4, 4, 0, 0]} />
+          ))}
+        </BarChart>
+      )}
+    </Grafico>
+  );
 
   return (
     <div className="space-y-6">
@@ -256,7 +371,7 @@ export function Estrategico() {
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Ano</Label>
             <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {anosDisponiveis().map((a) => (
                   <SelectItem key={a} value={String(a)}>{a}</SelectItem>
@@ -264,17 +379,90 @@ export function Estrategico() {
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Mês de referência</Label>
-            <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {MESES.map((m, i) => (
-                  <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs text-muted-foreground">Cidades</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[220px] justify-between font-normal">
+                  {cidadesSel === null || cidadesSel.length === cidades.length
+                    ? "Todas as cidades"
+                    : `${cidadesSel.length} selecionada(s)`}
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="max-h-72 w-[260px] overflow-y-auto p-2" align="start">
+                <button
+                  type="button"
+                  className="mb-1 flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                  onClick={() =>
+                    setCidadesSel(
+                      cidadesSel && cidadesSel.length === 0 ? cidades.map((c) => c.id) : [],
+                    )
+                  }
+                >
+                  <Check className="h-4 w-4 opacity-60" />
+                  {cidadesSel && cidadesSel.length === 0 ? "Marcar todas" : "Limpar seleção"}
+                </button>
+                {cidades.map((c) => {
+                  const marcado = idsSel.includes(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={marcado}
+                        onCheckedChange={() =>
+                          setCidadesSel(
+                            marcado
+                              ? idsSel.filter((id) => id !== c.id)
+                              : [...idsSel, c.id],
+                          )
+                        }
+                      />
+                      {c.cidade}
+                    </label>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
           </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Meses</Label>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant={mesesSel.length === 12 ? "default" : "outline"}
+                onClick={() =>
+                  setMesesSel(mesesSel.length === 12 ? [] : MESES.map((_, i) => i + 1))
+                }
+              >
+                Todos
+              </Button>
+              {MESES.map((m, i) => {
+                const ativo = mesesSel.includes(i + 1);
+                return (
+                  <Button
+                    key={m}
+                    type="button"
+                    size="sm"
+                    variant={ativo ? "default" : "outline"}
+                    onClick={() =>
+                      setMesesSel(
+                        ativo ? mesesSel.filter((x) => x !== i + 1) : [...mesesSel, i + 1].sort((a, b) => a - b),
+                      )
+                    }
+                  >
+                    {m}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
           <Dialog open={abrirNova} onOpenChange={setAbrirNova}>
             <DialogTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -304,80 +492,72 @@ export function Estrategico() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <Kpi title="Portas ocupadas" value={num(portas.ocupadas)} hint={`${num(portas.total)} portas · ${pct(ocupacao)} ocupação`} />
-        <Kpi title={`Vendas (${MESES[mes - 1]})`} value={num(atual?.vendas ?? 0)} hint={`Meta ${num(atual?.meta_vendas ?? 0)} · ${pct(atual?.pctVendas ?? 0)}`} />
-        <Kpi title="Quebra de vendas" value={num(atual?.quebra ?? 0)} hint={`Brutas ${num(atual?.brutas ?? 0)}`} />
-        <Kpi title="Ativações" value={num(atual?.ativacoes ?? 0)} hint={`Meta ${num(atual?.meta_ativacoes ?? 0)} · ${pct(atual?.pctAtivacoes ?? 0)}`} />
-        <Kpi title="Acessos Anatel" value={num(atual?.anatel ?? 0)} hint={`Net Ads ${num(atual?.netAds ?? 0)}`} />
-        <Kpi title="Cancelamentos" value={num(atual?.cancelTotal ?? 0)} hint={`Vol. ${num(atual?.cvol ?? 0)} · Invol. ${num(atual?.cinv ?? 0)}`} />
-        <Kpi title="Churn geral" value={pct(atual?.churnGeral ?? 0)} hint={`Vol. ${pct(atual?.churnVol ?? 0)} · Invol. ${pct(atual?.churnInv ?? 0)}`} />
-        <Kpi title="Ativações líquidas" value={num(atual?.liquidas ?? 0)} hint="Ativações − cancelamentos" />
-        <Kpi title="Net Ads" value={num(atual?.netAds ?? 0)} hint="Variação de acessos Anatel" />
-        <Kpi title="Market share" value={pct(atual?.marketShare ?? 0)} hint="Média das cidades" />
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Banda Larga
+        </h3>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <Kpi title="Portas ocupadas" value={num(portas.ocupadas)} hint={`${num(portas.total)} portas · ${pct(ocupacao)} ocupação`} />
+          <Kpi title="Vendas" value={num(total.vendas)} hint={`Meta ${num(total.metaVendas)} · ${pct(total.pctVendas)}`} />
+          <Kpi title="Quebra de vendas" value={num(total.quebra)} hint={`Brutas ${num(total.brutas)}`} />
+          <Kpi title="Ativações" value={num(total.ativacoes)} hint={`Meta ${num(total.metaAtivacoes)} · ${pct(total.pctAtivacoes)}`} />
+          <Kpi title="Acessos Anatel" value={num(total.anatel)} hint="Base no último mês do período" />
+          <Kpi title="Cancelamentos" value={num(total.cancel)} hint={`Vol. ${num(total.cvol)} · Invol. ${num(total.cinv)}`} />
+          <Kpi title="Churn geral" value={pct(total.churnGeral)} hint="Média do período" />
+          <Kpi title="Ativações líquidas" value={num(total.liquidas)} hint="Ativações − cancelamentos" />
+          <Kpi title="Net Ads" value={num(total.netAds)} hint="Variação de acessos Anatel" />
+          <Kpi title="Market share" value={pct(total.marketShare)} hint="Média das cidades" />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Móvel
+        </h3>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <Kpi title="Linhas vendidas" value={num(total.mvVendidas)} hint={`Meta ${num(total.mvMetaVendidas)} · ${pct(total.mvPctVendidas)}`} />
+          <Kpi title="Linhas ativas" value={num(total.mvAtivadas)} hint={`Meta ${num(total.mvMetaAtivadas)} · ${pct(total.mvPctAtivadas)}`} />
+          <Kpi title="Acessos Anatel" value={num(total.mvAnatel)} hint="Base no último mês do período" />
+          <Kpi title="Linhas canceladas" value={num(total.mvCancel)} hint={`Vol. ${num(total.mvCvol)} · Invol. ${num(total.mvCinv)}`} />
+          <Kpi title="Churn geral" value={pct(total.mvChurnGeral)} hint="Média do período" />
+          <Kpi title="Ativações líquidas" value={num(total.mvLiquidas)} hint="Ativadas − canceladas" />
+          <Kpi title="Net Ads" value={num(total.mvNetAds)} hint="Variação de acessos Anatel" />
+          <Kpi title="Market share" value={pct(total.mvMarketShare)} hint="Média das cidades" />
+        </div>
+      </section>
+
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Visualização:</span>
+        {(["linha", "coluna"] as const).map((t) => (
+          <Button
+            key={t}
+            size="sm"
+            variant={tipoGrafico === t ? "default" : "outline"}
+            onClick={() => setTipoGrafico(t)}
+          >
+            {t === "linha" ? "Gráfico de linhas" : "Colunas"}
+          </Button>
+        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Grafico titulo="Vendas x Meta" descricao="Acompanhamento mensal">
-          <LineChart data={serie}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
-            <Tooltip /><Legend />
-            <Line type="monotone" dataKey="meta_vendas" name="Meta" stroke={ROXO} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="vendas" name="Vendas" stroke={AZUL} strokeWidth={2} dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Vendas x Meta" dados={serie} series={[{ key: "metaVendas", nome: "Meta", cor: ROXO }, { key: "vendas", nome: "Vendas", cor: AZUL }]} />
+        <G titulo="Móvel · Linhas vendidas x Meta" dados={serie} series={[{ key: "mvMetaVendidas", nome: "Meta", cor: ROXO }, { key: "mvVendidas", nome: "Linhas vendidas", cor: AZUL }]} />
 
-        <Grafico titulo="Ativações x Meta" descricao="Acompanhamento mensal">
-          <LineChart data={serie}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
-            <Tooltip /><Legend />
-            <Line type="monotone" dataKey="meta_ativacoes" name="Meta" stroke={ROXO} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="ativacoes" name="Ativações" stroke={AZUL} strokeWidth={2} dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Ativação x Meta" dados={serie} series={[{ key: "metaAtivacoes", nome: "Meta", cor: ROXO }, { key: "ativacoes", nome: "Ativações", cor: AZUL }]} />
+        <G titulo="Móvel · Ativação x Meta" dados={serie} series={[{ key: "mvMetaAtivadas", nome: "Meta", cor: ROXO }, { key: "mvAtivadas", nome: "Linhas ativadas", cor: AZUL }]} />
 
-        <Grafico titulo="Churn (%)" descricao="Voluntário, involuntário e geral">
-          <LineChart data={grafChurn}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} />
-            <YAxis fontSize={12} unit="%" domain={[0, "auto"]} />
-            <Tooltip /><Legend />
-            <Line type="monotone" dataKey="Churn geral" stroke={AZUL} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="Voluntário" stroke={ROXO} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="Involuntário" stroke={AZUL_CLARO} strokeWidth={2} strokeDasharray="4 4" dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Churn geral" unidade="%" dados={dadosChurn} series={[{ key: "Churn geral", nome: "Churn geral", cor: AZUL }]} />
+        <G titulo="Móvel · Churn geral" unidade="%" dados={dadosChurn} series={[{ key: "Churn geral móvel", nome: "Churn geral", cor: ROXO }]} />
 
-        <Grafico titulo="Ativações líquidas e Net Ads" descricao="Crescimento da base">
-          <LineChart data={serie}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
-            <Tooltip /><Legend />
-            <Line type="monotone" dataKey="liquidas" name="Ativações líquidas" stroke={AZUL} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="netAds" name="Net Ads" stroke={ROXO} strokeWidth={2} dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Acessos Anatel" dados={serie} series={[{ key: "anatel", nome: "Acessos", cor: AZUL }]} />
+        <G titulo="Móvel · Acessos Anatel" dados={serie} series={[{ key: "mvAnatel", nome: "Acessos", cor: ROXO }]} />
 
-        <Grafico titulo="Acessos Anatel" descricao="Base total por mês">
-          <LineChart data={serie}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} domain={[0, "auto"]} />
-            <Tooltip />
-            <Line type="monotone" dataKey="anatel" name="Acessos" stroke={AZUL} strokeWidth={2} dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Cancelamentos totais" dados={serie} series={[{ key: "cancel", nome: "Cancelamentos", cor: AZUL }]} />
+        <G titulo="Móvel · Cancelamentos totais" dados={serie} series={[{ key: "mvCancel", nome: "Linhas canceladas", cor: ROXO }]} />
 
-        <Grafico titulo="Quebra de venda" descricao="Vendas brutas x quebra">
-          <LineChart data={serie}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="mes" fontSize={12} /><YAxis fontSize={12} />
-            <Tooltip /><Legend />
-            <Line type="monotone" dataKey="brutas" name="Brutas" stroke={AZUL} strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="quebra" name="Quebra" stroke={ROXO} strokeWidth={2} dot={false} />
-          </LineChart>
-        </Grafico>
+        <G titulo="Banda Larga · Net Ads" dados={serie} series={[{ key: "netAds", nome: "Net Ads", cor: AZUL }]} />
+        <G titulo="Móvel · Net Ads" dados={serie} series={[{ key: "mvNetAds", nome: "Net Ads", cor: ROXO }]} />
       </div>
 
       <Card>
@@ -439,61 +619,72 @@ export function Estrategico() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Relatório de {MESES[mes - 1]}/{ano}</CardTitle>
-          <CardDescription>
-            Preencha por cidade. Percentuais, churn, ativações líquidas e Net Ads são calculados automaticamente.
-          </CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle>Preenchimento manual — {MESES[mesEdicao - 1]}/{ano}</CardTitle>
+            <CardDescription>
+              Lance os números do mês por cidade. Percentuais, churn, líquidas e Net Ads são calculados.
+            </CardDescription>
+          </div>
+          <Select value={String(mesEdicao)} onValueChange={(v) => setMesEdicao(Number(v))}>
+            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES.map((m, i) => (
+                <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                <th className="py-2 pr-2">Cidade</th>
-                {CAMPOS.map((c) => <th key={c.key} className="py-2 pr-2">{c.label}</th>)}
-                <th className="py-2 pr-2">% Vendas</th>
-                <th className="py-2 pr-2">% Ativações</th>
-                <th className="py-2 pr-2">Churn geral</th>
-                <th className="py-2 pr-2">Ativ. líquidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cidades.map((c) => {
-                const r = linha(c.id, mes);
-                const v = (k: keyof Mensal) => Number(r?.[k] ?? 0);
-                const cancel = v("cancel_voluntario") + v("cancel_involuntario");
-                return (
-                  <tr key={c.id} className="border-b last:border-0">
-                    <td className="py-1 pr-2 font-medium whitespace-nowrap">{c.cidade}</td>
-                    {CAMPOS.map((campo) => (
-                      <td key={campo.key} className="py-1 pr-2">
-                        <CampoNum
-                          valor={campo.pct ? v(campo.key) * 100 : v(campo.key)}
-                          onSalvar={(val) =>
-                            salvarMensal.mutate({
-                              cidade_id: c.id,
-                              mes,
-                              campo: campo.key as string,
-                              valor: campo.pct ? val / 100 : val,
-                            })
-                          }
-                        />
-                      </td>
-                    ))}
-                    <td className="py-1 pr-2">{pct(v("meta_vendas") ? v("vendas") / v("meta_vendas") : 0)}</td>
-                    <td className="py-1 pr-2">{pct(v("meta_ativacoes") ? v("ativacoes") / v("meta_ativacoes") : 0)}</td>
-                    <td className="py-1 pr-2">{pct(v("acessos_anatel") ? cancel / v("acessos_anatel") : 0)}</td>
-                    <td className="py-1 pr-2">{num(v("ativacoes") - cancel)}</td>
+        <CardContent className="space-y-8 overflow-x-auto">
+          {[
+            { titulo: "Banda Larga", campos: CAMPOS_BL },
+            { titulo: "Móvel", campos: CAMPOS_MV },
+          ].map((bloco) => (
+            <div key={bloco.titulo} className="space-y-2">
+              <h4 className="text-sm font-semibold">{bloco.titulo}</h4>
+              <table className="w-full min-w-[1000px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="py-2 pr-2">Cidade</th>
+                    {bloco.campos.map((c) => <th key={c.key} className="py-2 pr-2">{c.label}</th>)}
                   </tr>
-                );
-              })}
-              {!cidades.length && (
-                <tr><td colSpan={15} className="py-6 text-center text-muted-foreground">
-                  Cadastre uma cidade para começar.
-                </td></tr>
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {cidades.map((c) => {
+                    const r = linha(c.id, mesEdicao);
+                    return (
+                      <tr key={c.id} className="border-b last:border-0">
+                        <td className="py-1 pr-2 whitespace-nowrap font-medium">{c.cidade}</td>
+                        {bloco.campos.map((campo) => {
+                          const v = Number(r?.[campo.key] ?? 0);
+                          return (
+                            <td key={campo.key} className="py-1 pr-2">
+                              <CampoNum
+                                valor={campo.pct ? v * 100 : v}
+                                onSalvar={(val) =>
+                                  salvarMensal.mutate({
+                                    cidade_id: c.id,
+                                    mes: mesEdicao,
+                                    campo: campo.key as string,
+                                    valor: campo.pct ? val / 100 : val,
+                                  })
+                                }
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  {!cidades.length && (
+                    <tr><td colSpan={bloco.campos.length + 1} className="py-6 text-center text-muted-foreground">
+                      Cadastre uma cidade para começar.
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
