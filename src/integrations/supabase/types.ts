@@ -237,6 +237,8 @@ export type Database = {
           owner_id: string
           portas_ocupadas: number
           portas_total: number
+          regional: string
+          unidade: string
           updated_at: string
         }
         Insert: {
@@ -247,6 +249,8 @@ export type Database = {
           owner_id?: string
           portas_ocupadas?: number
           portas_total?: number
+          regional?: string
+          unidade?: string
           updated_at?: string
         }
         Update: {
@@ -257,6 +261,8 @@ export type Database = {
           owner_id?: string
           portas_ocupadas?: number
           portas_total?: number
+          regional?: string
+          unidade?: string
           updated_at?: string
         }
         Relationships: []
@@ -274,6 +280,14 @@ export type Database = {
           mes: number
           meta_ativacoes: number
           meta_vendas: number
+          mv_acessos_anatel: number
+          mv_cancel_involuntario: number
+          mv_cancel_voluntario: number
+          mv_linhas_ativadas: number
+          mv_linhas_vendidas: number
+          mv_market_share: number
+          mv_meta_ativadas: number
+          mv_meta_vendidas: number
           quebra_venda: number
           updated_at: string
           vendas: number
@@ -291,6 +305,14 @@ export type Database = {
           mes: number
           meta_ativacoes?: number
           meta_vendas?: number
+          mv_acessos_anatel?: number
+          mv_cancel_involuntario?: number
+          mv_cancel_voluntario?: number
+          mv_linhas_ativadas?: number
+          mv_linhas_vendidas?: number
+          mv_market_share?: number
+          mv_meta_ativadas?: number
+          mv_meta_vendidas?: number
           quebra_venda?: number
           updated_at?: string
           vendas?: number
@@ -308,6 +330,14 @@ export type Database = {
           mes?: number
           meta_ativacoes?: number
           meta_vendas?: number
+          mv_acessos_anatel?: number
+          mv_cancel_involuntario?: number
+          mv_cancel_voluntario?: number
+          mv_linhas_ativadas?: number
+          mv_linhas_vendidas?: number
+          mv_market_share?: number
+          mv_meta_ativadas?: number
+          mv_meta_vendidas?: number
           quebra_venda?: number
           updated_at?: string
           vendas?: number
