@@ -241,18 +241,27 @@ export function RankingEquipe({
         1,
       );
       const fim = `${fimDate.getFullYear()}-${String(fimDate.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
+      const ehMesAtual = filtros.mes === mesAtual();
+
+      const lojaQ = supabase
+        .from("vendas_loja")
+        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo")
+        .in("vendedor_id", ids);
+      const papQ = supabase
+        .from("vendas_pap")
+        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo")
+        .in("vendedor_id", ids);
+      if (ehMesAtual) {
+        lojaQ.is("arquivada_em", null);
+        papQ.is("arquivada_em", null);
+      } else {
+        lojaQ.eq("mes_ref", mesRef);
+        papQ.eq("mes_ref", mesRef);
+      }
 
       const [loja, pap, leads] = await Promise.all([
-        supabase
-          .from("vendas_loja")
-          .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, valor_novo, valor_antigo")
-          .eq("mes_ref", mesRef)
-          .in("vendedor_id", ids),
-        supabase
-          .from("vendas_pap")
-          .select("vendedor_id, tecnologia, produto, tipo_protocolo, valor")
-          .eq("mes_ref", mesRef)
-          .in("vendedor_id", ids),
+        lojaQ,
+        papQ,
         supabase
           .from("leads")
           .select("vendedor_id, created_at")
@@ -290,9 +299,10 @@ export function RankingEquipe({
         return l;
       };
 
-      const isFibra = (t?: string | null) => !!t && /fibra|banda\s*larga/i.test(t);
-      const isMovel = (t?: string | null) => !!t && /m[óo]vel/i.test(t);
-      const isRenov = (t?: string | null) => !!t && /renova/i.test(t);
+      // mesmos critérios da dashboard do consultor
+      const isBL = (t?: string | null) =>
+        !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
+      const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
 
       for (const v of loja.data ?? []) {
         const k = chaveDe(v.vendedor_id);
@@ -301,20 +311,27 @@ export function RankingEquipe({
         const novo = Number(v.valor_novo ?? 0);
         const antigo = Number(v.valor_antigo ?? 0);
         const val = antigo > 0 ? novo - antigo : novo;
-        if (isFibra(v.tecnologia) && !isRenov(v.classe_protocolo)) l.fibraQtd++;
-        if (isMovel(v.tecnologia) || v.contem_movel) l.movelQtd++;
-        if (isRenov(v.classe_protocolo)) l.renovacoesRs += val;
+        const qtdLinhas = Number(v.qtd_linhas ?? 0);
+        const renov = (v.classe_protocolo ?? "").startsWith("Renovação");
+        if (isBL(v.tecnologia) && !renov) l.fibraQtd++;
+        if (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0) l.movelQtd += qtdLinhas;
+        if (renov) l.renovacoesRs += val;
       }
       for (const v of pap.data ?? []) {
         const k = chaveDe(v.vendedor_id);
         if (!k) continue;
         const l = get(k);
-        const val = Number(v.valor ?? 0);
-        const prod = v.produto ?? v.tecnologia;
-        if (isFibra(prod) && !isRenov(v.tipo_protocolo)) l.fibraQtd++;
-        if (isMovel(prod)) l.movelQtd++;
-        if (isRenov(v.tipo_protocolo)) l.renovacoesRs += val;
+        const novo = Number(v.valor_novo ?? 0) || Number(v.valor ?? 0);
+        const antigo = Number(v.valor_antigo ?? 0);
+        const val = antigo > 0 ? novo - antigo : novo;
+        const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
+        const qtdLinhas = Number(v.qtd_linhas ?? 0);
+        const renov = (v.tipo_protocolo ?? "").startsWith("Renovação");
+        if (isBL(desc) && !renov) l.fibraQtd++;
+        if (isMovel(desc) || qtdLinhas > 0) l.movelQtd += qtdLinhas;
+        if (renov) l.renovacoesRs += val;
       }
+
       for (const ld of leads.data ?? []) {
         const k = chaveDe(ld.vendedor_id);
         if (!k) continue;

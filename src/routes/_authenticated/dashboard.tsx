@@ -190,8 +190,8 @@ function Dashboard() {
 
 
   const ehMesAtual = filtros.mes === mesAtual();
-  /** Consultor no mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
-  const usarAtivas = !isGestor && ehMesAtual;
+  /** Mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
+  const usarAtivas = ehMesAtual;
   const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
 
 
