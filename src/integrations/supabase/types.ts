@@ -1184,6 +1184,18 @@ export type Database = {
         Args: { _tarefa_id: string; _user_id: string }
         Returns: boolean
       }
+      ranking_time: {
+        Args: { _mes_ref: string; _usar_ativas: boolean }
+        Returns: {
+          bl_qtd: number
+          comissao: number
+          id: string
+          mv_qtd: number
+          nome: string
+          renov_qtd: number
+          renov_rs: number
+        }[]
+      }
       transferir_venda: {
         Args: { _para: string; _tabela: string; _venda_id: string }
         Returns: undefined
