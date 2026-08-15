@@ -488,27 +488,8 @@ function Dashboard() {
         />
       </div>
 
-      {!isGestor && faixaAtual.data && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faixa atual — {faixaAtual.data.canal === "pap" ? "PAP" : "Loja"}
-            </CardTitle>
-            <CardDescription>
-              Baseada nas vendas instaladas do mês atual
-              {faixaAtual.data.canal === "pap"
-                ? " (receita acumulada da Tabela 8.1)."
-                : " (receita de diferença de ticket e % de renovações com móvel)."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-baseline gap-3">
-            <span className="text-3xl font-bold">{faixaAtual.data.faixa}</span>
-            <span className="text-sm text-muted-foreground">
-              de {faixaAtual.data.total} faixas · base {brl(faixaAtual.data.base)}
-            </span>
-          </CardContent>
-        </Card>
-      )}
+      {!isGestor && <RankingTime uid={roleInfo?.uid} mes={filtros.mes} />}
+
 
 
 
