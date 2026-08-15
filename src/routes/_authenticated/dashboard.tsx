@@ -30,6 +30,7 @@ import {
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
+import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { Estrategico } from "@/components/dashboard/estrategico";
