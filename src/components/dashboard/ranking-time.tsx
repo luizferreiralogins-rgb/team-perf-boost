@@ -17,9 +17,8 @@ type Linha = {
   renovRs: number;
 };
 
-const isBL = (t?: string | null) =>
-  !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
-const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
+
+
 
 /** Top 3 do time (consultores com o mesmo gerente) por indicador. */
 export function RankingTime({ uid, mes }: { uid?: string; mes: string }) {
