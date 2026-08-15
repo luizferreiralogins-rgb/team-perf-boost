@@ -30,6 +30,7 @@ import {
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
+import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { Estrategico } from "@/components/dashboard/estrategico";
@@ -364,12 +365,25 @@ function Dashboard() {
           faixa={!isGestor ? faixaAtual.data : null}
         />
         {!isGestor && (
-          <Button asChild size="lg">
-            <Link to="/vendas/nova" search={{}}>
-              <Plus className="mr-2 h-4 w-4" /> Nova venda
-            </Link>
-          </Button>
+          <div className="flex flex-col items-stretch gap-2">
+            {faixaAtual.data && (
+              <div className="rounded-lg border bg-muted/40 px-3 py-1.5 text-center text-xs">
+                <span className="font-semibold text-foreground">
+                  Faixa {faixaAtual.data.faixa}/{faixaAtual.data.total}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  · {faixaAtual.data.canal === "pap" ? "PAP" : "Loja"} · base {brl(faixaAtual.data.base)}
+                </span>
+              </div>
+            )}
+            <Button asChild size="lg">
+              <Link to="/vendas/nova" search={{}}>
+                <Plus className="mr-2 h-4 w-4" /> Nova venda
+              </Link>
+            </Button>
+          </div>
         )}
+
       </div>
 
 
@@ -475,27 +489,8 @@ function Dashboard() {
         />
       </div>
 
-      {!isGestor && faixaAtual.data && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faixa atual — {faixaAtual.data.canal === "pap" ? "PAP" : "Loja"}
-            </CardTitle>
-            <CardDescription>
-              Baseada nas vendas instaladas do mês atual
-              {faixaAtual.data.canal === "pap"
-                ? " (receita acumulada da Tabela 8.1)."
-                : " (receita de diferença de ticket e % de renovações com móvel)."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-baseline gap-3">
-            <span className="text-3xl font-bold">{faixaAtual.data.faixa}</span>
-            <span className="text-sm text-muted-foreground">
-              de {faixaAtual.data.total} faixas · base {brl(faixaAtual.data.base)}
-            </span>
-          </CardContent>
-        </Card>
-      )}
+      {!isGestor && <RankingTime uid={roleInfo?.uid} mes={filtros.mes} />}
+
 
 
 

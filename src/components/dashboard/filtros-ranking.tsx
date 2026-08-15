@@ -213,6 +213,7 @@ type Linha = {
   fibraQtd: number;
   movelQtd: number;
   renovacoesRs: number;
+  comissaoRs: number;
   leads: number;
 };
 
@@ -245,11 +246,11 @@ export function RankingEquipe({
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo")
+        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo, comissao, status")
         .in("vendedor_id", ids);
       const papQ = supabase
         .from("vendas_pap")
-        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo")
+        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status")
         .in("vendedor_id", ids);
       if (ehMesAtual) {
         lojaQ.is("arquivada_em", null);
@@ -293,7 +294,7 @@ export function RankingEquipe({
       const get = (k: string) => {
         let l = linhas.get(k);
         if (!l) {
-          l = { id: k, nome: nomes.get(k) ?? "—", fibraQtd: 0, movelQtd: 0, renovacoesRs: 0, leads: 0 };
+          l = { id: k, nome: nomes.get(k) ?? "—", fibraQtd: 0, movelQtd: 0, renovacoesRs: 0, comissaoRs: 0, leads: 0 };
           linhas.set(k, l);
         }
         return l;
@@ -316,6 +317,7 @@ export function RankingEquipe({
         if (isBL(v.tecnologia) && !renov) l.fibraQtd++;
         if (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
+        if (v.status === "instalado") l.comissaoRs += Number(v.comissao ?? 0);
       }
       for (const v of pap.data ?? []) {
         const k = chaveDe(v.vendedor_id);
@@ -330,6 +332,7 @@ export function RankingEquipe({
         if (isBL(desc) && !renov) l.fibraQtd++;
         if (isMovel(desc) || qtdLinhas > 0) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
+        if (v.status === "instalado") l.comissaoRs += Number(v.comissao ?? 0);
       }
 
       for (const ld of leads.data ?? []) {
@@ -368,6 +371,12 @@ export function RankingEquipe({
             titulo="Renovações (R$)"
             linhas={linhas}
             valorDe={(l) => l.renovacoesRs}
+            format={brl}
+          />
+          <RankCard
+            titulo="Comissão atual (R$)"
+            linhas={linhas}
+            valorDe={(l) => l.comissaoRs}
             format={brl}
           />
           <RankCard titulo="Leads cadastrados" linhas={linhas} valorDe={(l) => l.leads} />
