@@ -17,9 +17,8 @@ type Linha = {
   renovRs: number;
 };
 
-const isBL = (t?: string | null) =>
-  !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
-const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
+
+
 
 /** Top 3 do time (consultores com o mesmo gerente) por indicador. */
 export function RankingTime({ uid, mes }: { uid?: string; mes: string }) {
@@ -30,93 +29,22 @@ export function RankingTime({ uid, mes }: { uid?: string; mes: string }) {
     enabled: !!uid,
     staleTime: 30_000,
     queryFn: async (): Promise<Linha[]> => {
-      const { data: me } = await supabase
-        .from("profiles")
-        .select("id, gerente_id")
-        .eq("id", uid!)
-        .maybeSingle();
-
-      let colegas: { id: string; nome: string }[] = [];
-      if (me?.gerente_id) {
-        const { data: ps } = await supabase
-          .from("profiles")
-          .select("id, nome")
-          .eq("gerente_id", me.gerente_id)
-          .eq("ativo", true);
-        colegas = ps ?? [];
-      }
-      const ids = Array.from(new Set([...colegas.map((c) => c.id), uid!]));
-      const nomes = new Map(colegas.map((c) => [c.id, c.nome || "—"]));
-
-      const lojaQ = supabase
-        .from("vendas_loja")
-        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo, comissao, status")
-        .in("vendedor_id", ids);
-      const papQ = supabase
-        .from("vendas_pap")
-        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status")
-        .in("vendedor_id", ids);
-      if (mes === mesAtual()) {
-        lojaQ.is("arquivada_em", null);
-        papQ.is("arquivada_em", null);
-      } else {
-        lojaQ.eq("mes_ref", mesRef);
-        papQ.eq("mes_ref", mesRef);
-      }
-      const [loja, pap] = await Promise.all([lojaQ, papQ]);
-
-      const linhas = new Map<string, Linha>();
-      const get = (id: string) => {
-        let l = linhas.get(id);
-        if (!l) {
-          l = { id, nome: nomes.get(id) ?? "—", comissao: 0, blQtd: 0, mvQtd: 0, renovQtd: 0, renovRs: 0 };
-          linhas.set(id, l);
-        }
-        return l;
-      };
-      for (const id of ids) get(id);
-
-      for (const v of loja.data ?? []) {
-        const l = get(v.vendedor_id);
-        const novo = Number(v.valor_novo ?? 0);
-        const antigo = Number(v.valor_antigo ?? 0);
-        const val = antigo > 0 ? novo - antigo : novo;
-        const qtd = Number(v.qtd_linhas ?? 0);
-        const renov = (v.classe_protocolo ?? "").startsWith("Renovação");
-        if (isBL(v.tecnologia) && !renov) l.blQtd++;
-        if (isMovel(v.tecnologia) || v.contem_movel || qtd > 0) l.mvQtd += qtd;
-        if (renov) {
-          l.renovQtd++;
-          l.renovRs += val;
-        }
-        if (v.status === "instalado") l.comissao += Number(v.comissao ?? 0);
-      }
-      for (const v of pap.data ?? []) {
-        const l = get(v.vendedor_id);
-        const novo = Number(v.valor_novo ?? 0) || Number(v.valor ?? 0);
-        const antigo = Number(v.valor_antigo ?? 0);
-        const val = antigo > 0 ? novo - antigo : novo;
-        const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
-        const qtd = Number(v.qtd_linhas ?? 0);
-        const renov = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if (isBL(desc) && !renov) l.blQtd++;
-        if (isMovel(desc) || qtd > 0) l.mvQtd += qtd;
-        if (renov) {
-          l.renovQtd++;
-          l.renovRs += val;
-        }
-        if (v.status === "instalado") l.comissao += Number(v.comissao ?? 0);
-      }
-
-      // nome próprio
-      const minha = linhas.get(uid!);
-      if (minha && minha.nome === "—") {
-        const { data: p } = await supabase.from("profiles").select("nome").eq("id", uid!).maybeSingle();
-        minha.nome = p?.nome || "Você";
-      }
-
-      return [...linhas.values()];
+      const { data, error } = await supabase.rpc("ranking_time", {
+        _mes_ref: mesRef,
+        _usar_ativas: mes === mesAtual(),
+      });
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        id: r.id as string,
+        nome: (r.nome as string) || "—",
+        comissao: Number(r.comissao ?? 0),
+        blQtd: Number(r.bl_qtd ?? 0),
+        mvQtd: Number(r.mv_qtd ?? 0),
+        renovQtd: Number(r.renov_qtd ?? 0),
+        renovRs: Number(r.renov_rs ?? 0),
+      }));
     },
+
   });
 
   if (!uid) return null;
