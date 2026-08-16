@@ -82,6 +82,7 @@ export type Database = {
       }
       atendimentos: {
         Row: {
+          canal_atendimento: string | null
           contato_cliente: string | null
           created_at: string
           data_atendimento: string
@@ -93,6 +94,7 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          canal_atendimento?: string | null
           contato_cliente?: string | null
           created_at?: string
           data_atendimento?: string
@@ -104,6 +106,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          canal_atendimento?: string | null
           contato_cliente?: string | null
           created_at?: string
           data_atendimento?: string
@@ -516,6 +519,33 @@ export type Database = {
           lida?: boolean
           remetente_id?: string
           texto?: string
+        }
+        Relationships: []
+      }
+      opcoes_canais: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -948,6 +978,7 @@ export type Database = {
         Row: {
           agendamento_adiamentos: number
           arquivada_em: string | null
+          canal_origem: string | null
           classe_protocolo: string | null
           comissao: number
           contem_movel: boolean
@@ -974,6 +1005,7 @@ export type Database = {
         Insert: {
           agendamento_adiamentos?: number
           arquivada_em?: string | null
+          canal_origem?: string | null
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
@@ -1000,6 +1032,7 @@ export type Database = {
         Update: {
           agendamento_adiamentos?: number
           arquivada_em?: string | null
+          canal_origem?: string | null
           classe_protocolo?: string | null
           comissao?: number
           contem_movel?: boolean
@@ -1030,6 +1063,7 @@ export type Database = {
           agendamento_adiamentos: number
           arquivada_em: string | null
           bairro: string | null
+          canal_origem: string | null
           cidade: string | null
           comissao: number
           cpf_cnpj: string | null
@@ -1059,6 +1093,7 @@ export type Database = {
           agendamento_adiamentos?: number
           arquivada_em?: string | null
           bairro?: string | null
+          canal_origem?: string | null
           cidade?: string | null
           comissao?: number
           cpf_cnpj?: string | null
@@ -1088,6 +1123,7 @@ export type Database = {
           agendamento_adiamentos?: number
           arquivada_em?: string | null
           bairro?: string | null
+          canal_origem?: string | null
           cidade?: string | null
           comissao?: number
           cpf_cnpj?: string | null
