@@ -129,7 +129,7 @@ function Produtividade() {
       const [atend, loja, pap, leads] = await Promise.all([
         supabase
           .from("atendimentos")
-          .select("id, nome_cliente, tipo, contato_cliente, data_atendimento, created_at")
+          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, data_atendimento, created_at")
           .in("usuario_id", ids)
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes)
@@ -502,6 +502,7 @@ function Produtividade() {
                   setNome(a.nome_cliente);
                   setTipo(a.tipo as Tipo);
                   setContato(a.contato_cliente ?? "");
+                  setCanalAtendimento(a.canal_atendimento ?? "");
                   setData(a.data_atendimento);
                   document
                     .getElementById("form-atendimento")
