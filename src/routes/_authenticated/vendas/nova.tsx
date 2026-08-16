@@ -486,6 +486,14 @@ export function FormLoja({
                 required
               />
             </Field>
+            <Field label="Canal de vendas" required>
+              <SelectCanal
+                tipo="venda"
+                value={form.canal_origem}
+                onChange={(v) => setForm({ ...form, canal_origem: v })}
+                placeholder="De onde veio a venda"
+              />
+            </Field>
             <Field label="Classe de protocolo" required>
               <Select
                 value={form.classe_protocolo}
@@ -835,6 +843,14 @@ export function FormPap({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Canal de vendas" required>
+              <SelectCanal
+                tipo="venda"
+                value={form.canal_origem}
+                onChange={(v) => setForm({ ...form, canal_origem: v })}
+                placeholder="De onde veio a venda"
               />
             </Field>
             <Field label="Produto" required>
