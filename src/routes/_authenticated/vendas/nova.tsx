@@ -41,6 +41,7 @@ import {
   type PapNovoProduto,
 } from "@/lib/comissao";
 import { recalcularLojaMes, recalcularPapMes } from "@/lib/recalculo";
+import { SelectCanal } from "@/components/canais";
 
 
 
@@ -139,6 +140,7 @@ const lojaSchema = z.object({
   data_ativacao: z.string().optional().or(z.literal("")),
   data_agendamento: z.string().optional().or(z.literal("")),
   classe_protocolo: z.enum(CLASSES_PROTOCOLO),
+  canal_origem: z.string().trim().min(1, "Informe o canal de vendas"),
   tecnologia: z.enum(TECNOLOGIAS),
   contem_movel: z.boolean(),
   qtd_linhas: z.coerce.number().int().min(0),
@@ -174,6 +176,7 @@ const papSchema = z.object({
   nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
   protocolo: z.string().trim().max(60).optional().or(z.literal("")),
   tipo_protocolo: z.enum(TIPOS_PROTOCOLO_PAP),
+  canal_origem: z.string().trim().min(1, "Informe o canal de vendas"),
   produto: z.enum(PRODUTOS_PAP),
   data: z.string().min(1, "Informe a data da venda"),
   data_instalacao: z.string().optional().or(z.literal("")),
@@ -206,6 +209,7 @@ function NovaVenda() {
         data_ativacao: "",
         data_agendamento: "",
         classe_protocolo: "Novo Acesso",
+        canal_origem: "",
         tecnologia: "01.04 - Internet - Banda Larga - Fibra",
         contem_movel: false,
         qtd_linhas: "0",
@@ -223,6 +227,7 @@ function NovaVenda() {
     ? {
         protocolo: "",
         tipo_protocolo: "Novo Acesso",
+        canal_origem: "",
         nome_cliente: search.lead_nome ?? "",
         produto: produtoPap ?? "Banda Larga",
         data: today(),
@@ -272,6 +277,7 @@ export type FormLojaState = {
   data_ativacao: string;
   data_agendamento: string;
   classe_protocolo: (typeof CLASSES_PROTOCOLO)[number];
+  canal_origem: string;
   tecnologia: (typeof TECNOLOGIAS)[number];
   contem_movel: boolean;
   qtd_linhas: string;
@@ -301,6 +307,7 @@ export function FormLoja({
       data_ativacao: "",
       data_agendamento: "",
       classe_protocolo: "Novo Acesso",
+      canal_origem: "",
       tecnologia: "01.04 - Internet - Banda Larga - Fibra",
       contem_movel: false,
       qtd_linhas: "0",
@@ -417,6 +424,7 @@ export function FormLoja({
       data_ativacao: parsed.data.data_ativacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
       classe_protocolo: parsed.data.classe_protocolo,
+      canal_origem: parsed.data.canal_origem,
       mes_ref: mesRef,
       valor_novo: parsed.data.valor_novo,
       valor_antigo: valorAntigoNum,
@@ -476,6 +484,14 @@ export function FormLoja({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Canal de vendas" required>
+              <SelectCanal
+                tipo="venda"
+                value={form.canal_origem}
+                onChange={(v) => setForm({ ...form, canal_origem: v })}
+                placeholder="De onde veio a venda"
               />
             </Field>
             <Field label="Classe de protocolo" required>
@@ -633,6 +649,7 @@ export function FormLoja({
 export type FormPapState = {
   protocolo: string;
   tipo_protocolo: (typeof TIPOS_PROTOCOLO_PAP)[number];
+  canal_origem: string;
   nome_cliente: string;
   produto: (typeof PRODUTOS_PAP)[number];
   data: string;
@@ -660,6 +677,7 @@ export function FormPap({
     initial ?? {
       protocolo: "",
       tipo_protocolo: "Novo Acesso",
+      canal_origem: "",
       nome_cliente: "",
       produto: "Banda Larga",
       data: today(),
@@ -749,6 +767,7 @@ export function FormPap({
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
       tipo_protocolo: parsed.data.tipo_protocolo,
+      canal_origem: parsed.data.canal_origem,
       nome_cliente: parsed.data.nome_cliente,
       data_venda: parsed.data.data,
       data_ativacao: parsed.data.data_instalacao || null,
@@ -824,6 +843,14 @@ export function FormPap({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Canal de vendas" required>
+              <SelectCanal
+                tipo="venda"
+                value={form.canal_origem}
+                onChange={(v) => setForm({ ...form, canal_origem: v })}
+                placeholder="De onde veio a venda"
               />
             </Field>
             <Field label="Produto" required>

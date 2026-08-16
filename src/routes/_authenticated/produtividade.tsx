@@ -6,6 +6,7 @@ import { Activity, ClipboardList, ShoppingBag, Timer, Users } from "lucide-react
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
+import { SelectCanal } from "@/components/canais";
 import { useOrdenacao, cmpTexto, cmpDataDesc, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,7 @@ function Produtividade() {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<Tipo>("suporte");
   const [contato, setContato] = useState("");
+  const [canalAtendimento, setCanalAtendimento] = useState("");
   const [data, setData] = useState(iso(hoje));
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const diasDecorridos = Math.max(1, hoje.getDate());
@@ -82,6 +84,7 @@ function Produtividade() {
     setEditandoId(null);
     setNome("");
     setContato("");
+    setCanalAtendimento("");
     setTipo("suporte");
     setData(iso(new Date()));
   }
@@ -126,7 +129,7 @@ function Produtividade() {
       const [atend, loja, pap, leads] = await Promise.all([
         supabase
           .from("atendimentos")
-          .select("id, nome_cliente, tipo, contato_cliente, data_atendimento, created_at")
+          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, data_atendimento, created_at")
           .in("usuario_id", ids)
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes)
@@ -241,9 +244,11 @@ function Produtividade() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       if (nome.trim().length < 2) throw new Error("Informe o nome do cliente.");
+      if (!canalAtendimento) throw new Error("Selecione o canal de atendimento.");
       const payload = {
         nome_cliente: nome.trim(),
         tipo,
+        canal_atendimento: canalAtendimento,
         contato_cliente: contato.trim() || null,
         data_atendimento: data,
       };
@@ -397,6 +402,15 @@ function Produtividade() {
               </Select>
             </div>
             <div>
+              <Label>Canal de atendimento</Label>
+              <SelectCanal
+                tipo="atendimento"
+                value={canalAtendimento}
+                onChange={setCanalAtendimento}
+                placeholder="Selecione o canal"
+              />
+            </div>
+            <div>
               <Label htmlFor="contato">Contato do cliente</Label>
               <Input
                 id="contato"
@@ -488,6 +502,7 @@ function Produtividade() {
                   setNome(a.nome_cliente);
                   setTipo(a.tipo as Tipo);
                   setContato(a.contato_cliente ?? "");
+                  setCanalAtendimento(a.canal_atendimento ?? "");
                   setData(a.data_atendimento);
                   document
                     .getElementById("form-atendimento")

@@ -45,8 +45,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const AZUL = "#2563eb";
-const ROXO = "#7c3aed";
+const AZUL = "#1e3a8a";
+const ROXO = "#ea580c";
 
 export const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 

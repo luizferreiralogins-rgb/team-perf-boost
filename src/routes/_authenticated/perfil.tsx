@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAtalhos } from "@/components/atalhos-externos";
+import { CanaisConfig } from "@/components/canais";
 
 
 export const Route = createFileRoute("/_authenticated/perfil")({
@@ -221,7 +222,21 @@ function Perfil() {
         </CardContent>
       </Card>
 
-      {(data?.roles?.includes("regional") || data?.roles?.includes("admin")) && <AtalhosConfig />}
+      {(data?.roles?.includes("regional") || data?.roles?.includes("admin")) && (
+        <>
+          <AtalhosConfig />
+          <CanaisConfig
+            tipo="venda"
+            titulo="Canais de vendas"
+            descricao="Opções disponíveis no campo obrigatório 'Canal de vendas' do registro de vendas."
+          />
+          <CanaisConfig
+            tipo="atendimento"
+            titulo="Canais de atendimento"
+            descricao="Opções disponíveis no campo obrigatório 'Canal de atendimento' do registro de produtividade."
+          />
+        </>
+      )}
     </div>
   );
 }
