@@ -246,12 +246,14 @@ function Produtividade() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       if (nome.trim().length < 2) throw new Error("Informe o nome do cliente.");
+      if (!tipo) throw new Error("Selecione o tipo de atendimento.");
       if (!canalAtendimento) throw new Error("Selecione o canal de atendimento.");
       const payload = {
         nome_cliente: nome.trim(),
         tipo,
         canal_atendimento: canalAtendimento,
         contato_cliente: contato.trim() || null,
+        observacoes: observacoes.trim() || null,
         data_atendimento: data,
       };
       if (editandoId) {
