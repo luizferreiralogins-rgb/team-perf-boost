@@ -69,19 +69,25 @@ function Produtividade() {
   const fimMes = iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
 
   const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<Tipo>("suporte");
+  const [tipo, setTipo] = useState("");
   const [contato, setContato] = useState("");
   const [canalAtendimento, setCanalAtendimento] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   const [data, setData] = useState(iso(hoje));
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const diasDecorridos = Math.max(1, hoje.getDate());
+
+  const { data: tiposProd } = useCanais("produtividade");
+  const tipoLabel = (t: string) =>
+    (tiposProd ?? []).find((o) => slugCanal(o.nome) === t)?.nome ?? LABELS_LEGADOS[t] ?? t;
 
   function limparForm() {
     setEditandoId(null);
     setNome("");
     setContato("");
     setCanalAtendimento("");
-    setTipo("suporte");
+    setObservacoes("");
+    setTipo("");
     setData(iso(new Date()));
   }
 
