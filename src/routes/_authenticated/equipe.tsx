@@ -3,15 +3,17 @@ import { useOrdenacao, cmpTexto, type OpcaoOrdenacao } from "@/components/ordena
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   createTeamMember,
   deleteTeamMember,
   listTeam,
   updateTeamMember,
+  setTeamMemberPassword,
 } from "@/lib/team.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { SelectUnidade, UnidadesConfig, useUnidades } from "@/components/unidades-loja";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/equipe")({
 type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "regional";
 type Canal = "loja" | "pap";
-type Unidade = "norte" | "sul" | "shopping";
+type Unidade = string;
 
 type Member = {
   id: string;
@@ -101,6 +103,8 @@ function EquipePage() {
     queryKey: ["team"],
     queryFn: () => list(),
   });
+
+  const { data: unidades } = useUnidades();
 
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterCanal, setFilterCanal] = useState<string>("all");
@@ -213,9 +217,9 @@ function EquipePage() {
             <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as unidades</SelectItem>
-              <SelectItem value="norte">Norte</SelectItem>
-              <SelectItem value="sul">Sul</SelectItem>
-              <SelectItem value="shopping">Shopping</SelectItem>
+              {(unidades ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.nome}>{u.nome}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {isRegional && (
@@ -270,6 +274,8 @@ function EquipePage() {
           )}
         </CardContent>
       </Card>
+
+      <UnidadesConfig />
     </div>
   );
 }
@@ -320,6 +326,7 @@ function MemberRow({
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
           <EditarDialog member={member} gerentes={gerentes} isRegional={isRegional} />
+          {isRegional && <SenhaDialog member={member} />}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="icon" variant="ghost" title="Excluir">
@@ -467,14 +474,7 @@ function NovoAcessoDialog({
                 {canal === "loja" && (
                   <div className="space-y-2">
                     <Label>Unidade da loja</Label>
-                    <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="norte">Norte</SelectItem>
-                        <SelectItem value="sul">Sul</SelectItem>
-                        <SelectItem value="shopping">Shopping</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <SelectUnidade value={unidade} onChange={(v) => setUnidade(v)} />
                   </div>
                 )}
               </div>
@@ -591,14 +591,7 @@ function EditarDialog({
             {canal === "loja" && (
               <div className="space-y-2">
                 <Label>Unidade</Label>
-                <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade)}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="norte">Norte</SelectItem>
-                    <SelectItem value="sul">Sul</SelectItem>
-                    <SelectItem value="shopping">Shopping</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SelectUnidade value={unidade} onChange={(v) => setUnidade(v)} placeholder="—" />
               </div>
             )}
           </div>
@@ -643,6 +636,64 @@ function EditarDialog({
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
             {mut.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SenhaDialog({ member }: { member: Member }) {
+  const setPwd = useServerFn(setTeamMemberPassword);
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [mostrar, setMostrar] = useState(false);
+
+  const mut = useMutation({
+    mutationFn: () => setPwd({ data: { user_id: member.id, password } }),
+    onSuccess: () => {
+      toast.success("Senha redefinida");
+      setPassword("");
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" title="Redefinir senha">
+          <KeyRound className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Senha de {member.nome}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Por segurança, as senhas são guardadas criptografadas e não podem ser exibidas — nem pelo
+            Acesso Master. Você pode definir uma nova senha e informá-la ao colaborador.
+          </p>
+          <div className="space-y-2">
+            <Label>Nova senha</Label>
+            <Input
+              type={mostrar ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 8 caracteres"
+              autoComplete="new-password"
+            />
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={mostrar} onChange={(e) => setMostrar(e.target.checked)} />
+              Mostrar senha
+            </label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || password.length < 8}>
+            {mut.isPending ? "Salvando..." : "Definir senha"}
           </Button>
         </DialogFooter>
       </DialogContent>

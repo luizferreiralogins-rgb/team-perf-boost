@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidades } from "@/components/unidades-loja";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,7 @@ export type Membro = {
   id: string;
   nome: string;
   canal: "loja" | "pap";
-  loja_unidade: "norte" | "sul" | "shopping" | null;
+  loja_unidade: string | null;
   gerente_id: string | null;
   role: "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 };
@@ -149,6 +150,7 @@ export function FiltrosBar({
     [isRegional, gerentes, consultores],
   );
   const labelPessoa = isRegional ? "Gerente" : gerentes.length ? "Gerente / Consultor" : "Consultor";
+  const { data: unidadesLoja } = useUnidades();
 
   return (
     <Card>
@@ -178,9 +180,9 @@ export function FiltrosBar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="norte">Loja Norte</SelectItem>
-              <SelectItem value="sul">Loja Sul</SelectItem>
-              <SelectItem value="shopping">Loja Shopping</SelectItem>
+              {(unidadesLoja ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.nome}>Loja {u.nome}</SelectItem>
+              ))}
               <SelectItem value="pap">PAP</SelectItem>
             </SelectContent>
           </Select>

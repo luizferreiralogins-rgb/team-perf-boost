@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 type Canal = "loja" | "pap";
-type Unidade = "norte" | "sul" | "shopping";
+type Unidade = string;
 
 const canManage = async (
   supabase: any,
@@ -58,7 +58,7 @@ const createSchema = z.object({
   nome: z.string().trim().min(2).max(120),
   role: z.enum(["regional", "gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
-  loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
+  loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
   password: z.string().min(8).max(72),
 });
@@ -124,7 +124,7 @@ const updateSchema = z.object({
   user_id: z.string().uuid(),
   nome: z.string().trim().min(2).max(120).optional(),
   canal: z.enum(["loja", "pap"]).optional(),
-  loja_unidade: z.enum(["norte", "sul", "shopping"]).nullable().optional(),
+  loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
   role: z.enum(["regional", "gerente", "lider_pap", "consultor"]).optional(),
@@ -193,6 +193,28 @@ export const deleteTeamMember = createServerFn({ method: "POST" })
     if (!ok) throw new Error("Sem permissão para excluir este acesso.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setTeamMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({ user_id: z.string().uuid(), password: z.string().min(8).max(72) })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const rs: Role[] = (roles ?? []).map((r: any) => r.role);
+    if (!rs.includes("admin") && !rs.includes("regional")) {
+      throw new Error("Apenas o Acesso Master pode redefinir senhas.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      password: data.password,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
