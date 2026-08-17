@@ -16,7 +16,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type TipoCanal = "venda" | "atendimento";
+export type TipoCanal = "venda" | "atendimento" | "produtividade";
+
+/** Chave estável derivada do nome (usada para tipos de produtividade). */
+export function slugCanal(nome: string) {
+  return (
+    nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "") || "outro"
+  );
+}
 
 export type OpcaoCanal = {
   id: string;
