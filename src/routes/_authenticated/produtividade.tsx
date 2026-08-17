@@ -497,9 +497,10 @@ function Produtividade() {
                 onClick={() => {
                   setEditandoId(a.id);
                   setNome(a.nome_cliente);
-                  setTipo(a.tipo as Tipo);
+                  setTipo(a.tipo);
                   setContato(a.contato_cliente ?? "");
                   setCanalAtendimento(a.canal_atendimento ?? "");
+                  setObservacoes(a.observacoes ?? "");
                   setData(a.data_atendimento);
                   document
                     .getElementById("form-atendimento")
