@@ -59,11 +59,14 @@ export function SelectCanal({
   value,
   onChange,
   placeholder = "Selecione",
+  porChave = false,
 }: {
   tipo: TipoCanal;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  /** usa a chave derivada do nome como valor (em vez do nome) */
+  porChave?: boolean;
 }) {
   const { data, isLoading } = useCanais(tipo);
   return (
@@ -73,7 +76,7 @@ export function SelectCanal({
       </SelectTrigger>
       <SelectContent>
         {(data ?? []).map((c) => (
-          <SelectItem key={c.id} value={c.nome}>
+          <SelectItem key={c.id} value={porChave ? slugCanal(c.nome) : c.nome}>
             {c.nome}
           </SelectItem>
         ))}
