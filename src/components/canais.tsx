@@ -16,7 +16,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type TipoCanal = "venda" | "atendimento";
+export type TipoCanal = "venda" | "atendimento" | "produtividade";
+
+/** Chave estável derivada do nome (usada para tipos de produtividade). */
+export function slugCanal(nome: string) {
+  return (
+    nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "") || "outro"
+  );
+}
 
 export type OpcaoCanal = {
   id: string;
@@ -47,11 +59,14 @@ export function SelectCanal({
   value,
   onChange,
   placeholder = "Selecione",
+  porChave = false,
 }: {
   tipo: TipoCanal;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  /** usa a chave derivada do nome como valor (em vez do nome) */
+  porChave?: boolean;
 }) {
   const { data, isLoading } = useCanais(tipo);
   return (
@@ -61,7 +76,7 @@ export function SelectCanal({
       </SelectTrigger>
       <SelectContent>
         {(data ?? []).map((c) => (
-          <SelectItem key={c.id} value={c.nome}>
+          <SelectItem key={c.id} value={porChave ? slugCanal(c.nome) : c.nome}>
             {c.nome}
           </SelectItem>
         ))}
@@ -123,6 +138,12 @@ export function CanaisConfig({
     setSaving(true);
     const ordem = Math.max(0, ...(canais ?? []).map((c) => c.ordem)) + 1;
     const { error } = await supabase.from("opcoes_canais").insert({ tipo, nome, ordem });
+    if (!error && tipo === "produtividade") {
+      await supabase
+        .from("parametros_tempos")
+        .upsert({ chave: slugCanal(nome), label: nome, minutos: 25, ordem }, { onConflict: "chave" });
+      qc.invalidateQueries({ queryKey: ["parametros-tempos"] });
+    }
     setSaving(false);
     if (error) {
       toast.error(error.message);

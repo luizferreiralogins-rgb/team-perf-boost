@@ -235,6 +235,11 @@ function Perfil() {
             titulo="Canais de atendimento"
             descricao="Opções disponíveis no campo obrigatório 'Canal de atendimento' do registro de produtividade."
           />
+          <CanaisConfig
+            tipo="produtividade"
+            titulo="Tipos de produtividade"
+            descricao="Opções disponíveis no campo 'Tipo de atendimento' do registro de produtividade. Novos tipos entram com 25 min de tempo médio, ajustável em Produtividade."
+          />
         </>
       )}
     </div>

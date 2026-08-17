@@ -6,7 +6,7 @@ import { Activity, ClipboardList, ShoppingBag, Timer, Users } from "lucide-react
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
-import { SelectCanal } from "@/components/canais";
+import { SelectCanal, useCanais, slugCanal } from "@/components/canais";
 import { useOrdenacao, cmpTexto, cmpDataDesc, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,21 +44,17 @@ export const Route = createFileRoute("/_authenticated/produtividade")({
   component: Produtividade,
 });
 
-const TIPOS = [
-  { value: "pagamento", label: "Pagamento" },
-  { value: "boleto", label: "Boleto" },
-  { value: "suporte", label: "Suporte" },
-  { value: "cancelamento", label: "Cancelamento" },
-  { value: "duvida", label: "Dúvida" },
-  { value: "entrega_equipamento", label: "Entrega de equipamento" },
-  { value: "reclamacao", label: "Reclamação" },
-  { value: "ativacao_configuracao", label: "Ativação/Configuração" },
-  { value: "retirada_chip", label: "Retirada de Chip" },
-] as const;
-
-type Tipo = (typeof TIPOS)[number]["value"];
-
-const tipoLabel = (t: string) => TIPOS.find((x) => x.value === t)?.label ?? t;
+const LABELS_LEGADOS: Record<string, string> = {
+  pagamento: "Pagamento",
+  boleto: "Boleto",
+  suporte: "Suporte",
+  cancelamento: "Cancelamento",
+  duvida: "Dúvida",
+  entrega_equipamento: "Entrega de equipamento",
+  reclamacao: "Reclamação",
+  ativacao_configuracao: "Ativação/Configuração",
+  retirada_chip: "Retirada de Chip",
+};
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const diaCurto = (s: string) => {
@@ -73,19 +69,25 @@ function Produtividade() {
   const fimMes = iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
 
   const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<Tipo>("suporte");
+  const [tipo, setTipo] = useState("");
   const [contato, setContato] = useState("");
   const [canalAtendimento, setCanalAtendimento] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   const [data, setData] = useState(iso(hoje));
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const diasDecorridos = Math.max(1, hoje.getDate());
+
+  const { data: tiposProd } = useCanais("produtividade");
+  const tipoLabel = (t: string) =>
+    (tiposProd ?? []).find((o) => slugCanal(o.nome) === t)?.nome ?? LABELS_LEGADOS[t] ?? t;
 
   function limparForm() {
     setEditandoId(null);
     setNome("");
     setContato("");
     setCanalAtendimento("");
-    setTipo("suporte");
+    setObservacoes("");
+    setTipo("");
     setData(iso(new Date()));
   }
 
@@ -129,7 +131,7 @@ function Produtividade() {
       const [atend, loja, pap, leads] = await Promise.all([
         supabase
           .from("atendimentos")
-          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, data_atendimento, created_at")
+          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, observacoes, data_atendimento, created_at")
           .in("usuario_id", ids)
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes)
@@ -244,12 +246,14 @@ function Produtividade() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
       if (nome.trim().length < 2) throw new Error("Informe o nome do cliente.");
+      if (!tipo) throw new Error("Selecione o tipo de atendimento.");
       if (!canalAtendimento) throw new Error("Selecione o canal de atendimento.");
       const payload = {
         nome_cliente: nome.trim(),
         tipo,
         canal_atendimento: canalAtendimento,
         contato_cliente: contato.trim() || null,
+        observacoes: observacoes.trim() || null,
         data_atendimento: data,
       };
       if (editandoId) {
@@ -388,18 +392,13 @@ function Produtividade() {
             </div>
             <div>
               <Label>Tipo de atendimento</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectCanal
+                tipo="produtividade"
+                value={tipo}
+                onChange={setTipo}
+                placeholder="Selecione o tipo"
+                porChave
+              />
             </div>
             <div>
               <Label>Canal de atendimento</Label>
@@ -423,6 +422,16 @@ function Produtividade() {
             <div>
               <Label htmlFor="data">Data</Label>
               <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="obs">Protocolo/Observação (opcional)</Label>
+              <Input
+                id="obs"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                maxLength={300}
+                placeholder="Nº do protocolo ou observação do atendimento"
+              />
             </div>
             <div className="flex items-end justify-end gap-2 sm:col-span-2">
               {editandoId && (
@@ -493,6 +502,9 @@ function Produtividade() {
               {a.contato_cliente && (
                 <WhatsAppLink numero={a.contato_cliente} className="text-xs" />
               )}
+              {a.observacoes && (
+                <span className="text-xs text-muted-foreground">{a.observacoes}</span>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -500,9 +512,10 @@ function Produtividade() {
                 onClick={() => {
                   setEditandoId(a.id);
                   setNome(a.nome_cliente);
-                  setTipo(a.tipo as Tipo);
+                  setTipo(a.tipo);
                   setContato(a.contato_cliente ?? "");
                   setCanalAtendimento(a.canal_atendimento ?? "");
+                  setObservacoes(a.observacoes ?? "");
                   setData(a.data_atendimento);
                   document
                     .getElementById("form-atendimento")
