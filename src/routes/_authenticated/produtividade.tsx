@@ -6,7 +6,7 @@ import { Activity, ClipboardList, ShoppingBag, Timer, Users } from "lucide-react
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
-import { SelectCanal } from "@/components/canais";
+import { SelectCanal, useCanais, slugCanal } from "@/components/canais";
 import { useOrdenacao, cmpTexto, cmpDataDesc, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
