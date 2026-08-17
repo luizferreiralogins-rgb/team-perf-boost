@@ -44,21 +44,17 @@ export const Route = createFileRoute("/_authenticated/produtividade")({
   component: Produtividade,
 });
 
-const TIPOS = [
-  { value: "pagamento", label: "Pagamento" },
-  { value: "boleto", label: "Boleto" },
-  { value: "suporte", label: "Suporte" },
-  { value: "cancelamento", label: "Cancelamento" },
-  { value: "duvida", label: "Dúvida" },
-  { value: "entrega_equipamento", label: "Entrega de equipamento" },
-  { value: "reclamacao", label: "Reclamação" },
-  { value: "ativacao_configuracao", label: "Ativação/Configuração" },
-  { value: "retirada_chip", label: "Retirada de Chip" },
-] as const;
-
-type Tipo = (typeof TIPOS)[number]["value"];
-
-const tipoLabel = (t: string) => TIPOS.find((x) => x.value === t)?.label ?? t;
+const LABELS_LEGADOS: Record<string, string> = {
+  pagamento: "Pagamento",
+  boleto: "Boleto",
+  suporte: "Suporte",
+  cancelamento: "Cancelamento",
+  duvida: "Dúvida",
+  entrega_equipamento: "Entrega de equipamento",
+  reclamacao: "Reclamação",
+  ativacao_configuracao: "Ativação/Configuração",
+  retirada_chip: "Retirada de Chip",
+};
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const diaCurto = (s: string) => {
