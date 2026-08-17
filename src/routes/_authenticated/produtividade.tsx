@@ -131,7 +131,7 @@ function Produtividade() {
       const [atend, loja, pap, leads] = await Promise.all([
         supabase
           .from("atendimentos")
-          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, data_atendimento, created_at")
+          .select("id, nome_cliente, tipo, contato_cliente, canal_atendimento, observacoes, data_atendimento, created_at")
           .in("usuario_id", ids)
           .gte("data_atendimento", inicioMes)
           .lte("data_atendimento", fimMes)
