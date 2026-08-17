@@ -178,9 +178,9 @@ export function FiltrosBar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="norte">Loja Norte</SelectItem>
-              <SelectItem value="sul">Loja Sul</SelectItem>
-              <SelectItem value="shopping">Loja Shopping</SelectItem>
+              {(unidadesLoja ?? []).map((u) => (
+                <SelectItem key={u.id} value={u.nome}>Loja {u.nome}</SelectItem>
+              ))}
               <SelectItem value="pap">PAP</SelectItem>
             </SelectContent>
           </Select>
