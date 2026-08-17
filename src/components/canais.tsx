@@ -138,6 +138,12 @@ export function CanaisConfig({
     setSaving(true);
     const ordem = Math.max(0, ...(canais ?? []).map((c) => c.ordem)) + 1;
     const { error } = await supabase.from("opcoes_canais").insert({ tipo, nome, ordem });
+    if (!error && tipo === "produtividade") {
+      await supabase
+        .from("parametros_tempos")
+        .upsert({ chave: slugCanal(nome), label: nome, minutos: 25, ordem }, { onConflict: "chave" });
+      qc.invalidateQueries({ queryKey: ["parametros-tempos"] });
+    }
     setSaving(false);
     if (error) {
       toast.error(error.message);
