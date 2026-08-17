@@ -819,7 +819,7 @@ export type Database = {
           email: string | null
           gerente_id: string | null
           id: string
-          loja_unidade: Database["public"]["Enums"]["loja_unidade"] | null
+          loja_unidade: string | null
           nome: string
           regional_id: string | null
           updated_at: string
@@ -832,7 +832,7 @@ export type Database = {
           email?: string | null
           gerente_id?: string | null
           id: string
-          loja_unidade?: Database["public"]["Enums"]["loja_unidade"] | null
+          loja_unidade?: string | null
           nome?: string
           regional_id?: string | null
           updated_at?: string
@@ -845,7 +845,7 @@ export type Database = {
           email?: string | null
           gerente_id?: string | null
           id?: string
-          loja_unidade?: Database["public"]["Enums"]["loja_unidade"] | null
+          loja_unidade?: string | null
           nome?: string
           regional_id?: string | null
           updated_at?: string
@@ -952,6 +952,30 @@ export type Database = {
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      unidades_loja: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
           updated_at?: string
         }
         Relationships: []
