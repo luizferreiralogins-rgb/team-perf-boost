@@ -89,7 +89,7 @@ export type Database = {
           id: string
           nome_cliente: string
           observacoes: string | null
-          tipo: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo: string
           updated_at: string
           usuario_id: string
         }
@@ -101,7 +101,7 @@ export type Database = {
           id?: string
           nome_cliente: string
           observacoes?: string | null
-          tipo: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo: string
           updated_at?: string
           usuario_id: string
         }
@@ -113,7 +113,7 @@ export type Database = {
           id?: string
           nome_cliente?: string
           observacoes?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_atendimento"]
+          tipo?: string
           updated_at?: string
           usuario_id?: string
         }
