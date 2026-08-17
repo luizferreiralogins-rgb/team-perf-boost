@@ -502,6 +502,9 @@ function Produtividade() {
               {a.contato_cliente && (
                 <WhatsAppLink numero={a.contato_cliente} className="text-xs" />
               )}
+              {a.observacoes && (
+                <span className="text-xs text-muted-foreground">{a.observacoes}</span>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
