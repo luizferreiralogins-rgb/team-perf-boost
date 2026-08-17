@@ -423,6 +423,16 @@ function Produtividade() {
               <Label htmlFor="data">Data</Label>
               <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="obs">Protocolo/Observação (opcional)</Label>
+              <Input
+                id="obs"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                maxLength={300}
+                placeholder="Nº do protocolo ou observação do atendimento"
+              />
+            </div>
             <div className="flex items-end justify-end gap-2 sm:col-span-2">
               {editandoId && (
                 <Button type="button" variant="outline" onClick={limparForm}>
