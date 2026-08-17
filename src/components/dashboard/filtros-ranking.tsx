@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidades } from "@/components/unidades-loja";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
@@ -149,6 +150,7 @@ export function FiltrosBar({
     [isRegional, gerentes, consultores],
   );
   const labelPessoa = isRegional ? "Gerente" : gerentes.length ? "Gerente / Consultor" : "Consultor";
+  const { data: unidadesLoja } = useUnidades();
 
   return (
     <Card>
