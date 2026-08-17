@@ -390,18 +390,13 @@ function Produtividade() {
             </div>
             <div>
               <Label>Tipo de atendimento</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectCanal
+                tipo="produtividade"
+                value={tipo}
+                onChange={setTipo}
+                placeholder="Selecione o tipo"
+                porChave
+              />
             </div>
             <div>
               <Label>Canal de atendimento</Label>
