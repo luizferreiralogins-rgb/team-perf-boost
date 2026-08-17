@@ -16,7 +16,7 @@ export type Membro = {
   id: string;
   nome: string;
   canal: "loja" | "pap";
-  loja_unidade: "norte" | "sul" | "shopping" | null;
+  loja_unidade: string | null;
   gerente_id: string | null;
   role: "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
 };
