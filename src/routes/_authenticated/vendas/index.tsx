@@ -354,7 +354,9 @@ function VendasList() {
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {v.data ? new Date(v.data).toLocaleDateString("pt-BR") : "—"}
+                        {v.data
+                          ? new Date(v.data + "T00:00:00").toLocaleDateString("pt-BR")
+                          : "—"}
                       </TableCell>
                       <TableCell>{v.cliente}</TableCell>
 
