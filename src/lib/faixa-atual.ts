@@ -24,6 +24,10 @@ export type FaixaAtual = {
   faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
   proxima: { movel: number; receita: number } | null;
+  /** Loja: quanto falta de renovações com móvel para a próxima faixa de móvel. */
+  proxMovel?: { faixa: number; falta: number } | null;
+  /** Quanto falta de receita para a próxima faixa de receita. */
+  proxReceita?: { faixa: number; falta: number } | null;
 };
 
 export function mesRefAtual() {
