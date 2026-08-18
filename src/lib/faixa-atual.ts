@@ -24,6 +24,10 @@ export type FaixaAtual = {
   faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
   proxima: { movel: number; receita: number } | null;
+  /** Loja: quanto falta de renovações com móvel para a próxima faixa de móvel. */
+  proxMovel?: { faixa: number; falta: number } | null;
+  /** Quanto falta de receita para a próxima faixa de receita. */
+  proxReceita?: { faixa: number; falta: number } | null;
 };
 
 export function mesRefAtual() {
@@ -117,6 +121,13 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
         proxima: prox
           ? { movel: 0, receita: Math.max(0, Number(prox.receita_de) - a.corePap) }
           : null,
+        proxReceita: prox
+          ? {
+              faixa: Number(prox.faixa),
+              falta: Math.max(0, Number(prox.receita_de) - a.corePap),
+            }
+          : null,
+        proxMovel: null,
       });
     } else {
       const ratio = a.renovTotal > 0 ? a.renovMovel / a.renovTotal : 0;
@@ -142,14 +153,45 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
       for (const x of ord) if (ratio >= Number(x.meta_renov_movel)) lvlMovel = x.faixa;
       const alvoRec = ord.find((x) => a.receitaLoja <= Number(x.meta_receita));
       const lvlReceita = alvoRec ? alvoRec.faixa : (ord.length ? ord[ord.length - 1].faixa : 1);
+      const fMovel = Math.max(1, Math.min(3, lvlMovel));
+      const fReceita = Math.max(1, Math.min(3, lvlReceita));
+
+      // Próxima faixa de móvel: quantas renovações com móvel ainda faltam.
+      const proxMovelRow = ord.find((x) => x.faixa === fMovel + 1);
+      let proxMovel: { faixa: number; falta: number } | null = null;
+      if (proxMovelRow) {
+        const metaRatio = Number(proxMovelRow.meta_renov_movel ?? 0);
+        let falta = 0;
+        if (ratio < metaRatio && metaRatio < 1) {
+          falta = Math.max(
+            0,
+            Math.ceil((metaRatio * a.renovTotal - a.renovMovel) / (1 - metaRatio)),
+          );
+        }
+        proxMovel = { faixa: proxMovelRow.faixa, falta };
+      }
+
+      // Próxima faixa de receita: falta superar a meta de receita da faixa atual.
+      const proxReceitaRow = ord.find((x) => x.faixa === fReceita + 1);
+      let proxReceita: { faixa: number; falta: number } | null = null;
+      if (proxReceitaRow) {
+        const metaAtual = Number(ord.find((x) => x.faixa === fReceita)?.meta_receita ?? 0);
+        proxReceita = {
+          faixa: proxReceitaRow.faixa,
+          falta: Math.max(0, metaAtual - a.receitaLoja),
+        };
+      }
+
       out.set(p.id, {
         canal,
         faixa,
         total: 3,
         base: a.receitaLoja,
         proxima,
-        faixaMovel: Math.max(1, Math.min(3, lvlMovel)),
-        faixaReceita: Math.max(1, Math.min(3, lvlReceita)),
+        faixaMovel: fMovel,
+        faixaReceita: fReceita,
+        proxMovel,
+        proxReceita,
       });
     }
   }
