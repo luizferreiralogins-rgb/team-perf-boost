@@ -121,6 +121,13 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
         proxima: prox
           ? { movel: 0, receita: Math.max(0, Number(prox.receita_de) - a.corePap) }
           : null,
+        proxReceita: prox
+          ? {
+              faixa: Number(prox.faixa),
+              falta: Math.max(0, Number(prox.receita_de) - a.corePap),
+            }
+          : null,
+        proxMovel: null,
       });
     } else {
       const ratio = a.renovTotal > 0 ? a.renovMovel / a.renovTotal : 0;
