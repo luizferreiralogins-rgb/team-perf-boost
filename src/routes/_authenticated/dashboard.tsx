@@ -367,13 +367,45 @@ function Dashboard() {
         {!isGestor && (
           <div className="flex flex-col items-stretch gap-2">
             {faixaAtual.data && (
-              <div className="rounded-lg border bg-muted/40 px-3 py-1.5 text-center text-xs">
-                <span className="font-semibold text-foreground">
-                  Faixa {faixaAtual.data.faixa}/{faixaAtual.data.total}
-                </span>{" "}
-                <span className="text-muted-foreground">
-                  · {faixaAtual.data.canal === "pap" ? "PAP" : "Loja"} · base {brl(faixaAtual.data.base)}
-                </span>
+              <div className="space-y-0.5 rounded-lg border bg-muted/40 px-3 py-1.5 text-left text-xs leading-tight">
+                {faixaAtual.data.canal === "pap" ? (
+                  <p>
+                    <span className="font-semibold text-foreground">
+                      Faixa Receita Atual: {faixaAtual.data.faixa}/{faixaAtual.data.total}
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      {faixaAtual.data.proxReceita
+                        ? `(Faltam ${brl(Math.ceil(faixaAtual.data.proxReceita.falta))} em Receita para a Faixa ${faixaAtual.data.proxReceita.faixa})`
+                        : "(faixa máxima)"}
+                    </span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">
+                      Faixa Atual: {faixaAtual.data.faixa}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">
+                        Faixa Atual Móvel: {faixaAtual.data.faixaMovel ?? "—"}/{faixaAtual.data.total}
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {faixaAtual.data.proxMovel
+                          ? `(Faltam ${faixaAtual.data.proxMovel.falta} Móvel para a Faixa ${faixaAtual.data.proxMovel.faixa})`
+                          : "(faixa máxima)"}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">
+                        Faixa Atual Receita: {faixaAtual.data.faixaReceita ?? "—"}/{faixaAtual.data.total}
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {faixaAtual.data.proxReceita
+                          ? `(Faltam ${brl(Math.ceil(faixaAtual.data.proxReceita.falta))} em Receita para a Faixa ${faixaAtual.data.proxReceita.faixa})`
+                          : "(faixa máxima)"}
+                      </span>
+                    </p>
+                  </>
+                )}
               </div>
             )}
             <Button asChild size="lg">
