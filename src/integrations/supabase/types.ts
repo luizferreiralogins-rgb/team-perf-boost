@@ -1191,6 +1191,14 @@ export type Database = {
         Args: { _base: string; _dias: number }
         Returns: string
       }
+      aniversariantes_hoje: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+          sou_eu: boolean
+        }[]
+      }
       buscar_lead_duplicado: {
         Args: { _email: string; _whatsapp: string }
         Returns: {
