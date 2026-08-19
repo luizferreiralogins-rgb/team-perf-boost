@@ -144,9 +144,13 @@ function RitmoDiario({
           </>
         )}
 
-        {faixaTexto && (
+        {!semFrase && faixaTexto && (
           <> <span className="font-semibold text-foreground">{faixaTexto}</span></>
         )}
+        {aniversarios && (
+          <> <span className="font-semibold text-foreground">{aniversarios}</span></>
+        )}
+
       </p>
     </div>
   );
