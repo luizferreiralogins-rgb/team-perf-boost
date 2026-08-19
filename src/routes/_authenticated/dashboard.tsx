@@ -131,7 +131,7 @@ function RitmoDiario({
   return (
     <div className="min-w-[260px] flex-1 rounded-xl border bg-muted/30 p-4">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        {batido ? (
+        {semFrase ? null : batido ? (
           <>
             🎉 Metas do mês já atingidas. Todo resultado a partir de agora é
             acelerador de comissão.
@@ -143,6 +143,7 @@ function RitmoDiario({
             <span className="font-semibold text-foreground">{lista}</span>.
           </>
         )}
+
         {faixaTexto && (
           <> <span className="font-semibold text-foreground">{faixaTexto}</span></>
         )}
