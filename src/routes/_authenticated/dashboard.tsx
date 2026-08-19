@@ -77,9 +77,10 @@ function RitmoDiario({
   renovRs: number;
   faixa?: { canal: "loja" | "pap"; faixa: number; proxima: { movel: number; receita: number } | null } | null;
 }) {
+  const aniversarios = fraseAniversario(useAniversariantes().data);
   const [y, m] = mes.split("-").map(Number);
   const hoje = new Date();
-  if (y !== hoje.getFullYear() || m !== hoje.getMonth() + 1) return null;
+  const mesCorrente = y === hoje.getFullYear() && m === hoje.getMonth() + 1;
 
   const diasTotais = new Date(y, m, 0).getDate();
   const diasRestantes = Math.max(1, diasTotais - hoje.getDate() + 1);
@@ -95,7 +96,9 @@ function RitmoDiario({
   if (metas.movel > 0) partes.push(`${dMv} Móvel`);
   if (!semRenovacao && metas.renovRs > 0)
     partes.push(`${brl(Math.ceil(dRv))} em Renovações`);
-  if (!partes.length) return null;
+  const semFrase = !mesCorrente || !partes.length;
+  if (semFrase && !aniversarios) return null;
+
 
   const lista =
     partes.length > 1
