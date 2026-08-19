@@ -34,7 +34,7 @@ export const listTeam = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: profiles, error } = await supabase
       .from("profiles")
-      .select("id, nome, email, canal, loja_unidade, gerente_id, regional_id, ativo, created_at")
+      .select("id, nome, email, canal, loja_unidade, gerente_id, regional_id, ativo, data_nascimento, created_at")
       .order("nome");
     if (error) throw new Error(error.message);
     const ids = (profiles ?? []).map((p: any) => p.id);
@@ -60,6 +60,7 @@ const createSchema = z.object({
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
+  data_nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   password: z.string().min(8).max(72),
 });
 
@@ -110,6 +111,7 @@ export const createTeamMember = createServerFn({ method: "POST" })
         canal: data.canal ?? "loja",
         loja_unidade: data.canal === "loja" ? (data.loja_unidade ?? null) : null,
         gerente_id: gerenteFinal,
+        data_nascimento: data.data_nascimento ?? null,
       })
       .eq("id", newId);
 
@@ -127,6 +129,7 @@ const updateSchema = z.object({
   loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
+  data_nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   role: z.enum(["regional", "gerente", "lider_pap", "consultor"]).optional(),
 });
 
@@ -155,6 +158,7 @@ export const updateTeamMember = createServerFn({ method: "POST" })
       patch.loja_unidade = data.canal === "pap" ? null : data.loja_unidade;
     if (data.ativo !== undefined) patch.ativo = data.ativo;
     if (data.gerente_id !== undefined) patch.gerente_id = data.gerente_id;
+    if (data.data_nascimento !== undefined) patch.data_nascimento = data.data_nascimento;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (Object.keys(patch).length) {

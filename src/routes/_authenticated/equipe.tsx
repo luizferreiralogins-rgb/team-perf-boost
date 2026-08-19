@@ -79,8 +79,15 @@ type Member = {
   loja_unidade: Unidade | null;
   gerente_id: string | null;
   ativo: boolean;
+  data_nascimento: string | null;
   roles: Role[];
 };
+
+function formatarData(iso: string | null) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 function useMyRoles() {
   return useQuery({
@@ -254,6 +261,7 @@ function EquipePage() {
                     <TableHead>Perfil</TableHead>
                     <TableHead>Canal</TableHead>
                     <TableHead>Unidade</TableHead>
+                    <TableHead>Aniversário</TableHead>
                     <TableHead>Gerente</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -315,6 +323,7 @@ function MemberRow({
       <TableCell><Badge variant="secondary">{perfil}</Badge></TableCell>
       <TableCell className="uppercase text-xs">{member.canal}</TableCell>
       <TableCell className="capitalize">{member.loja_unidade ?? "—"}</TableCell>
+      <TableCell>{formatarData(member.data_nascimento)}</TableCell>
       <TableCell>{gerenteNome ?? "—"}</TableCell>
       <TableCell>
         {member.ativo ? (
@@ -375,6 +384,7 @@ function NovoAcessoDialog({
   const [canal, setCanal] = useState<Canal>("loja");
   const [unidade, setUnidade] = useState<Unidade | "">("");
   const [gerenteId, setGerenteId] = useState<string>("");
+  const [nascimento, setNascimento] = useState("");
 
   const mut = useMutation({
     mutationFn: () =>
@@ -383,6 +393,7 @@ function NovoAcessoDialog({
           nome,
           email,
           password,
+          data_nascimento: nascimento || null,
           role,
           canal: role === "consultor" ? canal : undefined,
           loja_unidade: role === "consultor" && canal === "loja" ? (unidade || null) : null,
@@ -398,7 +409,7 @@ function NovoAcessoDialog({
       toast.success("Acesso criado");
       qc.invalidateQueries({ queryKey: ["team"] });
       setOpen(false);
-      setNome(""); setEmail(""); setPassword(""); setUnidade(""); setGerenteId("");
+      setNome(""); setEmail(""); setPassword(""); setUnidade(""); setGerenteId(""); setNascimento("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -435,6 +446,10 @@ function NovoAcessoDialog({
               <Label>Email</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Data de aniversário</Label>
+            <Input type="date" value={nascimento} onChange={(e) => setNascimento(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Senha temporária</Label>
@@ -531,6 +546,7 @@ function EditarDialog({
   const [unidade, setUnidade] = useState<Unidade | "">(member.loja_unidade ?? "");
   const [ativo, setAtivo] = useState(member.ativo);
   const [gerenteId, setGerenteId] = useState<string>(member.gerente_id ?? "");
+  const [nascimento, setNascimento] = useState(member.data_nascimento ?? "");
   const cargoAtual: RoleEditavel = member.roles.includes("regional")
     ? "regional"
     : member.roles.includes("gerente")
@@ -546,6 +562,7 @@ function EditarDialog({
         data: {
           user_id: member.id,
           nome,
+          data_nascimento: nascimento || null,
           canal,
           loja_unidade: canal === "loja" ? (unidade || null) : null,
           ativo,
@@ -573,9 +590,15 @@ function EditarDialog({
           <DialogTitle>Editar {member.nome}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de aniversário</Label>
+              <Input type="date" value={nascimento} onChange={(e) => setNascimento(e.target.value)} />
+            </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
