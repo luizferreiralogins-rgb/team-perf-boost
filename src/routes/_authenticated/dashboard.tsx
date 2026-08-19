@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
+import { fraseAniversario, useAniversariantes } from "@/hooks/use-aniversariantes";
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,9 +79,10 @@ function RitmoDiario({
   renovRs: number;
   faixa?: { canal: "loja" | "pap"; faixa: number; proxima: { movel: number; receita: number } | null } | null;
 }) {
+  const aniversarios = fraseAniversario(useAniversariantes().data);
   const [y, m] = mes.split("-").map(Number);
   const hoje = new Date();
-  if (y !== hoje.getFullYear() || m !== hoje.getMonth() + 1) return null;
+  const mesCorrente = y === hoje.getFullYear() && m === hoje.getMonth() + 1;
 
   const diasTotais = new Date(y, m, 0).getDate();
   const diasRestantes = Math.max(1, diasTotais - hoje.getDate() + 1);
@@ -95,7 +98,9 @@ function RitmoDiario({
   if (metas.movel > 0) partes.push(`${dMv} Móvel`);
   if (!semRenovacao && metas.renovRs > 0)
     partes.push(`${brl(Math.ceil(dRv))} em Renovações`);
-  if (!partes.length) return null;
+  const semFrase = !mesCorrente || !partes.length;
+  if (semFrase && !aniversarios) return null;
+
 
   const lista =
     partes.length > 1
@@ -128,7 +133,7 @@ function RitmoDiario({
   return (
     <div className="min-w-[260px] flex-1 rounded-xl border bg-muted/30 p-4">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        {batido ? (
+        {semFrase ? null : batido ? (
           <>
             🎉 Metas do mês já atingidas. Todo resultado a partir de agora é
             acelerador de comissão.
@@ -140,9 +145,14 @@ function RitmoDiario({
             <span className="font-semibold text-foreground">{lista}</span>.
           </>
         )}
-        {faixaTexto && (
+
+        {!semFrase && faixaTexto && (
           <> <span className="font-semibold text-foreground">{faixaTexto}</span></>
         )}
+        {aniversarios && (
+          <> <span className="font-semibold text-foreground">{aniversarios}</span></>
+        )}
+
       </p>
     </div>
   );
