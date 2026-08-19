@@ -816,6 +816,7 @@ export type Database = {
           canal: Database["public"]["Enums"]["canal_venda"]
           cidade: string | null
           created_at: string
+          data_nascimento: string | null
           email: string | null
           gerente_id: string | null
           id: string
@@ -829,6 +830,7 @@ export type Database = {
           canal?: Database["public"]["Enums"]["canal_venda"]
           cidade?: string | null
           created_at?: string
+          data_nascimento?: string | null
           email?: string | null
           gerente_id?: string | null
           id: string
@@ -842,6 +844,7 @@ export type Database = {
           canal?: Database["public"]["Enums"]["canal_venda"]
           cidade?: string | null
           created_at?: string
+          data_nascimento?: string | null
           email?: string | null
           gerente_id?: string | null
           id?: string
