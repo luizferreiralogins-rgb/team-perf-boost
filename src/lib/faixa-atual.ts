@@ -20,6 +20,8 @@ export type FaixaAtual = {
   base: number;
   /** Loja: faixa considerando apenas % de renovações com móvel. */
   faixaMovel?: number;
+  /** Loja: % atual de renovações com móvel (0-100). */
+  pctMovel?: number;
   /** Loja: faixa considerando apenas a receita acumulada. */
   faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
@@ -189,6 +191,7 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
         base: a.receitaLoja,
         proxima,
         faixaMovel: fMovel,
+        pctMovel: ratio * 100,
         faixaReceita: fReceita,
         proxMovel,
         proxReceita,

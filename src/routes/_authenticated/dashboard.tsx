@@ -386,7 +386,8 @@ function Dashboard() {
                     </p>
                     <p>
                       <span className="font-medium text-foreground">
-                        Faixa Atual Móvel: {faixaAtual.data.faixaMovel ?? "—"}/{faixaAtual.data.total}
+                        Faixa Atual Móvel: {(faixaAtual.data.pctMovel ?? 0).toFixed(0)}% —{" "}
+                        {faixaAtual.data.faixaMovel ?? "—"}/{faixaAtual.data.total}
                       </span>{" "}
                       <span className="text-muted-foreground">
                         {faixaAtual.data.proxMovel
