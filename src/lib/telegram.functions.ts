@@ -82,15 +82,26 @@ export const loadOlderMessages = createServerFn({ method: "POST" })
     beforeMessageId: input.beforeMessageId ?? null,
   }))
   .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: chat, error } = await supabase
+      .from("telegram_chats")
+      .select("id, telegram_chat_id")
+      .eq("id", data.chatId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!chat) throw new Error("Conversa não encontrada.");
+
     const { callService } = await import("./telegram.server");
     const res = await callService<{ fetched: number }>("/history", {
-      crmUserId: context.userId,
-      chatId: data.chatId,
+      crmUserId: userId,
+      chatId: chat.id,
+      telegramChatId: chat.telegram_chat_id,
       beforeMessageId: data.beforeMessageId,
     });
     if (!res.ok) throw new Error(res.error);
     return res.data;
   });
+
 
 export const sendTelegramMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
