@@ -215,13 +215,15 @@ function PlanejamentoPage() {
     () => (acoes.data ?? []).filter((a) => (a.data ?? "").slice(0, 7) === mes),
     [acoes.data, mes],
   );
+  const resumoLinhas = resumo.data ?? [];
+  const porData = useMemo(() => agregarPorData(resumoLinhas), [resumoLinhas]);
   const totais = useMemo(
     () => ({
-      leads: linhas.reduce((s, l) => s + (l.leads ?? 0), 0),
-      bl: linhas.reduce((s, l) => s + (l.fechado_bl ?? 0), 0),
-      movel: linhas.reduce((s, l) => s + (l.fechado_movel ?? 0), 0),
+      leads: resumoLinhas.reduce((s, l) => s + l.leads, 0),
+      bl: resumoLinhas.reduce((s, l) => s + l.bl, 0),
+      movel: resumoLinhas.reduce((s, l) => s + l.movel, 0),
     }),
-    [linhas],
+    [resumoLinhas],
   );
   const porTipo = useMemo(() => {
     const m = new Map<string, number>();
