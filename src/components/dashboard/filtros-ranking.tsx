@@ -19,7 +19,7 @@ export type Membro = {
   canal: "loja" | "pap";
   loja_unidade: string | null;
   gerente_id: string | null;
-  role: "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+  role: "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
 };
 
 export type Filtros = {
