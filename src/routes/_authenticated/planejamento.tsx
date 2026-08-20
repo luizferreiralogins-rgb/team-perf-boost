@@ -218,6 +218,16 @@ function PlanejamentoPage() {
     () => (acoes.data ?? []).filter((a) => (a.data ?? "").slice(0, 7) === mes),
     [acoes.data, mes],
   );
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const mesesDisponiveis = useMemo(() => {
+    const s = new Set<string>([mesAtual, mes]);
+    for (const a of acoes.data ?? []) {
+      const m = (a.data ?? "").slice(0, 7);
+      if (m) s.add(m);
+    }
+    return [...s].sort((a, b) => b.localeCompare(a));
+  }, [acoes.data, mes, mesAtual]);
+
   const resumoLinhas = resumo.data ?? [];
   const porData = useMemo(() => agregarPorData(resumoLinhas), [resumoLinhas]);
   const totais = useMemo(
