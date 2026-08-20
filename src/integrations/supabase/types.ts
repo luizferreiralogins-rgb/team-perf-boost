@@ -780,6 +780,33 @@ export type Database = {
         }
         Relationships: []
       }
+      planejamento_leads_diarios: {
+        Row: {
+          consultor_id: string
+          created_at: string
+          data: string
+          id: string
+          leads: number
+          updated_at: string
+        }
+        Insert: {
+          consultor_id: string
+          created_at?: string
+          data: string
+          id?: string
+          leads?: number
+          updated_at?: string
+        }
+        Update: {
+          consultor_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          leads?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       planejamento_opcoes: {
         Row: {
           campo: string
@@ -1247,6 +1274,17 @@ export type Database = {
         }[]
       }
       nome_chave: { Args: { _t: string }; Returns: string }
+      planejamento_resumo_pap: {
+        Args: { _mes: string }
+        Returns: {
+          bl: number
+          consultor_id: string
+          consultor_nome: string
+          data: string
+          leads: number
+          movel: number
+        }[]
+      }
       pode_gerenciar: {
         Args: { _manager: string; _target: string }
         Returns: boolean
