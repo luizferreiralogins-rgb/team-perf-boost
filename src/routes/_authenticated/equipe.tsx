@@ -566,10 +566,12 @@ function EditarDialog({
   member,
   gerentes,
   isRegional,
+  isMaster,
 }: {
   member: Member;
   gerentes: Member[];
   isRegional: boolean;
+  isMaster: boolean;
 }) {
   const qc = useQueryClient();
   const update = useServerFn(updateTeamMember);
@@ -582,12 +584,15 @@ function EditarDialog({
   const [nascimento, setNascimento] = useState(member.data_nascimento ?? "");
   const cargoAtual: RoleEditavel = member.roles.includes("regional")
     ? "regional"
-    : member.roles.includes("gerente")
-      ? "gerente"
-      : member.roles.includes("lider_pap")
-        ? "lider_pap"
-        : "consultor";
+    : member.roles.includes("gerente_regional")
+      ? "gerente_regional"
+      : member.roles.includes("gerente")
+        ? "gerente"
+        : member.roles.includes("lider_pap")
+          ? "lider_pap"
+          : "consultor";
   const [role, setRole] = useState<RoleEditavel>(cargoAtual);
+
 
   const mut = useMutation({
     mutationFn: () =>
