@@ -1255,6 +1255,15 @@ export type Database = {
         Args: { _tarefa_id: string; _user_id: string }
         Returns: boolean
       }
+      proximo_aniversariante: {
+        Args: never
+        Returns: {
+          dias_faltando: number
+          id: string
+          nome: string
+          sou_eu: boolean
+        }[]
+      }
       ranking_time: {
         Args: { _mes_ref: string; _usar_ativas: boolean }
         Returns: {
