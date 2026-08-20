@@ -153,9 +153,12 @@ function Dashboard() {
         ? "admin"
         : list.includes("regional")
           ? "regional"
-          : list.includes("gerente") || list.includes("lider_pap")
-            ? "gerente"
-            : "consultor";
+          : list.includes("gerente_regional")
+            ? "gerente_regional"
+            : list.includes("gerente") || list.includes("lider_pap")
+              ? "gerente"
+              : "consultor";
+
       return {
         isGestor: role !== "consultor",
         role,
