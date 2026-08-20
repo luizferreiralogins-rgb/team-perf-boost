@@ -106,110 +106,46 @@ export function DetalheDiaDialog({
   );
 }
 
-/** Visão do consultor PAP: informa leads por dia; fechamentos vêm das vendas do dia. */
-export function LeadsDiariosConsultor({ mes, uid }: { mes: string; uid?: string }) {
+/** Célula editável de leads do dia (consultor PAP), salva na própria linha da ação. */
+export function CelulaLeadsDia({
+  data,
+  uid,
+  valor,
+}: {
+  data: string | null;
+  uid?: string;
+  valor: number;
+}) {
   const qc = useQueryClient();
-  const resumo = useResumoPap(mes);
-  const [rascunho, setRascunho] = useState<Record<string, string>>({});
-
-  const dias = useMemo(() => {
-    const [y, m] = mes.split("-").map(Number);
-    if (!y || !m) return [];
-    const total = new Date(y, m, 0).getDate();
-    return Array.from({ length: total }, (_, i) => `${mes}-${String(i + 1).padStart(2, "0")}`);
-  }, [mes]);
-
-  const porDia = useMemo(() => {
-    const m = new Map<string, ResumoLinha>();
-    for (const l of resumo.data ?? []) if (l.consultor_id === uid) m.set(l.data, l);
-    return m;
-  }, [resumo.data, uid]);
+  const [rascunho, setRascunho] = useState<string | null>(null);
 
   const salvar = useMutation({
-    mutationFn: async (v: { data: string; leads: number }) => {
-      if (!uid) throw new Error("Sessão expirada.");
+    mutationFn: async (leads: number) => {
+      if (!uid || !data) throw new Error("Sessão expirada.");
       const { error } = await supabase
         .from("planejamento_leads_diarios")
-        .upsert(
-          { consultor_id: uid, data: v.data, leads: v.leads },
-          { onConflict: "consultor_id,data" },
-        );
+        .upsert({ consultor_id: uid, data, leads }, { onConflict: "consultor_id,data" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["planejamento-resumo-pap"] }),
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const totais = useMemo(() => {
-    let leads = 0,
-      bl = 0,
-      movel = 0;
-    porDia.forEach((l) => {
-      leads += l.leads;
-      bl += l.bl;
-      movel += l.movel;
-    });
-    return { leads, bl, movel };
-  }, [porDia]);
+  if (!data) return <span className="text-muted-foreground">—</span>;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Minha prospecção diária</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Informe os leads prospectados em cada dia. Fech. BL e Fech. Móvel são calculados
-          automaticamente pelas suas vendas registradas no dia (instaladas ou não).
-        </p>
-      </CardHeader>
-      <CardContent className="p-0">
-        {resumo.isLoading ? (
-          <Skeleton className="m-4 h-48" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
-                  <th className="w-[30%]">Data</th>
-                  <th className="w-[25%]">Leads</th>
-                  <th className="w-[20%] text-right">Fech. BL</th>
-                  <th className="w-[25%] text-right">Fech. Móvel</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dias.map((d) => {
-                  const l = porDia.get(d);
-                  return (
-                    <tr key={d} className="border-t border-border [&>td]:px-3 [&>td]:py-1">
-                      <td>{fmt(d)}</td>
-                      <td>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="h-8 w-24"
-                          value={rascunho[d] ?? (l?.leads ? String(l.leads) : "")}
-                          onChange={(e) => setRascunho((p) => ({ ...p, [d]: e.target.value }))}
-                          onBlur={(e) => {
-                            const n = e.target.value === "" ? 0 : Number(e.target.value);
-                            if (n !== (l?.leads ?? 0)) salvar.mutate({ data: d, leads: n });
-                          }}
-                        />
-                      </td>
-                      <td className="text-right">{l?.bl ?? 0}</td>
-                      <td className="text-right">{l?.movel ?? 0}</td>
-                    </tr>
-                  );
-                })}
-                <tr className="border-t border-border bg-muted/30 font-medium [&>td]:px-3 [&>td]:py-2">
-                  <td>Total do mês</td>
-                  <td>{totais.leads}</td>
-                  <td className="text-right">{totais.bl}</td>
-                  <td className="text-right">{totais.movel}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <Input
+      type="number"
+      min={0}
+      className="h-8 w-16"
+      value={rascunho ?? (valor ? String(valor) : "")}
+      onChange={(e) => setRascunho(e.target.value)}
+      onBlur={(e) => {
+        const n = e.target.value === "" ? 0 : Number(e.target.value);
+        setRascunho(null);
+        if (n !== valor) salvar.mutate(n);
+      }}
+    />
   );
 }
+
