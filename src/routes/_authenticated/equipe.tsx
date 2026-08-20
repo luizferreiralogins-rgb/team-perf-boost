@@ -459,10 +459,14 @@ function NovoAcessoDialog({
               <Select value={role} onValueChange={(v) => setRole(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  {isMaster && (
+                    <SelectItem value="gerente_regional">Gerente Regional</SelectItem>
+                  )}
                   <SelectItem value="gerente">Gerente</SelectItem>
                   <SelectItem value="lider_pap">Líder PAP</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                 </SelectContent>
+
               </Select>
             </div>
           )}
