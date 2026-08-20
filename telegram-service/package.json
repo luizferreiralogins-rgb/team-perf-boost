@@ -1,0 +1,19 @@
+{
+  "name": "crm-telegram-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serviço TDLib/MTProto que mantém as sessões pessoais de Telegram do CRM Unifique",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "prebuilt-tdlib": "^0.1008049.0",
+    "tdl": "^7.4.1"
+  }
+}
