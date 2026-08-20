@@ -197,13 +197,15 @@ export const updateTeamMember = createServerFn({ method: "POST" })
     }
     if (data.role && data.role !== currentRole) {
       if (data.user_id === userId) throw new Error("Você não pode alterar o próprio cargo.");
-      // Só regional/admin podem mudar role
-      if (!(await canManage(supabase, userId, data.role, target?.gerente_id ?? null))) {
+      if (
+        !(await canManage(supabase, userId, data.role, target?.gerente_id ?? null, data.user_id))
+      ) {
         throw new Error("Sem permissão para alterar o tipo de acesso.");
       }
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
       await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
     }
+
     return { ok: true };
   });
 
