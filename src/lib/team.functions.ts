@@ -77,7 +77,7 @@ export const listTeam = createServerFn({ method: "GET" })
 const createSchema = z.object({
   email: z.string().trim().email().max(255),
   nome: z.string().trim().min(2).max(120),
-  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]),
+  role: z.enum(["regional", "gerente_regional", "gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
@@ -90,27 +90,29 @@ export const createTeamMember = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const precisaGestor = data.role === "consultor" || data.role === "lider_pap";
+    const rs = await getRoles(supabase, userId);
+    const souGerenteRegional =
+      rs.includes("gerente_regional") && !rs.includes("regional") && !rs.includes("admin");
+    const precisaGestor =
+      data.role === "consultor" ||
+      data.role === "lider_pap" ||
+      (data.role === "gerente" && souGerenteRegional);
     const gerenteId = precisaGestor ? (data.gerente_id ?? null) : null;
     const ok = await canManage(supabase, userId, data.role as Role, gerenteId);
     if (!ok) throw new Error("Sem permissão para criar este tipo de acesso.");
-    if (data.role === "lider_pap" && !gerenteId) {
+    if (data.role === "lider_pap" && !gerenteId && !souGerenteRegional) {
       throw new Error("O Líder PAP precisa estar vinculado a um Gerente.");
     }
 
-    // Gerente/Líder PAP criando subordinado sempre vincula a si mesmo
-    const { data: myRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const rs: Role[] = (myRoles ?? []).map((r: any) => r.role);
+    // Gerente / Líder PAP / Gerente Regional criando subordinado vincula a si mesmo
     const gerenteFinal =
       precisaGestor &&
-      (rs.includes("gerente") || rs.includes("lider_pap")) &&
+      (souGerenteRegional || rs.includes("gerente") || rs.includes("lider_pap")) &&
       !rs.includes("regional") &&
       !rs.includes("admin")
-        ? userId
+        ? (data.role === "gerente" ? userId : (gerenteId ?? userId))
         : gerenteId;
+
 
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
