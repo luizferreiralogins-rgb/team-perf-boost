@@ -178,11 +178,14 @@ function PlanejamentoPage() {
       toast.success(editId ? "Ação atualizada." : "Ação registrada.");
       setAberto(false);
       setEditId(null);
+      const mesSalvo = (form.data ?? "").slice(0, 7);
+      if (mesSalvo) setMes(mesSalvo);
       setForm(vazio());
       qc.invalidateQueries({ queryKey: ["planejamento-acoes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const atualizarCampo = useMutation({
     mutationFn: async (v: { id: string; campo: string; valor: string | number | null }) => {
