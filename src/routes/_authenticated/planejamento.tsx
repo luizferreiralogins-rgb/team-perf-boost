@@ -271,14 +271,34 @@ function PlanejamentoPage() {
           </div>
           <div className="ml-auto flex items-end gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Mês</Label>
+              <Label className="text-xs">Período</Label>
+              <Select value={mes} onValueChange={setMes}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {mesesDisponiveis.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {new Date(`${m}-01T00:00:00`).toLocaleDateString("pt-BR", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      {m === mesAtual ? " (atual)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Outro mês</Label>
               <Input
                 type="month"
                 value={mes}
-                onChange={(e) => setMes(e.target.value)}
+                onChange={(e) => e.target.value && setMes(e.target.value)}
                 className="w-[150px]"
               />
             </div>
+
             {isLider && (
               <>
                 <OpcoesDialog uid={uid} opcoes={opcoes.data ?? []} />
