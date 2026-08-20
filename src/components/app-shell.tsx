@@ -131,7 +131,7 @@ function Sidebar({
       badge: isGestor ? alertas?.vendas : undefined,
     },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
-    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
+    { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: true, badge: alertas?.vendas },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
     {
       to: "/planejamento",
