@@ -678,7 +678,16 @@ function Celula({
 }
 
 
-function Kpi({ titulo, valor }: { titulo: string; valor: number }) {
+function Kpi({
+  titulo,
+  valor,
+  detalhes,
+}: {
+  titulo: string;
+  valor: number;
+  detalhes?: { nome: string; qtd: number }[];
+}) {
+  const lista = (detalhes ?? []).filter((d) => d.qtd > 0).sort((a, b) => b.qtd - a.qtd);
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -686,6 +695,20 @@ function Kpi({ titulo, valor }: { titulo: string; valor: number }) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{valor}</div>
+        {detalhes && (
+          <div className="mt-2 space-y-0.5 text-xs">
+            {lista.length === 0 ? (
+              <span className="text-muted-foreground">Sem registros no mês.</span>
+            ) : (
+              lista.map((d) => (
+                <div key={d.nome} className="flex justify-between gap-2">
+                  <span className="truncate text-muted-foreground">{d.nome}</span>
+                  <strong>{d.qtd}</strong>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
