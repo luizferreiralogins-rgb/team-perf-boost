@@ -120,7 +120,9 @@ function EquipePage() {
   const [filterGerente, setFilterGerente] = useState<string>("all");
   const [q, setQ] = useState("");
 
-  const isRegional = me.data?.roles.includes("regional") || me.data?.roles.includes("admin");
+  const isMaster = !!(me.data?.roles.includes("regional") || me.data?.roles.includes("admin"));
+  const isGerenteRegional = !!me.data?.roles.includes("gerente_regional");
+  const isRegional = isMaster || isGerenteRegional;
   const isGerente = me.data?.roles.includes("gerente") || me.data?.roles.includes("lider_pap");
 
   const members = (membersQ.data ?? []) as Member[];
@@ -130,10 +132,12 @@ function EquipePage() {
         (m) =>
           m.roles.includes("gerente") ||
           m.roles.includes("lider_pap") ||
+          m.roles.includes("gerente_regional") ||
           m.roles.includes("regional"),
       ),
     [members],
   );
+
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
