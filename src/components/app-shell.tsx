@@ -148,6 +148,8 @@ function Sidebar({
     { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
     
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true, badge: alertas?.tarefas },
+    { to: "/telegram", label: "Telegram", icon: Send, show: true },
+
     { to: "/equipe", label: "Equipe", icon: Users, show: isGestor },
     { to: "/regras-comissionamento", label: "Regras de Comissionamento", icon: FileText, show: isGestor },
     { to: "/perfil", label: "Perfil", icon: UserCircle, show: true },
