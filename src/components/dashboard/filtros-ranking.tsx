@@ -97,7 +97,7 @@ export function useEquipe(uid?: string, role?: string) {
         role: roleMap.get(p.id) ?? "consultor",
       }));
 
-      if (role === "gerente" || role === "lider_pap") {
+      if (role === "gerente" || role === "lider_pap" || role === "gerente_regional") {
         // toda a cadeia abaixo do gerente (consultores + gerentes subordinados e seus times)
         return descendentesDe(todos, uid!);
       }
