@@ -33,13 +33,8 @@ function Landing() {
             <span className="text-lg font-semibold tracking-tight">Unifique · Comercial</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost">
-              <Link to="/auth">Entrar</Link>
-            </Button>
             <Button asChild>
-              <Link to="/auth" search={{ mode: "signup" } as never}>
-                Criar conta
-              </Link>
+              <Link to="/auth">Entrar</Link>
             </Button>
           </div>
         </div>
