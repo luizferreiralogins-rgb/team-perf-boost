@@ -225,7 +225,14 @@ export const deleteTeamMember = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id);
     const currentRole = ((targetRoles ?? [])[0]?.role ?? "consultor") as Role;
     if (data.user_id === userId) throw new Error("Você não pode excluir a si mesmo.");
-    const ok = await canManage(supabase, userId, currentRole, target?.gerente_id ?? null);
+    const ok = await canManage(
+      supabase,
+      userId,
+      currentRole,
+      target?.gerente_id ?? null,
+      data.user_id,
+    );
+
     if (!ok) throw new Error("Sem permissão para excluir este acesso.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
