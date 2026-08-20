@@ -66,8 +66,9 @@ export const Route = createFileRoute("/_authenticated/equipe")({
   component: EquipePage,
 });
 
-type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
-type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "regional";
+type Role = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
+type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional";
+
 type Canal = "loja" | "pap";
 type Unidade = string;
 
