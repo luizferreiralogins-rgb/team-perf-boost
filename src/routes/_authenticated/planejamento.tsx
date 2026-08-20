@@ -178,11 +178,14 @@ function PlanejamentoPage() {
       toast.success(editId ? "Ação atualizada." : "Ação registrada.");
       setAberto(false);
       setEditId(null);
+      const mesSalvo = (form.data ?? "").slice(0, 7);
+      if (mesSalvo) setMes(mesSalvo);
       setForm(vazio());
       qc.invalidateQueries({ queryKey: ["planejamento-acoes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const atualizarCampo = useMutation({
     mutationFn: async (v: { id: string; campo: string; valor: string | number | null }) => {
@@ -215,6 +218,16 @@ function PlanejamentoPage() {
     () => (acoes.data ?? []).filter((a) => (a.data ?? "").slice(0, 7) === mes),
     [acoes.data, mes],
   );
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const mesesDisponiveis = useMemo(() => {
+    const s = new Set<string>([mesAtual, mes]);
+    for (const a of acoes.data ?? []) {
+      const m = (a.data ?? "").slice(0, 7);
+      if (m) s.add(m);
+    }
+    return [...s].sort((a, b) => b.localeCompare(a));
+  }, [acoes.data, mes, mesAtual]);
+
   const resumoLinhas = resumo.data ?? [];
   const porData = useMemo(() => agregarPorData(resumoLinhas), [resumoLinhas]);
   const totais = useMemo(
@@ -258,14 +271,34 @@ function PlanejamentoPage() {
           </div>
           <div className="ml-auto flex items-end gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Mês</Label>
+              <Label className="text-xs">Período</Label>
+              <Select value={mes} onValueChange={setMes}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {mesesDisponiveis.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {new Date(`${m}-01T00:00:00`).toLocaleDateString("pt-BR", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      {m === mesAtual ? " (atual)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Outro mês</Label>
               <Input
                 type="month"
                 value={mes}
-                onChange={(e) => setMes(e.target.value)}
+                onChange={(e) => e.target.value && setMes(e.target.value)}
                 className="w-[150px]"
               />
             </div>
+
             {isLider && (
               <>
                 <OpcoesDialog uid={uid} opcoes={opcoes.data ?? []} />
