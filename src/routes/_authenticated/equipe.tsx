@@ -301,11 +301,15 @@ function EquipePage() {
 function MemberRow({
   member,
   gerentes,
+  membros,
   isRegional,
+  isMaster,
 }: {
   member: Member;
   gerentes: Member[];
+  membros: Member[];
   isRegional: boolean;
+  isMaster: boolean;
 }) {
   const qc = useQueryClient();
   const remove = useServerFn(deleteTeamMember);
@@ -319,12 +323,15 @@ function MemberRow({
   });
   const gerenteNome = gerentes.find((g) => g.id === member.gerente_id)?.nome;
   const perfil = member.roles.includes("regional")
-    ? "Regional"
-    : member.roles.includes("gerente")
-      ? "Gerente"
-      : member.roles.includes("lider_pap")
-        ? "Líder PAP"
-        : "Consultor";
+    ? "Acesso Master"
+    : member.roles.includes("gerente_regional")
+      ? "Gerente Regional"
+      : member.roles.includes("gerente")
+        ? "Gerente"
+        : member.roles.includes("lider_pap")
+          ? "Líder PAP"
+          : "Consultor";
+
 
   return (
     <TableRow>
