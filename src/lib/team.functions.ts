@@ -264,3 +264,43 @@ export const setTeamMemberPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Define quais gerentes fazem parte da equipe de um Gerente Regional. */
+export const setRegionalTeam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        regional_id: z.string().uuid(),
+        gerente_ids: z.array(z.string().uuid()).max(200),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const rs = await getRoles(supabase, userId);
+    if (!rs.includes("admin") && !rs.includes("regional")) {
+      throw new Error("Apenas o Acesso Master pode montar a equipe de um Gerente Regional.");
+    }
+    if (data.gerente_ids.includes(data.regional_id)) {
+      throw new Error("O Gerente Regional não pode fazer parte da própria equipe.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Desvincula quem saiu da equipe
+    const { error: e1 } = await supabaseAdmin
+      .from("profiles")
+      .update({ gerente_id: null })
+      .eq("gerente_id", data.regional_id)
+      .not("id", "in", `(${[...data.gerente_ids, data.regional_id].join(",")})`);
+    if (e1) throw new Error(e1.message);
+
+    if (data.gerente_ids.length) {
+      const { error: e2 } = await supabaseAdmin
+        .from("profiles")
+        .update({ gerente_id: data.regional_id })
+        .in("id", data.gerente_ids);
+      if (e2) throw new Error(e2.message);
+    }
+    return { ok: true };
+  });
