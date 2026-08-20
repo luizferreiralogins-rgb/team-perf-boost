@@ -92,11 +92,15 @@ function useMe() {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user?.id;
       if (!uid) return null;
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", uid);
-      return { uid, roles: (roles ?? []).map((r) => r.role as string) };
+      const [{ data: roles }, { data: perfil }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", uid),
+        supabase.from("profiles").select("canal").eq("id", uid).maybeSingle(),
+      ]);
+      return {
+        uid,
+        roles: (roles ?? []).map((r) => r.role as string),
+        canal: perfil?.canal ?? null,
+      };
     },
     staleTime: 60_000,
   });
@@ -107,8 +111,11 @@ function PlanejamentoPage() {
   const me = useMe();
   const uid = me.data?.uid;
   const isLider = !!me.data?.roles.includes("lider_pap");
+  const isConsultorPap = !isLider && me.data?.canal === "pap";
 
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
+  const resumo = useResumoPap(mes);
+  const [diaDetalhe, setDiaDetalhe] = useState<string | null>(null);
 
   const opcoes = useQuery({
     queryKey: ["planejamento-opcoes"],
