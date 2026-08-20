@@ -3,7 +3,7 @@ import { useOrdenacao, cmpTexto, type OpcaoOrdenacao } from "@/components/ordena
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   createTeamMember,
@@ -11,7 +11,9 @@ import {
   listTeam,
   updateTeamMember,
   setTeamMemberPassword,
+  setRegionalTeam,
 } from "@/lib/team.functions";
+
 import { supabase } from "@/integrations/supabase/client";
 import { SelectUnidade, UnidadesConfig, useUnidades } from "@/components/unidades-loja";
 import { Button } from "@/components/ui/button";
