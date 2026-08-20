@@ -389,11 +389,13 @@ function MemberRow({
 
 function NovoAcessoDialog({
   isRegional,
+  isMaster,
   isGerente,
   gerentes,
   myId,
 }: {
   isRegional: boolean;
+  isMaster: boolean;
   isGerente: boolean;
   gerentes: Member[];
   myId: string;
@@ -404,9 +406,10 @@ function NovoAcessoDialog({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"gerente" | "lider_pap" | "consultor">(
+  const [role, setRole] = useState<"gerente_regional" | "gerente" | "lider_pap" | "consultor">(
     isRegional ? "gerente" : "consultor",
   );
+
   const [canal, setCanal] = useState<Canal>("loja");
   const [unidade, setUnidade] = useState<Unidade | "">("");
   const [gerenteId, setGerenteId] = useState<string>("");
