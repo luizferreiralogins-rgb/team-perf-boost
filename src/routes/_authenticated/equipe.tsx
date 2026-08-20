@@ -280,9 +280,12 @@ function EquipePage() {
                       key={m.id}
                       member={m}
                       gerentes={gerentes}
+                      membros={members}
                       isRegional={!!isRegional}
+                      isMaster={isMaster}
                     />
                   ))}
+
                 </TableBody>
               </Table>
             </div>
