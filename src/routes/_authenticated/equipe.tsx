@@ -765,3 +765,103 @@ function SenhaDialog({ member }: { member: Member }) {
     </Dialog>
   );
 }
+
+function EquipeRegionalDialog({
+  regional,
+  membros,
+}: {
+  regional: Member;
+  membros: Member[];
+}) {
+  const qc = useQueryClient();
+  const salvar = useServerFn(setRegionalTeam);
+  const [open, setOpen] = useState(false);
+
+  const candidatos = useMemo(
+    () =>
+      membros.filter(
+        (m) =>
+          m.id !== regional.id &&
+          (m.roles.includes("gerente") || m.roles.includes("lider_pap")),
+      ),
+    [membros, regional.id],
+  );
+  const [selecionados, setSelecionados] = useState<string[]>(
+    candidatos.filter((m) => m.gerente_id === regional.id).map((m) => m.id),
+  );
+
+  const mut = useMutation({
+    mutationFn: () =>
+      salvar({ data: { regional_id: regional.id, gerente_ids: selecionados } }),
+    onSuccess: () => {
+      toast.success("Equipe atualizada");
+      qc.invalidateQueries({ queryKey: ["team"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (v) {
+          setSelecionados(
+            candidatos.filter((m) => m.gerente_id === regional.id).map((m) => m.id),
+          );
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" title="Definir equipe do Gerente Regional">
+          <Users className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Equipe de {regional.nome}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Selecione os gerentes e líderes PAP que fazem parte desta regional. O Gerente Regional
+          terá as mesmas permissões do Acesso Master, porém apenas sobre estas equipes.
+        </p>
+        <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-3">
+          {candidatos.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum gerente cadastrado ainda.</p>
+          )}
+          {candidatos.map((g) => {
+            const marcado = selecionados.includes(g.id);
+            const outroGestor = !!g.gerente_id && g.gerente_id !== regional.id;
+            return (
+              <label key={g.id} className="flex items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={marcado}
+                  onChange={(e) =>
+                    setSelecionados((prev) =>
+                      e.target.checked ? [...prev, g.id] : prev.filter((id) => id !== g.id),
+                    )
+                  }
+                />
+                <span className="font-medium">{g.nome}</span>
+                <Badge variant="secondary">
+                  {g.roles.includes("lider_pap") ? "Líder PAP" : "Gerente"}
+                </Badge>
+                {outroGestor && !marcado && (
+                  <span className="text-xs text-muted-foreground">vinculado a outro gestor</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
+            {mut.isPending ? "Salvando..." : "Salvar equipe"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
