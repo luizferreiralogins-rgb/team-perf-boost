@@ -50,18 +50,27 @@ export const Route = createFileRoute("/_authenticated/vendas/")({
       { name: "description", content: "Histórico e gestão das suas vendas Unifique." },
     ],
   }),
-  beforeLoad: async () => {
-    const { redirect } = await import("@tanstack/react-router");
-    const { data: sess } = await supabase.auth.getUser();
-    const uid = sess.user?.id;
-    if (!uid) return;
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    const list = (roles ?? []).map((r) => r.role);
-    const isGestor = list.some((r) => ["gerente", "lider_pap", "regional", "admin"].includes(r));
-    if (isGestor) throw redirect({ to: "/dashboard" });
-  },
-  component: VendasList,
+  component: VendasPage,
 });
+
+function VendasPage() {
+  const { data: isGestor, isLoading } = useQuery({
+    queryKey: ["vendas-is-gestor"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user?.id;
+      if (!uid) return false;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      return (roles ?? []).some((r) =>
+        ["gerente", "lider_pap", "gerente_regional", "regional", "admin"].includes(r.role),
+      );
+    },
+  });
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
+  return isGestor ? <VendasGestor /> : <VendasList />;
+}
+
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
