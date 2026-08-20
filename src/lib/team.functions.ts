@@ -249,11 +249,14 @@ export const setTeamMemberPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    const rs: Role[] = (roles ?? []).map((r: any) => r.role);
-    if (!rs.includes("admin") && !rs.includes("regional")) {
-      throw new Error("Apenas o Acesso Master pode redefinir senhas.");
+    const rs = await getRoles(supabase, userId);
+    const master = rs.includes("admin") || rs.includes("regional");
+    const regionalEscopo =
+      rs.includes("gerente_regional") && (await isGestorDe(supabase, userId, data.user_id));
+    if (!master && !regionalEscopo) {
+      throw new Error("Sem permissão para redefinir a senha deste usuário.");
     }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
       password: data.password,
