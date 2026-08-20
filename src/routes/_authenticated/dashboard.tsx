@@ -353,7 +353,6 @@ function Dashboard() {
           bl={data?.blInst ?? 0}
           movel={data?.mvLinhasInst ?? 0}
           renovRs={data?.rvRs ?? 0}
-          faixa={!isGestor ? faixaAtual.data : null}
         />
         {!isGestor && (
           <div className="flex flex-col items-stretch gap-2">
