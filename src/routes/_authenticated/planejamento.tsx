@@ -289,15 +289,6 @@ function PlanejamentoPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Outro mês</Label>
-              <Input
-                type="month"
-                value={mes}
-                onChange={(e) => e.target.value && setMes(e.target.value)}
-                className="w-[150px]"
-              />
-            </div>
 
             {isLider && (
               <>
