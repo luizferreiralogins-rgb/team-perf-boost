@@ -194,10 +194,12 @@ function EquipePage() {
         </div>
         <NovoAcessoDialog
           isRegional={!!isRegional}
+          isMaster={isMaster}
           isGerente={!!isGerente}
           gerentes={gerentes}
           myId={me.data?.uid ?? ""}
         />
+
       </div>
 
       <Card>
