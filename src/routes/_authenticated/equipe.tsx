@@ -351,8 +351,17 @@ function MemberRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
-          <EditarDialog member={member} gerentes={gerentes} isRegional={isRegional} />
+          <EditarDialog
+            member={member}
+            gerentes={gerentes}
+            isRegional={isRegional}
+            isMaster={isMaster}
+          />
+          {isMaster && member.roles.includes("gerente_regional") && (
+            <EquipeRegionalDialog regional={member} membros={membros} />
+          )}
           {isRegional && <SenhaDialog member={member} />}
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="icon" variant="ghost" title="Excluir">
