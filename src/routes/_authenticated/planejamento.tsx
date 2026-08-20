@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -456,9 +457,8 @@ function PlanejamentoPage() {
                           />
                         </td>
                         <td>
-                          <Celula
+                          <ObsCelula
                             editavel={isLider}
-                            tipo="text"
                             valor={a.obs ?? ""}
                             onSalvar={(v) => salvarCelula(a.id, "obs", v)}
                           />
@@ -586,6 +586,97 @@ function CelulaResumo({ valor, onClick }: { valor: number; onClick: () => void }
     >
       {valor || "—"}
     </button>
+  );
+}
+
+function ObsCelula({
+  editavel,
+  valor,
+  onSalvar,
+}: {
+  editavel: boolean;
+  valor: string;
+  onSalvar: (v: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState(valor);
+
+  const abrirVisualizacao = () => {
+    if (editando) return;
+    setAberto(true);
+  };
+
+  const iniciarEdicao = () => {
+    if (!editavel) return;
+    setRascunho(valor);
+    setEditando(true);
+  };
+
+  const salvar = () => {
+    setEditando(false);
+    if (rascunho !== valor) onSalvar(rascunho);
+  };
+
+  return (
+    <>
+      <div
+        onClick={abrirVisualizacao}
+        onDoubleClick={iniciarEdicao}
+        title="Clique para ver a observação"
+        className={`min-h-7 cursor-pointer truncate rounded px-1 py-1 hover:bg-muted ${
+          valor ? "" : "text-muted-foreground"
+        }`}
+      >
+        {valor || "—"}
+      </div>
+
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Observação</DialogTitle>
+            <DialogDescription>Texto registrado na ação.</DialogDescription>
+          </DialogHeader>
+          {editando ? (
+            <Textarea
+              autoFocus
+              rows={5}
+              value={rascunho}
+              onChange={(e) => setRascunho(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.ctrlKey) salvar();
+                if (e.key === "Escape") {
+                  setRascunho(valor);
+                  setEditando(false);
+                }
+              }}
+            />
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap break-words rounded border border-border bg-muted/30 p-3 text-sm">
+              {valor || "Nenhuma observação registrada."}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            {editavel ? (
+              editando ? (
+                <>
+                  <Button variant="outline" onClick={() => setEditando(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={salvar}>Salvar</Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={iniciarEdicao}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                </Button>
+              )
+            ) : (
+              <Button onClick={() => setAberto(false)}>Fechar</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
