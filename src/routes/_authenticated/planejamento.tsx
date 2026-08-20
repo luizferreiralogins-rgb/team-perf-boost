@@ -380,27 +380,21 @@ function PlanejamentoPage() {
                           />
                         </td>
                         <td>
-                          <Celula
-                            editavel={isLider}
-                            tipo="number"
-                            valor={a.leads == null ? "" : String(a.leads)}
-                            onSalvar={(v) => salvarCelula(a.id, "leads", v, true)}
+                          <CelulaResumo
+                            valor={porData.get(a.data ?? "")?.leads ?? 0}
+                            onClick={() => setDiaDetalhe(a.data ?? null)}
                           />
                         </td>
                         <td>
-                          <Celula
-                            editavel={isLider}
-                            tipo="number"
-                            valor={a.fechado_bl == null ? "" : String(a.fechado_bl)}
-                            onSalvar={(v) => salvarCelula(a.id, "fechado_bl", v, true)}
+                          <CelulaResumo
+                            valor={porData.get(a.data ?? "")?.bl ?? 0}
+                            onClick={() => setDiaDetalhe(a.data ?? null)}
                           />
                         </td>
                         <td>
-                          <Celula
-                            editavel={isLider}
-                            tipo="number"
-                            valor={a.fechado_movel == null ? "" : String(a.fechado_movel)}
-                            onSalvar={(v) => salvarCelula(a.id, "fechado_movel", v, true)}
+                          <CelulaResumo
+                            valor={porData.get(a.data ?? "")?.movel ?? 0}
+                            onClick={() => setDiaDetalhe(a.data ?? null)}
                           />
                         </td>
                         <td>
