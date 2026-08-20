@@ -457,9 +457,8 @@ function PlanejamentoPage() {
                           />
                         </td>
                         <td>
-                          <Celula
+                          <ObsCelula
                             editavel={isLider}
-                            tipo="text"
                             valor={a.obs ?? ""}
                             onSalvar={(v) => salvarCelula(a.id, "obs", v)}
                           />
