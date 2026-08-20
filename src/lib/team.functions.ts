@@ -2,30 +2,51 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
 type Canal = "loja" | "pap";
 type Unidade = string;
+
+const getRoles = async (supabase: any, userId: string): Promise<Role[]> => {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return ((data ?? []) as any[]).map((r) => r.role as Role);
+};
+
+const isGestorDe = async (supabase: any, manager: string, target: string) => {
+  const { data } = await supabase.rpc("is_gestor_de", {
+    _manager: manager,
+    _consultant: target,
+  });
+  return data === true;
+};
 
 const canManage = async (
   supabase: any,
   callerId: string,
   targetRole: Role,
   gerenteId: string | null,
+  targetId?: string,
 ): Promise<boolean> => {
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", callerId);
-  const rs: Role[] = (roles ?? []).map((r: any) => r.role);
+  const rs = await getRoles(supabase, callerId);
   if (rs.includes("admin") || rs.includes("regional")) {
     // Regional/Admin (Acesso Master) gerencia cargos e hierarquia de qualquer usuário
     return true;
+  }
+  if (rs.includes("gerente_regional")) {
+    // Mesmas permissões do Master, porém só dentro da própria equipe
+    if (targetRole === "regional" || targetRole === "admin" || targetRole === "gerente_regional") {
+      return false;
+    }
+    if (targetId) return isGestorDe(supabase, callerId, targetId);
+    if (targetRole === "gerente") return true;
+    if (!gerenteId) return false;
+    return gerenteId === callerId || (await isGestorDe(supabase, callerId, gerenteId));
   }
   if (rs.includes("gerente") || rs.includes("lider_pap")) {
     return (targetRole === "consultor" || targetRole === "lider_pap") && gerenteId === callerId;
   }
   return false;
 };
+
 
 
 export const listTeam = createServerFn({ method: "GET" })
