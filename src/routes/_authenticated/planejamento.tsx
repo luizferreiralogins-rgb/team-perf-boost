@@ -382,10 +382,18 @@ function PlanejamentoPage() {
                           />
                         </td>
                         <td>
-                          <CelulaResumo
-                            valor={porData.get(a.data ?? "")?.leads ?? 0}
-                            onClick={() => setDiaDetalhe(a.data ?? null)}
-                          />
+                          {isConsultorPap ? (
+                            <CelulaLeadsDia
+                              data={a.data ?? null}
+                              uid={uid}
+                              valor={porData.get(a.data ?? "")?.leads ?? 0}
+                            />
+                          ) : (
+                            <CelulaResumo
+                              valor={porData.get(a.data ?? "")?.leads ?? 0}
+                              onClick={() => setDiaDetalhe(a.data ?? null)}
+                            />
+                          )}
                         </td>
                         <td>
                           <CelulaResumo
