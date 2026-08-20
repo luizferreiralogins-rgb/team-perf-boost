@@ -111,8 +111,11 @@ function PlanejamentoPage() {
   const me = useMe();
   const uid = me.data?.uid;
   const isLider = !!me.data?.roles.includes("lider_pap");
+  const isConsultorPap = !isLider && me.data?.canal === "pap";
 
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
+  const resumo = useResumoPap(mes);
+  const [diaDetalhe, setDiaDetalhe] = useState<string | null>(null);
 
   const opcoes = useQuery({
     queryKey: ["planejamento-opcoes"],
