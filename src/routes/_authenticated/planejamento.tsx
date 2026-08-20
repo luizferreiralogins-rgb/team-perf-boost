@@ -238,6 +238,18 @@ function PlanejamentoPage() {
     }),
     [resumoLinhas],
   );
+  const porConsultor = useMemo(() => {
+    const m = new Map<string, { nome: string; leads: number; bl: number; movel: number }>();
+    for (const l of resumoLinhas) {
+      const nome = l.consultor_nome ?? "Sem nome";
+      const c = m.get(nome) ?? { nome, leads: 0, bl: 0, movel: 0 };
+      c.leads += l.leads;
+      c.bl += l.bl;
+      c.movel += l.movel;
+      m.set(nome, c);
+    }
+    return [...m.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [resumoLinhas]);
   const porTipo = useMemo(() => {
     const m = new Map<string, number>();
     for (const l of linhas) {
