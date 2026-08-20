@@ -171,7 +171,14 @@ export const updateTeamMember = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", data.user_id);
     const currentRole = ((targetRoles ?? [])[0]?.role ?? "consultor") as Role;
-    const ok = await canManage(supabase, userId, currentRole, target?.gerente_id ?? null);
+    const ok = await canManage(
+      supabase,
+      userId,
+      currentRole,
+      target?.gerente_id ?? null,
+      data.user_id,
+    );
+
     if (!ok) throw new Error("Sem permissão para editar este acesso.");
 
     const patch: any = {};
