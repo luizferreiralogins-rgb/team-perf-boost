@@ -58,12 +58,7 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg">
-              <Link to="/auth" search={{ mode: "signup" } as never}>
-                Começar agora
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/auth">Já tenho conta</Link>
+              <Link to="/auth">Entrar</Link>
             </Button>
           </div>
         </div>
