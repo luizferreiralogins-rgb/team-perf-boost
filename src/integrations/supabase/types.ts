@@ -986,6 +986,231 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_accounts: {
+        Row: {
+          created_at: string
+          crm_user_id: string
+          first_name: string | null
+          id: string
+          last_error: string | null
+          last_name: string | null
+          last_sync_at: string | null
+          phone_number: string | null
+          profile_photo_url: string | null
+          session_reference: string | null
+          status: string
+          telegram_user_id: number | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          crm_user_id: string
+          first_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_name?: string | null
+          last_sync_at?: string | null
+          phone_number?: string | null
+          profile_photo_url?: string | null
+          session_reference?: string | null
+          status?: string
+          telegram_user_id?: number | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          crm_user_id?: string
+          first_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_name?: string | null
+          last_sync_at?: string | null
+          phone_number?: string | null
+          profile_photo_url?: string | null
+          session_reference?: string | null
+          status?: string
+          telegram_user_id?: number | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_chats: {
+        Row: {
+          access_hash: string | null
+          chat_type: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_id: number | null
+          last_message_text: string | null
+          phone: string | null
+          photo_url: string | null
+          telegram_account_id: string
+          telegram_chat_id: number
+          title: string | null
+          unread_count: number
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          access_hash?: string | null
+          chat_type?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: number | null
+          last_message_text?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          telegram_account_id: string
+          telegram_chat_id: number
+          title?: string | null
+          unread_count?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          access_hash?: string | null
+          chat_type?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: number | null
+          last_message_text?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          telegram_account_id?: string
+          telegram_chat_id?: number
+          title?: string | null
+          unread_count?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_chats_telegram_account_id_fkey"
+            columns: ["telegram_account_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_contacts: {
+        Row: {
+          access_hash: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          profile_photo_url: string | null
+          telegram_account_id: string
+          telegram_user_id: number
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          access_hash?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
+          telegram_account_id: string
+          telegram_user_id: number
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          access_hash?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
+          telegram_account_id?: string
+          telegram_user_id?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_contacts_telegram_account_id_fkey"
+            columns: ["telegram_account_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: string
+          content: string | null
+          created_at: string
+          direction: string
+          id: string
+          media_url: string | null
+          message_type: string
+          reply_to_message_id: number | null
+          sender_name: string | null
+          sender_telegram_user_id: number | null
+          sent_at: string
+          status: string
+          telegram_chat_id: number
+          telegram_message_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          chat_id: string
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          reply_to_message_id?: number | null
+          sender_name?: string | null
+          sender_telegram_user_id?: number | null
+          sent_at?: string
+          status?: string
+          telegram_chat_id: number
+          telegram_message_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          reply_to_message_id?: number | null
+          sender_name?: string | null
+          sender_telegram_user_id?: number | null
+          sent_at?: string
+          status?: string
+          telegram_chat_id?: number
+          telegram_message_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades_loja: {
         Row: {
           created_at: string
@@ -1313,6 +1538,10 @@ export type Database = {
           renov_qtd: number
           renov_rs: number
         }[]
+      }
+      telegram_account_e_minha: {
+        Args: { _account_id: string }
+        Returns: boolean
       }
       transferir_venda: {
         Args: { _para: string; _tabela: string; _venda_id: string }

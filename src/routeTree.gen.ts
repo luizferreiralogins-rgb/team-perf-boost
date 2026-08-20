@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTelegramRouteImport } from './routes/_authenticated/telegram'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
 import { Route as AuthenticatedProdutividadeRouteImport } from './routes/_authenticated/produtividade'
@@ -25,6 +26,7 @@ import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authent
 import { Route as AuthenticatedVendasIndexRouteImport } from './routes/_authenticated/vendas/index'
 import { Route as AuthenticatedVendasNovaRouteImport } from './routes/_authenticated/vendas/nova'
 import { Route as AuthenticatedVendasIdRouteImport } from './routes/_authenticated/vendas/$id'
+import { Route as ApiPublicTelegramServiceEventsRouteImport } from './routes/api/public/telegram-service/events'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -39,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTelegramRoute = AuthenticatedTelegramRouteImport.update({
+  id: '/telegram',
+  path: '/telegram',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -110,6 +117,12 @@ const AuthenticatedVendasIdRoute = AuthenticatedVendasIdRouteImport.update({
   path: '/vendas/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicTelegramServiceEventsRoute =
+  ApiPublicTelegramServiceEventsRouteImport.update({
+    id: '/api/public/telegram-service/events',
+    path: '/api/public/telegram-service/events',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,9 +137,11 @@ export interface FileRoutesByFullPath {
   '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/telegram': typeof AuthenticatedTelegramRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas/': typeof AuthenticatedVendasIndexRoute
+  '/api/public/telegram-service/events': typeof ApiPublicTelegramServiceEventsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,9 +156,11 @@ export interface FileRoutesByTo {
   '/produtividade': typeof AuthenticatedProdutividadeRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/telegram': typeof AuthenticatedTelegramRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas': typeof AuthenticatedVendasIndexRoute
+  '/api/public/telegram-service/events': typeof ApiPublicTelegramServiceEventsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,9 +177,11 @@ export interface FileRoutesById {
   '/_authenticated/produtividade': typeof AuthenticatedProdutividadeRoute
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/_authenticated/telegram': typeof AuthenticatedTelegramRoute
   '/_authenticated/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/_authenticated/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/_authenticated/vendas/': typeof AuthenticatedVendasIndexRoute
+  '/api/public/telegram-service/events': typeof ApiPublicTelegramServiceEventsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -179,9 +198,11 @@ export interface FileRouteTypes {
     | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
+    | '/telegram'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas/'
+    | '/api/public/telegram-service/events'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,9 +217,11 @@ export interface FileRouteTypes {
     | '/produtividade'
     | '/regras-comissionamento'
     | '/tarefas'
+    | '/telegram'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas'
+    | '/api/public/telegram-service/events'
   id:
     | '__root__'
     | '/'
@@ -214,15 +237,18 @@ export interface FileRouteTypes {
     | '/_authenticated/produtividade'
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/tarefas'
+    | '/_authenticated/telegram'
     | '/_authenticated/vendas/$id'
     | '/_authenticated/vendas/nova'
     | '/_authenticated/vendas/'
+    | '/api/public/telegram-service/events'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicTelegramServiceEventsRoute: typeof ApiPublicTelegramServiceEventsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -247,6 +273,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/telegram': {
+      id: '/_authenticated/telegram'
+      path: '/telegram'
+      fullPath: '/telegram'
+      preLoaderRoute: typeof AuthenticatedTelegramRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -339,6 +372,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/telegram-service/events': {
+      id: '/api/public/telegram-service/events'
+      path: '/api/public/telegram-service/events'
+      fullPath: '/api/public/telegram-service/events'
+      preLoaderRoute: typeof ApiPublicTelegramServiceEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -353,6 +393,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProdutividadeRoute: typeof AuthenticatedProdutividadeRoute
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedTelegramRoute: typeof AuthenticatedTelegramRoute
   AuthenticatedVendasIdRoute: typeof AuthenticatedVendasIdRoute
   AuthenticatedVendasNovaRoute: typeof AuthenticatedVendasNovaRoute
   AuthenticatedVendasIndexRoute: typeof AuthenticatedVendasIndexRoute
@@ -370,6 +411,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRegrasComissionamentoRoute:
     AuthenticatedRegrasComissionamentoRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedTelegramRoute: AuthenticatedTelegramRoute,
   AuthenticatedVendasIdRoute: AuthenticatedVendasIdRoute,
   AuthenticatedVendasNovaRoute: AuthenticatedVendasNovaRoute,
   AuthenticatedVendasIndexRoute: AuthenticatedVendasIndexRoute,
@@ -382,6 +424,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicTelegramServiceEventsRoute: ApiPublicTelegramServiceEventsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

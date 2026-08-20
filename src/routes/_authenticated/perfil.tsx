@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAtalhos } from "@/components/atalhos-externos";
 import { CanaisConfig } from "@/components/canais";
+import { TelegramIntegracao } from "@/components/telegram/conectar-telegram";
+
 
 
 export const Route = createFileRoute("/_authenticated/perfil")({
@@ -222,7 +224,10 @@ function Perfil() {
         </CardContent>
       </Card>
 
+      <TelegramIntegracao />
+
       {(data?.roles?.includes("regional") || data?.roles?.includes("admin")) && (
+
         <>
           <AtalhosConfig />
           <CanaisConfig
