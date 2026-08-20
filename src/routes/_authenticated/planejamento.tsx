@@ -26,6 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DetalheDiaDialog,
+  LeadsDiariosConsultor,
+  agregarPorData,
+  useResumoPap,
+} from "@/components/planejamento/leads-diarios";
 
 export const Route = createFileRoute("/_authenticated/planejamento")({
   component: PlanejamentoPage,
