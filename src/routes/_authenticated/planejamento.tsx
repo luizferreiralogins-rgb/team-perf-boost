@@ -277,6 +277,8 @@ function PlanejamentoPage() {
           </div>
         </div>
 
+        {isConsultorPap && <LeadsDiariosConsultor mes={mes} uid={uid} />}
+
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <Kpi titulo="Leads" valor={totais.leads} />
           <Kpi titulo="Fechado BL" valor={totais.bl} />
