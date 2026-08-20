@@ -663,11 +663,15 @@ function EditarDialog({
                 <Select value={role} onValueChange={(v) => setRole(v as RoleEditavel)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="regional">Gerente Regional</SelectItem>
+                    {isMaster && <SelectItem value="regional">Acesso Master</SelectItem>}
+                    {isMaster && (
+                      <SelectItem value="gerente_regional">Gerente Regional</SelectItem>
+                    )}
                     <SelectItem value="gerente">Gerente</SelectItem>
                     <SelectItem value="lider_pap">Líder PAP</SelectItem>
                     <SelectItem value="consultor">Consultor</SelectItem>
                   </SelectContent>
+
                 </Select>
               </div>
               <div className="space-y-2">
