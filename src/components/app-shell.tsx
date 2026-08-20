@@ -27,7 +27,7 @@ import { useAlertas } from "@/hooks/use-alertas";
 
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
-type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
 
 function useMe() {
   return useQuery({
@@ -118,7 +118,7 @@ function Sidebar({
   mobileOpen: boolean;
   onClose: () => void;
 }) {
-  const isGestor = roles.includes("gerente") || roles.includes("lider_pap") || roles.includes("regional") || roles.includes("admin");
+  const isGestor = roles.includes("gerente") || roles.includes("lider_pap") || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin");
   const isConsultor = roles.includes("consultor") && !isGestor;
   const alertas = useAlertas().data;
   const items = [
@@ -131,7 +131,7 @@ function Sidebar({
     },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: isConsultor, badge: alertas?.vendas },
-    { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("regional") || roles.includes("admin") },
+    { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
     {
       to: "/planejamento",
       label: "Planejamento",
@@ -140,6 +140,7 @@ function Sidebar({
         roles.includes("lider_pap") ||
         profile?.canal === "pap" ||
         roles.includes("gerente") ||
+        roles.includes("gerente_regional") ||
         roles.includes("regional") ||
         roles.includes("admin"),
     },

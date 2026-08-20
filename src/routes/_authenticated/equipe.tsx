@@ -3,7 +3,7 @@ import { useOrdenacao, cmpTexto, type OpcaoOrdenacao } from "@/components/ordena
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   createTeamMember,
@@ -11,7 +11,9 @@ import {
   listTeam,
   updateTeamMember,
   setTeamMemberPassword,
+  setRegionalTeam,
 } from "@/lib/team.functions";
+
 import { supabase } from "@/integrations/supabase/client";
 import { SelectUnidade, UnidadesConfig, useUnidades } from "@/components/unidades-loja";
 import { Button } from "@/components/ui/button";
@@ -66,8 +68,9 @@ export const Route = createFileRoute("/_authenticated/equipe")({
   component: EquipePage,
 });
 
-type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
-type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "regional";
+type Role = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
+type RoleEditavel = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional";
+
 type Canal = "loja" | "pap";
 type Unidade = string;
 
@@ -119,7 +122,9 @@ function EquipePage() {
   const [filterGerente, setFilterGerente] = useState<string>("all");
   const [q, setQ] = useState("");
 
-  const isRegional = me.data?.roles.includes("regional") || me.data?.roles.includes("admin");
+  const isMaster = !!(me.data?.roles.includes("regional") || me.data?.roles.includes("admin"));
+  const isGerenteRegional = !!me.data?.roles.includes("gerente_regional");
+  const isRegional = isMaster || isGerenteRegional;
   const isGerente = me.data?.roles.includes("gerente") || me.data?.roles.includes("lider_pap");
 
   const members = (membersQ.data ?? []) as Member[];
@@ -129,10 +134,12 @@ function EquipePage() {
         (m) =>
           m.roles.includes("gerente") ||
           m.roles.includes("lider_pap") ||
+          m.roles.includes("gerente_regional") ||
           m.roles.includes("regional"),
       ),
     [members],
   );
+
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -189,10 +196,12 @@ function EquipePage() {
         </div>
         <NovoAcessoDialog
           isRegional={!!isRegional}
+          isMaster={isMaster}
           isGerente={!!isGerente}
           gerentes={gerentes}
           myId={me.data?.uid ?? ""}
         />
+
       </div>
 
       <Card>
@@ -273,9 +282,12 @@ function EquipePage() {
                       key={m.id}
                       member={m}
                       gerentes={gerentes}
+                      membros={members}
                       isRegional={!!isRegional}
+                      isMaster={isMaster}
                     />
                   ))}
+
                 </TableBody>
               </Table>
             </div>
@@ -291,11 +303,15 @@ function EquipePage() {
 function MemberRow({
   member,
   gerentes,
+  membros,
   isRegional,
+  isMaster,
 }: {
   member: Member;
   gerentes: Member[];
+  membros: Member[];
   isRegional: boolean;
+  isMaster: boolean;
 }) {
   const qc = useQueryClient();
   const remove = useServerFn(deleteTeamMember);
@@ -309,12 +325,15 @@ function MemberRow({
   });
   const gerenteNome = gerentes.find((g) => g.id === member.gerente_id)?.nome;
   const perfil = member.roles.includes("regional")
-    ? "Regional"
-    : member.roles.includes("gerente")
-      ? "Gerente"
-      : member.roles.includes("lider_pap")
-        ? "Líder PAP"
-        : "Consultor";
+    ? "Acesso Master"
+    : member.roles.includes("gerente_regional")
+      ? "Gerente Regional"
+      : member.roles.includes("gerente")
+        ? "Gerente"
+        : member.roles.includes("lider_pap")
+          ? "Líder PAP"
+          : "Consultor";
+
 
   return (
     <TableRow>
@@ -334,8 +353,17 @@ function MemberRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
-          <EditarDialog member={member} gerentes={gerentes} isRegional={isRegional} />
+          <EditarDialog
+            member={member}
+            gerentes={gerentes}
+            isRegional={isRegional}
+            isMaster={isMaster}
+          />
+          {isMaster && member.roles.includes("gerente_regional") && (
+            <EquipeRegionalDialog regional={member} membros={membros} />
+          )}
           {isRegional && <SenhaDialog member={member} />}
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="icon" variant="ghost" title="Excluir">
@@ -363,11 +391,13 @@ function MemberRow({
 
 function NovoAcessoDialog({
   isRegional,
+  isMaster,
   isGerente,
   gerentes,
   myId,
 }: {
   isRegional: boolean;
+  isMaster: boolean;
   isGerente: boolean;
   gerentes: Member[];
   myId: string;
@@ -378,9 +408,10 @@ function NovoAcessoDialog({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"gerente" | "lider_pap" | "consultor">(
+  const [role, setRole] = useState<"gerente_regional" | "gerente" | "lider_pap" | "consultor">(
     isRegional ? "gerente" : "consultor",
   );
+
   const [canal, setCanal] = useState<Canal>("loja");
   const [unidade, setUnidade] = useState<Unidade | "">("");
   const [gerenteId, setGerenteId] = useState<string>("");
@@ -430,10 +461,14 @@ function NovoAcessoDialog({
               <Select value={role} onValueChange={(v) => setRole(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  {isMaster && (
+                    <SelectItem value="gerente_regional">Gerente Regional</SelectItem>
+                  )}
                   <SelectItem value="gerente">Gerente</SelectItem>
                   <SelectItem value="lider_pap">Líder PAP</SelectItem>
                   <SelectItem value="consultor">Consultor</SelectItem>
                 </SelectContent>
+
               </Select>
             </div>
           )}
@@ -533,10 +568,12 @@ function EditarDialog({
   member,
   gerentes,
   isRegional,
+  isMaster,
 }: {
   member: Member;
   gerentes: Member[];
   isRegional: boolean;
+  isMaster: boolean;
 }) {
   const qc = useQueryClient();
   const update = useServerFn(updateTeamMember);
@@ -549,12 +586,15 @@ function EditarDialog({
   const [nascimento, setNascimento] = useState(member.data_nascimento ?? "");
   const cargoAtual: RoleEditavel = member.roles.includes("regional")
     ? "regional"
-    : member.roles.includes("gerente")
-      ? "gerente"
-      : member.roles.includes("lider_pap")
-        ? "lider_pap"
-        : "consultor";
+    : member.roles.includes("gerente_regional")
+      ? "gerente_regional"
+      : member.roles.includes("gerente")
+        ? "gerente"
+        : member.roles.includes("lider_pap")
+          ? "lider_pap"
+          : "consultor";
   const [role, setRole] = useState<RoleEditavel>(cargoAtual);
+
 
   const mut = useMutation({
     mutationFn: () =>
@@ -625,11 +665,15 @@ function EditarDialog({
                 <Select value={role} onValueChange={(v) => setRole(v as RoleEditavel)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="regional">Gerente Regional</SelectItem>
+                    {isMaster && <SelectItem value="regional">Acesso Master</SelectItem>}
+                    {isMaster && (
+                      <SelectItem value="gerente_regional">Gerente Regional</SelectItem>
+                    )}
                     <SelectItem value="gerente">Gerente</SelectItem>
                     <SelectItem value="lider_pap">Líder PAP</SelectItem>
                     <SelectItem value="consultor">Consultor</SelectItem>
                   </SelectContent>
+
                 </Select>
               </div>
               <div className="space-y-2">
@@ -717,6 +761,106 @@ function SenhaDialog({ member }: { member: Member }) {
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={() => mut.mutate()} disabled={mut.isPending || password.length < 8}>
             {mut.isPending ? "Salvando..." : "Definir senha"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EquipeRegionalDialog({
+  regional,
+  membros,
+}: {
+  regional: Member;
+  membros: Member[];
+}) {
+  const qc = useQueryClient();
+  const salvar = useServerFn(setRegionalTeam);
+  const [open, setOpen] = useState(false);
+
+  const candidatos = useMemo(
+    () =>
+      membros.filter(
+        (m) =>
+          m.id !== regional.id &&
+          (m.roles.includes("gerente") || m.roles.includes("lider_pap")),
+      ),
+    [membros, regional.id],
+  );
+  const [selecionados, setSelecionados] = useState<string[]>(
+    candidatos.filter((m) => m.gerente_id === regional.id).map((m) => m.id),
+  );
+
+  const mut = useMutation({
+    mutationFn: () =>
+      salvar({ data: { regional_id: regional.id, gerente_ids: selecionados } }),
+    onSuccess: () => {
+      toast.success("Equipe atualizada");
+      qc.invalidateQueries({ queryKey: ["team"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (v) {
+          setSelecionados(
+            candidatos.filter((m) => m.gerente_id === regional.id).map((m) => m.id),
+          );
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" title="Definir equipe do Gerente Regional">
+          <Users className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Equipe de {regional.nome}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Selecione os gerentes e líderes PAP que fazem parte desta regional. O Gerente Regional
+          terá as mesmas permissões do Acesso Master, porém apenas sobre estas equipes.
+        </p>
+        <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-3">
+          {candidatos.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum gerente cadastrado ainda.</p>
+          )}
+          {candidatos.map((g) => {
+            const marcado = selecionados.includes(g.id);
+            const outroGestor = !!g.gerente_id && g.gerente_id !== regional.id;
+            return (
+              <label key={g.id} className="flex items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={marcado}
+                  onChange={(e) =>
+                    setSelecionados((prev) =>
+                      e.target.checked ? [...prev, g.id] : prev.filter((id) => id !== g.id),
+                    )
+                  }
+                />
+                <span className="font-medium">{g.nome}</span>
+                <Badge variant="secondary">
+                  {g.roles.includes("lider_pap") ? "Líder PAP" : "Gerente"}
+                </Badge>
+                {outroGestor && !marcado && (
+                  <span className="text-xs text-muted-foreground">vinculado a outro gestor</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
+            {mut.isPending ? "Salvando..." : "Salvar equipe"}
           </Button>
         </DialogFooter>
       </DialogContent>

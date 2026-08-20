@@ -2,30 +2,51 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Role = "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+type Role = "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
 type Canal = "loja" | "pap";
 type Unidade = string;
+
+const getRoles = async (supabase: any, userId: string): Promise<Role[]> => {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return ((data ?? []) as any[]).map((r) => r.role as Role);
+};
+
+const isGestorDe = async (supabase: any, manager: string, target: string) => {
+  const { data } = await supabase.rpc("is_gestor_de", {
+    _manager: manager,
+    _consultant: target,
+  });
+  return data === true;
+};
 
 const canManage = async (
   supabase: any,
   callerId: string,
   targetRole: Role,
   gerenteId: string | null,
+  targetId?: string,
 ): Promise<boolean> => {
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", callerId);
-  const rs: Role[] = (roles ?? []).map((r: any) => r.role);
+  const rs = await getRoles(supabase, callerId);
   if (rs.includes("admin") || rs.includes("regional")) {
     // Regional/Admin (Acesso Master) gerencia cargos e hierarquia de qualquer usuário
     return true;
+  }
+  if (rs.includes("gerente_regional")) {
+    // Mesmas permissões do Master, porém só dentro da própria equipe
+    if (targetRole === "regional" || targetRole === "admin" || targetRole === "gerente_regional") {
+      return false;
+    }
+    if (targetId) return isGestorDe(supabase, callerId, targetId);
+    if (targetRole === "gerente") return true;
+    if (!gerenteId) return false;
+    return gerenteId === callerId || (await isGestorDe(supabase, callerId, gerenteId));
   }
   if (rs.includes("gerente") || rs.includes("lider_pap")) {
     return (targetRole === "consultor" || targetRole === "lider_pap") && gerenteId === callerId;
   }
   return false;
 };
+
 
 
 export const listTeam = createServerFn({ method: "GET" })
@@ -56,7 +77,7 @@ export const listTeam = createServerFn({ method: "GET" })
 const createSchema = z.object({
   email: z.string().trim().email().max(255),
   nome: z.string().trim().min(2).max(120),
-  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]),
+  role: z.enum(["regional", "gerente_regional", "gerente", "lider_pap", "consultor"]),
   canal: z.enum(["loja", "pap"]).optional(),
   loja_unidade: z.string().trim().min(1).max(60).nullable().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
@@ -69,27 +90,29 @@ export const createTeamMember = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const precisaGestor = data.role === "consultor" || data.role === "lider_pap";
+    const rs = await getRoles(supabase, userId);
+    const souGerenteRegional =
+      rs.includes("gerente_regional") && !rs.includes("regional") && !rs.includes("admin");
+    const precisaGestor =
+      data.role === "consultor" ||
+      data.role === "lider_pap" ||
+      (data.role === "gerente" && souGerenteRegional);
     const gerenteId = precisaGestor ? (data.gerente_id ?? null) : null;
     const ok = await canManage(supabase, userId, data.role as Role, gerenteId);
     if (!ok) throw new Error("Sem permissão para criar este tipo de acesso.");
-    if (data.role === "lider_pap" && !gerenteId) {
+    if (data.role === "lider_pap" && !gerenteId && !souGerenteRegional) {
       throw new Error("O Líder PAP precisa estar vinculado a um Gerente.");
     }
 
-    // Gerente/Líder PAP criando subordinado sempre vincula a si mesmo
-    const { data: myRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const rs: Role[] = (myRoles ?? []).map((r: any) => r.role);
+    // Gerente / Líder PAP / Gerente Regional criando subordinado vincula a si mesmo
     const gerenteFinal =
       precisaGestor &&
-      (rs.includes("gerente") || rs.includes("lider_pap")) &&
+      (souGerenteRegional || rs.includes("gerente") || rs.includes("lider_pap")) &&
       !rs.includes("regional") &&
       !rs.includes("admin")
-        ? userId
+        ? (data.role === "gerente" ? userId : (gerenteId ?? userId))
         : gerenteId;
+
 
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -130,7 +153,7 @@ const updateSchema = z.object({
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
   data_nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]).optional(),
+  role: z.enum(["regional", "gerente_regional", "gerente", "lider_pap", "consultor"]).optional(),
 });
 
 export const updateTeamMember = createServerFn({ method: "POST" })
@@ -148,7 +171,14 @@ export const updateTeamMember = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", data.user_id);
     const currentRole = ((targetRoles ?? [])[0]?.role ?? "consultor") as Role;
-    const ok = await canManage(supabase, userId, currentRole, target?.gerente_id ?? null);
+    const ok = await canManage(
+      supabase,
+      userId,
+      currentRole,
+      target?.gerente_id ?? null,
+      data.user_id,
+    );
+
     if (!ok) throw new Error("Sem permissão para editar este acesso.");
 
     const patch: any = {};
@@ -167,13 +197,15 @@ export const updateTeamMember = createServerFn({ method: "POST" })
     }
     if (data.role && data.role !== currentRole) {
       if (data.user_id === userId) throw new Error("Você não pode alterar o próprio cargo.");
-      // Só regional/admin podem mudar role
-      if (!(await canManage(supabase, userId, data.role, target?.gerente_id ?? null))) {
+      if (
+        !(await canManage(supabase, userId, data.role, target?.gerente_id ?? null, data.user_id))
+      ) {
         throw new Error("Sem permissão para alterar o tipo de acesso.");
       }
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
       await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
     }
+
     return { ok: true };
   });
 
@@ -193,7 +225,14 @@ export const deleteTeamMember = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id);
     const currentRole = ((targetRoles ?? [])[0]?.role ?? "consultor") as Role;
     if (data.user_id === userId) throw new Error("Você não pode excluir a si mesmo.");
-    const ok = await canManage(supabase, userId, currentRole, target?.gerente_id ?? null);
+    const ok = await canManage(
+      supabase,
+      userId,
+      currentRole,
+      target?.gerente_id ?? null,
+      data.user_id,
+    );
+
     if (!ok) throw new Error("Sem permissão para excluir este acesso.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
@@ -210,15 +249,67 @@ export const setTeamMemberPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    const rs: Role[] = (roles ?? []).map((r: any) => r.role);
-    if (!rs.includes("admin") && !rs.includes("regional")) {
-      throw new Error("Apenas o Acesso Master pode redefinir senhas.");
+    const rs = await getRoles(supabase, userId);
+    const master = rs.includes("admin") || rs.includes("regional");
+    const regionalEscopo =
+      rs.includes("gerente_regional") && (await isGestorDe(supabase, userId, data.user_id));
+    if (!master && !regionalEscopo) {
+      throw new Error("Sem permissão para redefinir a senha deste usuário.");
     }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Define quais gerentes fazem parte da equipe de um Gerente Regional. */
+export const setRegionalTeam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        regional_id: z.string().uuid(),
+        gerente_ids: z.array(z.string().uuid()).max(200),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const rs = await getRoles(supabase, userId);
+    if (!rs.includes("admin") && !rs.includes("regional")) {
+      throw new Error("Apenas o Acesso Master pode montar a equipe de um Gerente Regional.");
+    }
+    if (data.gerente_ids.includes(data.regional_id)) {
+      throw new Error("O Gerente Regional não pode fazer parte da própria equipe.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Desvincula apenas os gerentes que saíram da equipe (consultores diretos não são afetados)
+    const { data: gerentesRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["gerente", "lider_pap"]);
+    const gerenteIdsSistema = ((gerentesRoles ?? []) as any[]).map((r) => r.user_id as string);
+    const remover = gerenteIdsSistema.filter((id) => !data.gerente_ids.includes(id));
+    if (remover.length) {
+      const { error: e1 } = await supabaseAdmin
+        .from("profiles")
+        .update({ gerente_id: null })
+        .eq("gerente_id", data.regional_id)
+        .in("id", remover);
+      if (e1) throw new Error(e1.message);
+    }
+
+
+    if (data.gerente_ids.length) {
+      const { error: e2 } = await supabaseAdmin
+        .from("profiles")
+        .update({ gerente_id: data.regional_id })
+        .in("id", data.gerente_ids);
+      if (e2) throw new Error(e2.message);
+    }
     return { ok: true };
   });

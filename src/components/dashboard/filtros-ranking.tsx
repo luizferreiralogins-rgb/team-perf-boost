@@ -19,7 +19,7 @@ export type Membro = {
   canal: "loja" | "pap";
   loja_unidade: string | null;
   gerente_id: string | null;
-  role: "consultor" | "gerente" | "lider_pap" | "regional" | "admin";
+  role: "consultor" | "gerente" | "lider_pap" | "gerente_regional" | "regional" | "admin";
 };
 
 export type Filtros = {
@@ -97,7 +97,7 @@ export function useEquipe(uid?: string, role?: string) {
         role: roleMap.get(p.id) ?? "consultor",
       }));
 
-      if (role === "gerente" || role === "lider_pap") {
+      if (role === "gerente" || role === "lider_pap" || role === "gerente_regional") {
         // toda a cadeia abaixo do gerente (consultores + gerentes subordinados e seus times)
         return descendentesDe(todos, uid!);
       }
