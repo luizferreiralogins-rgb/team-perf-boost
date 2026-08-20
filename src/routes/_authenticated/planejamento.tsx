@@ -316,9 +316,21 @@ function PlanejamentoPage() {
 
 
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Kpi titulo="Leads" valor={totais.leads} />
-          <Kpi titulo="Fechado BL" valor={totais.bl} />
-          <Kpi titulo="Fechado Móvel" valor={totais.movel} />
+          <Kpi
+            titulo="Leads"
+            valor={totais.leads}
+            detalhes={porConsultor.map((c) => ({ nome: c.nome, qtd: c.leads }))}
+          />
+          <Kpi
+            titulo="Fechado BL"
+            valor={totais.bl}
+            detalhes={porConsultor.map((c) => ({ nome: c.nome, qtd: c.bl }))}
+          />
+          <Kpi
+            titulo="Fechado Móvel"
+            valor={totais.movel}
+            detalhes={porConsultor.map((c) => ({ nome: c.nome, qtd: c.movel }))}
+          />
           <Card className="sm:col-span-3 lg:col-span-1">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
