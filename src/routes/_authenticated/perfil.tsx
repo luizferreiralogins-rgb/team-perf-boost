@@ -222,7 +222,10 @@ function Perfil() {
         </CardContent>
       </Card>
 
+      <TelegramIntegracao />
+
       {(data?.roles?.includes("regional") || data?.roles?.includes("admin")) && (
+
         <>
           <AtalhosConfig />
           <CanaisConfig
