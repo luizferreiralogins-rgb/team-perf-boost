@@ -1,87 +1,48 @@
-# Reestruturação de Acessos e Hierarquia
+# Integração Telegram Pessoal (MTProto/TDLib) no CRM
 
-## Visão geral
+## Análise do projeto atual
 
-Hoje qualquer novo cadastro entra como **Consultor**. Vamos inverter a lógica: o **Gerente Regional** é o perfil principal, e a criação de acessos passa a ser feita de cima para baixo:
+- Frontend: TanStack Start (React 19) + Tailwind + shadcn, rotas em `src/routes/_authenticated/*`, layout em `src/components/app-shell.tsx`.
+- Backend: Lovable Cloud (Supabase) — auth por e-mail/senha, perfis em `profiles`, papéis em `user_roles` (`has_role`), RLS em todas as tabelas.
+- Lógica de servidor: `createServerFn` (TanStack) rodando em runtime serverless (Cloudflare Workers).
+- Não existe hoje nenhuma estrutura de contatos/chats/mensagens reaproveitável (a antiga tabela `mensagens_chat` é um chat interno desativado). A integração terá tabelas próprias.
+
+## Limitação técnica que define a arquitetura
+
+TDLib/MTProto exige processo persistente, sockets TCP e disco — o runtime serverless deste projeto **não** consegue hospedar isso. Portanto, seguindo o item 16 do pedido, **não haverá simulação**: entrego CRM + banco + contratos, e o Telegram Service fica como componente externo a hospedar (Node + `tdl`/`tdlib` ou `gramjs`, em VPS/Fly.io/Railway/Docker).
 
 ```text
-Regional  ──cria──►  Gerentes         (vê tudo, filtra por qualquer nível)
-   │
-Gerente   ──cria──►  Consultores       (vê só o próprio time)
-   │
-Consultor ──registra──►  Vendas
+CRM (Lovable) → Server Functions → Telegram Service (host externo, TDLib) → conta pessoal do usuário
+                      ↓                        ↓
+                  Supabase  ←  webhook /api/public/telegram-service/events  ←  updates
+                      ↓
+                 Realtime → UI
 ```
 
-Um consultor é sempre vinculado a um **Gerente** e, opcionalmente, marcado como **Loja (Norte / Sul / Shopping)** ou **PAP**.
+## Fase 1 — Banco de dados + RLS
 
-## Mudanças de banco
+Tabelas novas (todas com `GRANT` + RLS escopada a `auth.uid()`):
 
-Nova migração:
+- `telegram_accounts` — 1 por usuário do CRM (`crm_user_id` único), com `status` (`desconectado`, `aguardando_qr`, `qr_lido`, `aguardando_2fa`, `conectado`, `erro`), dados do perfil Telegram, `session_reference` (apenas identificador opaco; nenhuma chave de sessão fica no banco acessível ao cliente) e `last_sync_at`.
+- `telegram_contacts`, `telegram_chats`, `telegram_messages` conforme especificado, com índices e unicidade `(telegram_chat_id, telegram_message_id)` para deduplicação.
+- `access_hash` fica em coluna protegida (leitura só pelo serviço via service role).
+- Realtime habilitado em `telegram_chats` e `telegram_messages`.
 
-1. Enum `loja_unidade` = `norte | sul | shopping`.
-2. Coluna `profiles.loja_unidade loja_unidade NULL` (só faz sentido quando `canal = 'loja'`).
-3. Ajustar `handle_new_user()`: primeiro cadastro do sistema vira **Regional** automaticamente; demais permanecem como Consultor "solto" até que um gestor os promova/vincule.
-4. Políticas RLS de `user_roles`:
-   - Regional pode `INSERT/UPDATE/DELETE` roles `gerente` e `consultor`.
-   - Gerente pode `INSERT/UPDATE/DELETE` role `consultor` **apenas** para perfis onde `profiles.gerente_id = auth.uid()`.
-5. Políticas de `profiles`:
-   - Regional pode atualizar qualquer perfil (canal, loja_unidade, gerente_id, regional_id, ativo).
-   - Gerente pode atualizar consultores do seu time (canal, loja_unidade, ativo) — **não** pode reatribuir para outro gerente.
-6. Função `admin_create_user(email, nome, role, canal, loja_unidade, gerente_id)` `SECURITY DEFINER` que:
-   - valida se o chamador tem permissão para criar aquele `role`,
-   - usa `supabaseAdmin` via server function (ver abaixo) — a parte SQL só valida/insere em `profiles` e `user_roles` depois que o usuário existe em `auth.users`.
+## Fase 2 — Contratos do Telegram Service
 
-## Server functions (createServerFn + requireSupabaseAuth)
+- Server functions em `src/lib/telegram.functions.ts` (autenticadas): `startQrLogin`, `pollQrLogin`, `submit2faPassword`, `syncTelegram`, `sendTelegramMessage`, `loadOlderMessages`, `disconnectTelegram`. Todas chamam o serviço externo via HTTP com `TELEGRAM_SERVICE_URL` + `TELEGRAM_SERVICE_TOKEN` (segredos apenas no servidor).
+- Rota pública `src/routes/api/public/telegram-service/events.ts` recebe updates do serviço, valida assinatura HMAC (`TELEGRAM_SERVICE_WEBHOOK_SECRET`) e grava no banco com service role → Realtime atualiza a UI.
+- Documento `docs/telegram-service.md` com o contrato REST completo, o esqueleto do serviço TDLib e as variáveis (`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `SUPABASE_SERVICE_ROLE_KEY`, etc.).
+- Enquanto `TELEGRAM_SERVICE_URL` não estiver configurada, a UI mostra aviso explícito de "serviço não configurado" — nunca um estado falso de conectado.
 
-Arquivo `src/lib/team.functions.ts`:
+## Fases 3 a 8 — Interface
 
-- `createTeamMember({ email, nome, role, canal, loja_unidade, gerente_id })`
-  - checa role do chamador (`has_role`),
-  - `supabaseAdmin.auth.admin.createUser` com senha temporária + envio de convite,
-  - insere/atualiza `profiles` e `user_roles`.
-- `updateTeamMember({ user_id, ...campos })` — mesma checagem de escopo.
-- `deleteTeamMember({ user_id })` — `supabaseAdmin.auth.admin.deleteUser` (cascata remove profile/roles).
-- `listTeam()` — retorna perfis visíveis ao chamador, já com role e nome do gerente.
+- `Perfil → Integrações → Telegram`: cartão de status (🔴/🟢), botão **Conectar Telegram** abrindo diálogo com QR Code (`tg://login?token=...`, renovação automática na expiração), estados de leitura/2FA/erro, além de **Abrir Telegram**, **Sincronizar** (com "Última sincronização") e **Desconectar** com confirmação.
+- Nova rota `/telegram` (item na sidebar): inbox em 3 colunas — lista de conversas com busca (nome, @username, telefone, conteúdo), thread com histórico paginado (scroll para cima) e painel de informações do contato.
+- Envio de texto com estados `enviando/enviada/falhou`; `message_type` e `media_url` já modelados para mídia futura.
+- Recebimento em tempo real por Supabase Realtime, atualizando última mensagem, horário e não lidas.
 
-Admin client é importado dinamicamente dentro do handler.
+## O que você precisará fornecer
 
-## Telas
-
-### `/equipe` (reformulada)
-- Regional: tabela com **Gerentes** e **Consultores**, filtro por gerente, canal, unidade, status.
-- Gerente: tabela apenas dos **Consultores do seu time**, filtro por canal/unidade/status.
-- Ações por linha: **Editar**, **Desativar**, **Excluir**.
-- Botão **"Novo acesso"** abre dialog:
-  - Regional escolhe entre Gerente ou Consultor (e nesse caso qual gerente).
-  - Gerente cria apenas Consultor, escolhendo Canal (Loja/PAP) e, se Loja, Unidade (Norte/Sul/Shopping).
-
-### `/dashboard` com filtros
-Barra de filtros no topo (visível para Gerente e Regional):
-- Período (mês/intervalo de datas),
-- Canal (Loja/PAP/Todos),
-- Unidade da loja (Norte/Sul/Shopping/Todas) — só quando Canal=Loja,
-- Gerente (só para Regional),
-- Consultor (dependente dos filtros acima),
-- Indicadores (checkboxes): Vendas, Instaladas, Receita, Comissão, Ticket médio, Ranking.
-
-Consultor continua vendo apenas o próprio dashboard, sem filtros de escopo.
-
-### `/vendas`
-- Adicionar mesmos filtros de escopo (quem, quando) para Gerente/Regional.
-
-### Cadastro público (`/auth`)
-- Remover o seletor de canal do signup — canal e vínculo agora vêm do gestor.
-- Mensagem: "Seu acesso será configurado pelo seu gestor" para signups que não sejam o primeiro Regional.
-
-## Aspectos técnicos
-
-- Novo `useMe()` retorna também `loja_unidade` e helpers `isRegional`, `isGerente`.
-- Filtros do dashboard viram `search params` da rota (`validateSearch` com Zod + `fallback`), assim links são compartilháveis.
-- Queries do dashboard passam a receber `vendedor_ids[]` calculados a partir dos filtros; RLS continua sendo a última linha de defesa.
-- Convites por e-mail usam o fluxo padrão do Supabase Auth (link mágico) — sem senha temporária exposta na UI.
-
-## Fora deste escopo
-
-- Reset de senha administrativo com senha visível.
-- Reatribuição em massa de consultores entre gerentes (fica para depois).
-- Logs de auditoria de criação/exclusão de acessos.
+- Uma máquina/host para o Telegram Service (Docker, VPS, Fly.io ou similar) — entrego o código e o passo a passo.
+- `TELEGRAM_API_ID` e `TELEGRAM_API_HASH` obtidos em my.telegram.org (guardados como segredos do backend).
