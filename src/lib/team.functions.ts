@@ -153,7 +153,7 @@ const updateSchema = z.object({
   ativo: z.boolean().optional(),
   gerente_id: z.string().uuid().nullable().optional(),
   data_nascimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  role: z.enum(["regional", "gerente", "lider_pap", "consultor"]).optional(),
+  role: z.enum(["regional", "gerente_regional", "gerente", "lider_pap", "consultor"]).optional(),
 });
 
 export const updateTeamMember = createServerFn({ method: "POST" })
