@@ -287,13 +287,22 @@ export const setRegionalTeam = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Desvincula quem saiu da equipe
-    const { error: e1 } = await supabaseAdmin
-      .from("profiles")
-      .update({ gerente_id: null })
-      .eq("gerente_id", data.regional_id)
-      .not("id", "in", `(${[...data.gerente_ids, data.regional_id].join(",")})`);
-    if (e1) throw new Error(e1.message);
+    // Desvincula apenas os gerentes que saíram da equipe (consultores diretos não são afetados)
+    const { data: gerentesRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["gerente", "lider_pap"]);
+    const gerenteIdsSistema = ((gerentesRoles ?? []) as any[]).map((r) => r.user_id as string);
+    const remover = gerenteIdsSistema.filter((id) => !data.gerente_ids.includes(id));
+    if (remover.length) {
+      const { error: e1 } = await supabaseAdmin
+        .from("profiles")
+        .update({ gerente_id: null })
+        .eq("gerente_id", data.regional_id)
+        .in("id", remover);
+      if (e1) throw new Error(e1.message);
+    }
+
 
     if (data.gerente_ids.length) {
       const { error: e2 } = await supabaseAdmin
