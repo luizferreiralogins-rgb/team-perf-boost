@@ -27,8 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  CelulaLeadsDia,
   DetalheDiaDialog,
-  LeadsDiariosConsultor,
   agregarPorData,
   useResumoPap,
 } from "@/components/planejamento/leads-diarios";
