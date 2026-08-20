@@ -511,7 +511,25 @@ function PlanejamentoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DetalheDiaDialog
+        dia={diaDetalhe}
+        linhas={resumoLinhas}
+        onOpenChange={(v) => !v && setDiaDetalhe(null)}
+      />
     </div>
+  );
+}
+
+function CelulaResumo({ valor, onClick }: { valor: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded px-1 py-1 text-left hover:bg-muted"
+      title="Ver detalhamento por consultor"
+    >
+      {valor || "—"}
+    </button>
   );
 }
 
