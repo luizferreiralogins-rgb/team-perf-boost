@@ -73,24 +73,7 @@ function AuthPage() {
             <CardDescription>Bem-vindo(a) de volta ao painel comercial.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={initialTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Criar conta</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login" className="mt-4">
-                <LoginForm />
-              </TabsContent>
-              <TabsContent value="signup" className="mt-4">
-                <SignupForm />
-              </TabsContent>
-            </Tabs>
-            <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" />
-              ou continue com
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <GoogleButton />
+            <LoginForm />
           </CardContent>
         </Card>
       </div>
