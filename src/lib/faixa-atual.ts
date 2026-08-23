@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   diferencaTicket,
-  ehCorePap,
   faixaEfetivaLoja,
   faixaPap,
   tipoComissaoLoja,
@@ -102,9 +101,8 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
   }
   for (const v of pap.data ?? []) {
     const cur = get(v.vendedor_id);
-    if (ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", produtosP)) {
-      cur.corePap += Number(v.valor ?? 0);
-    }
+    // Faixa PAP: toda a receita instalada do mês conta para a faixa.
+    cur.corePap += Number(v.valor ?? 0);
   }
 
   const out = new Map<string, FaixaAtual>();

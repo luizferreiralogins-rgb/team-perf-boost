@@ -217,7 +217,7 @@ export function produtoPap(produto: string, produtos: PapNovoProduto[]) {
   return produtos.find((p) => normaliza(p.nome) === alvo);
 }
 
-/** Faixa da Tabela 8.1 pela receita core acumulada no mês (VLOOKUP aproximado). */
+/** Faixa da Tabela 8.1 pela receita total instalada no mês (inclui produtos da 8.2). */
 export function faixaPap(faixas: PapFaixa[], totalCoreMes: number): PapFaixa | undefined {
   if (!faixas.length) return undefined;
   const ord = [...faixas].sort((a, b) => Number(a.receita_de) - Number(b.receita_de));
@@ -231,7 +231,7 @@ export type CtxPap = {
   produto: string;
   valor: number;
   instalado: boolean;
-  /** Receita de produtos da Tabela 8.1 já instalados no mês, incluindo esta venda. */
+  /** Receita total já instalada no mês (8.1 + 8.2), incluindo esta venda. */
   totalCoreMes: number;
   faixas: PapFaixa[];
   produtos: PapNovoProduto[];

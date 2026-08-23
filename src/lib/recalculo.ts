@@ -7,7 +7,6 @@ import {
   comissaoLojaNaFaixa,
   comissaoPap,
   diferencaTicket,
-  ehCorePap,
   faixaEfetivaLoja,
   tipoComissaoLoja,
   type LojaFaixaTicket,
@@ -94,12 +93,9 @@ export async function recalcularPapMes(vendedorId: string, mesRef: string) {
   const rows = vendas ?? [];
   if (!rows.length) return;
 
+  // Faixa PAP: considera TODA a receita instalada do mês (inclui produtos da 8.2).
   const totalCoreMes = rows
-    .filter(
-      (v) =>
-        v.status === "instalado" &&
-        ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos),
-    )
+    .filter((v) => v.status === "instalado")
     .reduce((s, v) => s + Number(v.valor ?? 0), 0);
 
   await Promise.all(
