@@ -9,7 +9,6 @@ import {
   brl,
   comissaoLoja,
   comissaoPap,
-  ehCorePap,
   parcelaMedia,
   type LojaFaixaTicket,
   type LojaNovoProduto,
@@ -173,16 +172,13 @@ export function ProjecaoComissaoPap({
     const v = parseFloat(valor) || 0;
     const produtos = q.data?.produtos ?? [];
     const outras = (acumuladoQ.data ?? []).filter((r) => r.id !== editingId);
-    const coreOutras = outras
-      .filter((r) => ehCorePap(r.tipo_protocolo ?? "", r.produto ?? "", produtos))
-      .reduce((s, r) => s + Number(r.valor ?? 0), 0);
-    const estaCore = instalado && ehCorePap(tipoProtocolo, produto, produtos);
+    const coreOutras = outras.reduce((s, r) => s + Number(r.valor ?? 0), 0);
     return comissaoPap({
       tipoProtocolo,
       produto,
       valor: v,
       instalado,
-      totalCoreMes: coreOutras + (estaCore ? v : 0),
+      totalCoreMes: coreOutras + (instalado ? v : 0),
       faixas: q.data?.faixas ?? [],
       produtos,
     });

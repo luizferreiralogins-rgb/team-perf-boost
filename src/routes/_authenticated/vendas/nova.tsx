@@ -31,7 +31,6 @@ import {
   comissaoLojaNaFaixa,
   comissaoPap,
   diferencaTicket,
-  ehCorePap,
   faixaEfetivaLoja,
   tipoComissaoLoja,
   type LojaFaixaTicket,
@@ -742,20 +741,14 @@ export function FormPap({
       ]);
       const listaProdutos = (produtos ?? []) as PapNovoProduto[];
       const outras = (mesVendas ?? []).filter((v) => v.id !== editingId);
-      const coreOutras = outras
-        .filter((v) => ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos))
-        .reduce((s, v) => s + Number(v.valor ?? 0), 0);
-      const estaCore = ehCorePap(
-        parsed.data.tipo_protocolo,
-        parsed.data.produto,
-        listaProdutos,
-      );
+      // Faixa PAP: toda a receita instalada do mês entra na base (inclui 8.2).
+      const coreOutras = outras.reduce((s, v) => s + Number(v.valor ?? 0), 0);
       const r = comissaoPap({
         tipoProtocolo: parsed.data.tipo_protocolo,
         produto: parsed.data.produto,
         valor: baseComissao,
         instalado: true,
-        totalCoreMes: coreOutras + (estaCore ? baseComissao : 0),
+        totalCoreMes: coreOutras + baseComissao,
         faixas: (faixas ?? []) as PapFaixa[],
         produtos: listaProdutos,
       });

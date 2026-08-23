@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { salvarRelatorioContestacao, limparRelatorioContestacao } from "@/lib/contestacao-manual.functions";
 import {
   diferencaTicket,
-  ehCorePap,
   faixaEfetivaLoja,
   faixaPap,
   tipoComissaoLoja,
@@ -300,7 +299,6 @@ function Contestacoes() {
             .from("parametros_pap_novos_produtos")
             .select("codigo, nome, percentual, limitado, limite"),
         ]);
-        const listaProdutos = (produtos ?? []) as PapNovoProduto[];
         vendas = (rows ?? []).map((v) => ({
           id: v.id,
           protocolo: v.protocolo,
@@ -315,9 +313,7 @@ function Contestacoes() {
           vendedor_id: v.vendedor_id,
           vendedor_nome: "",
         }));
-        const core = (rows ?? [])
-          .filter((v) => ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos))
-          .reduce((s, v) => s + Number(v.valor ?? 0), 0);
+        const core = (rows ?? []).reduce((s, v) => s + Number(v.valor ?? 0), 0);
         faixaSistema = faixaPap((faixas ?? []) as PapFaixa[], core)?.faixa ?? 0;
       }
 
