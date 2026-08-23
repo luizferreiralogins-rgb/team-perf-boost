@@ -299,7 +299,6 @@ function Contestacoes() {
             .from("parametros_pap_novos_produtos")
             .select("codigo, nome, percentual, limitado, limite"),
         ]);
-        const listaProdutos = (produtos ?? []) as PapNovoProduto[];
         vendas = (rows ?? []).map((v) => ({
           id: v.id,
           protocolo: v.protocolo,
