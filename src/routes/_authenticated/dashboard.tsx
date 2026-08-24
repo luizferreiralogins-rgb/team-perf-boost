@@ -512,14 +512,14 @@ function Dashboard() {
           icon={Target}
           footer={
             !isLoading && data?.canal === "pap" ? (
-              <div className="mt-3 space-y-1 border-t pt-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Receita Core (BL)</span>
-                  <span className="font-medium text-foreground">{brl(data?.blRs ?? 0)}</span>
+              <div className="mt-3 space-y-2 border-t pt-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Receita Core (BL)</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">{brl(data?.blRs ?? 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Outras Receitas</span>
-                  <span className="font-medium text-foreground">{brl((data?.receita ?? 0) - (data?.blRs ?? 0))}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Outras Receitas</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">{brl((data?.receita ?? 0) - (data?.blRs ?? 0))}</span>
                 </div>
               </div>
             ) : undefined
