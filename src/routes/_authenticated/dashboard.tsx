@@ -624,12 +624,14 @@ function StatCard({
   icon: Icon,
   onClick,
   projecao,
+  footer,
 }: {
   title: string;
   value: string | null;
   icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
   projecao?: string | null;
+  footer?: React.ReactNode;
 }) {
   return (
     <Card
@@ -657,6 +659,7 @@ function StatCard({
             <p className="mt-2 text-xs font-medium text-muted-foreground">{projecao}</p>
           )
         )}
+        {footer}
       </CardContent>
     </Card>
   );
