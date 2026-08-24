@@ -215,6 +215,7 @@ type Linha = {
   fibraQtd: number;
   movelQtd: number;
   renovacoesRs: number;
+  receitaRs: number;
   comissaoRs: number;
   leads: number;
 };
@@ -296,7 +297,7 @@ export function RankingEquipe({
       const get = (k: string) => {
         let l = linhas.get(k);
         if (!l) {
-          l = { id: k, nome: nomes.get(k) ?? "—", fibraQtd: 0, movelQtd: 0, renovacoesRs: 0, comissaoRs: 0, leads: 0 };
+          l = { id: k, nome: nomes.get(k) ?? "—", fibraQtd: 0, movelQtd: 0, renovacoesRs: 0, receitaRs: 0, comissaoRs: 0, leads: 0 };
           linhas.set(k, l);
         }
         return l;
@@ -319,7 +320,10 @@ export function RankingEquipe({
         if (isBL(v.tecnologia) && !renov) l.fibraQtd++;
         if (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
-        if (v.status === "instalado") l.comissaoRs += Number(v.comissao ?? 0);
+        if (v.status === "instalado") {
+          l.receitaRs += val;
+          l.comissaoRs += Number(v.comissao ?? 0);
+        }
       }
       for (const v of pap.data ?? []) {
         const k = chaveDe(v.vendedor_id);
@@ -334,7 +338,10 @@ export function RankingEquipe({
         if (isBL(desc) && !renov) l.fibraQtd++;
         if (isMovel(desc) || qtdLinhas > 0) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
-        if (v.status === "instalado") l.comissaoRs += Number(v.comissao ?? 0);
+        if (v.status === "instalado") {
+          l.receitaRs += val;
+          l.comissaoRs += Number(v.comissao ?? 0);
+        }
       }
 
       for (const ld of leads.data ?? []) {
@@ -382,6 +389,12 @@ export function RankingEquipe({
             format={brl}
           />
           <RankCard titulo="Leads cadastrados" linhas={linhas} valorDe={(l) => l.leads} />
+          <RankCard
+            titulo="Receita Geral (R$)"
+            linhas={linhas}
+            valorDe={(l) => l.receitaRs}
+            format={brl}
+          />
         </div>
       )}
     </div>
