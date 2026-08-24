@@ -506,7 +506,25 @@ function Dashboard() {
             }
           />
         )}
-        <StatCard title="Receita gerada" value={isLoading ? null : brl(data?.receita ?? 0)} icon={Target} />
+        <StatCard
+          title="Receita gerada"
+          value={isLoading ? null : brl(data?.receita ?? 0)}
+          icon={Target}
+          footer={
+            !isLoading && data?.canal === "pap" ? (
+              <div className="mt-3 space-y-1 border-t pt-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Receita Core (BL)</span>
+                  <span className="font-medium text-foreground">{brl(data?.blRs ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Outras Receitas</span>
+                  <span className="font-medium text-foreground">{brl((data?.receita ?? 0) - (data?.blRs ?? 0))}</span>
+                </div>
+              </div>
+            ) : undefined
+          }
+        />
         <StatCard
           title="Comissão estimada"
           value={isLoading ? null : brl(data?.comissao ?? 0)}
@@ -606,12 +624,14 @@ function StatCard({
   icon: Icon,
   onClick,
   projecao,
+  footer,
 }: {
   title: string;
   value: string | null;
   icon: React.ComponentType<{ className?: string }>;
   onClick?: () => void;
   projecao?: string | null;
+  footer?: React.ReactNode;
 }) {
   return (
     <Card
@@ -639,6 +659,7 @@ function StatCard({
             <p className="mt-2 text-xs font-medium text-muted-foreground">{projecao}</p>
           )
         )}
+        {footer}
       </CardContent>
     </Card>
   );
