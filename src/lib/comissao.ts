@@ -150,6 +150,23 @@ function valorTabelaRenovacao(faixas: LojaFaixaTicket[], diff: number, faixa: nu
   return Number(row[key]) || 0;
 }
 
+/**
+ * Fator de progressão da faixa efetiva, derivado da própria tabela de diferença
+ * de ticket (faixa_N ÷ faixa_1 na última linha): 1 → 1x, 2 → 1,25x, 3 → 1,5x.
+ * Usado para escalar as vendas novas, que antes pagavam percentual fixo.
+ */
+export function fatorFaixaLoja(faixas: LojaFaixaTicket[], faixa: number): number {
+  const f = Math.max(0, Math.min(3, Math.round(faixa)));
+  if (f === 0) return 0;
+  if (f === 1) return 1;
+  const ord = [...(faixas ?? [])].sort((a, b) => Number(a.diff_de) - Number(b.diff_de));
+  const row = ord[ord.length - 1];
+  const base = Number(row?.faixa_1) || 0;
+  const alvo = Number(row?.[(["faixa_0", "faixa_1", "faixa_2", "faixa_3"] as const)[f]]) || 0;
+  if (base > 0 && alvo > 0) return alvo / base;
+  return f === 2 ? 1.25 : 1.5;
+}
+
 export type CtxLoja = {
   classe: string;
   tecnologia: string;
@@ -168,9 +185,10 @@ export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
   if (diff <= 0) return 0;
 
   const tipo = tipoComissaoLoja(ctx.classe, ctx.contemMovel, ctx.tecnologia, ctx.novos);
+  const fator = fatorFaixaLoja(ctx.faixas, faixa);
 
   if (ctx.classe === "Novo Acesso" && ehTecnologiaPP(ctx.tecnologia)) {
-    return round2(diff * (diff <= 99.9 ? 0.05 : 0.1));
+    return round2(diff * (diff <= 99.9 ? 0.05 : 0.1) * fator);
   }
   if (tipo === "Renovação com Mobilidade" || tipo === "Renovação sem Mobilidade") {
     return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
@@ -179,7 +197,7 @@ export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
     const p = produtoNovoServico(ctx.tecnologia, ctx.novos);
     return round2(diff * (Number(p?.percentual) || 0));
   }
-  return round2(diff * 0.1);
+  return round2(diff * 0.1 * fator);
 }
 
 /** Resultado completo: diferença, tipo e comissão em cada faixa efetiva (0 a 3). */
