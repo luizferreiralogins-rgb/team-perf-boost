@@ -475,7 +475,7 @@ function Dashboard() {
         nomes={Object.fromEntries((membros ?? []).map((m) => [m.id, m.nome]))}
       />
 
-      <div className={`grid gap-4 md:grid-cols-3 ${isGestor || data?.canal === "pap" ? "lg:grid-cols-5" : "lg:grid-cols-6"}`}>
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
         <StatCard title="Instaladas" value={isLoading ? null : String(data?.instaladas ?? 0)} icon={Award} />
         <StatCard
@@ -484,28 +484,6 @@ function Dashboard() {
           icon={Clock}
           onClick={() => setVerNaoInstaladas(true)}
         />
-        {!isGestor && data?.canal !== "pap" && (
-          <StatCard
-            title="Faixa"
-            value={
-              faixaAtual.isLoading
-                ? null
-                : faixaAtual.data
-                  ? `${faixaAtual.data.faixa}/${faixaAtual.data.total}`
-                  : "—"
-            }
-            icon={Award}
-            projecao={
-              faixaAtual.isLoading
-                ? null
-                : faixaAtual.data
-                  ? faixaAtual.data.canal === "pap"
-                    ? `Receita: faixa ${faixaAtual.data.faixa}`
-                    : `Móvel: faixa ${faixaAtual.data.faixaMovel ?? "—"} · Receita: faixa ${faixaAtual.data.faixaReceita ?? "—"}`
-                  : ""
-            }
-          />
-        )}
         <StatCard
           title="Receita gerada"
           value={isLoading ? null : brl(data?.receita ?? 0)}
