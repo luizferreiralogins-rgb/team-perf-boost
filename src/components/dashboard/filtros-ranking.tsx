@@ -249,11 +249,11 @@ export function RankingEquipe({
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo, comissao, status")
+        .select("vendedor_id, tecnologia, contem_movel, classe_protocolo, qtd_linhas, valor_novo, valor_antigo, comissao, status, data_ativacao")
         .in("vendedor_id", ids);
       const papQ = supabase
         .from("vendas_pap")
-        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status")
+        .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status, data_ativacao")
         .in("vendedor_id", ids);
       if (ehMesAtual) {
         lojaQ.is("arquivada_em", null);
@@ -307,6 +307,9 @@ export function RankingEquipe({
       const isBL = (t?: string | null) =>
         !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
       const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
+      // Qtds de BL/Móvel contam apenas vendas instaladas com data de ativação no mês
+      const instaladaNoMes = (v: { status?: string | null; data_ativacao?: string | null }) =>
+        v.status === "instalado" && (v.data_ativacao ?? "").slice(0, 7) === filtros.mes;
 
       for (const v of loja.data ?? []) {
         const k = chaveDe(v.vendedor_id);
@@ -317,8 +320,9 @@ export function RankingEquipe({
         const val = antigo > 0 ? novo - antigo : novo;
         const qtdLinhas = Number(v.qtd_linhas ?? 0);
         const renov = (v.classe_protocolo ?? "").startsWith("Renovação");
-        if (isBL(v.tecnologia) && !renov) l.fibraQtd++;
-        if (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0) l.movelQtd += qtdLinhas;
+        const instalada = instaladaNoMes(v);
+        if (instalada && isBL(v.tecnologia) && !renov) l.fibraQtd++;
+        if (instalada && (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0)) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
         if (v.status === "instalado") {
           l.receitaRs += val;
@@ -335,8 +339,9 @@ export function RankingEquipe({
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
         const qtdLinhas = Number(v.qtd_linhas ?? 0);
         const renov = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if (isBL(desc) && !renov) l.fibraQtd++;
-        if (isMovel(desc) || qtdLinhas > 0) l.movelQtd += qtdLinhas;
+        const instalada = instaladaNoMes(v);
+        if (instalada && isBL(desc) && !renov) l.fibraQtd++;
+        if (instalada && (isMovel(desc) || qtdLinhas > 0)) l.movelQtd += qtdLinhas;
         if (renov) l.renovacoesRs += val;
         if (v.status === "instalado") {
           l.receitaRs += val;
