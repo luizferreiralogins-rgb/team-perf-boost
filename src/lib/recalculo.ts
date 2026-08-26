@@ -98,6 +98,14 @@ export async function recalcularPapMes(vendedorId: string, mesRef: string) {
     .filter((v) => v.status === "instalado")
     .reduce((s, v) => s + Number(v.valor ?? 0), 0);
 
+  // Índice de cancelamento D+5 do mês: vendas canceladas ÷ (instaladas + canceladas).
+  const canceladas = rows.filter((v) => v.status === "cancelado").length;
+  const instaladas = rows.filter((v) => v.status === "instalado").length;
+  const denom = canceladas + instaladas;
+  const indiceCancel = denom > 0 ? canceladas / denom : 0;
+  const metaCancel = Number(faixaPap(listaFaixas, totalCoreMes)?.meta_max_cancel ?? 0);
+  const dentroMetaCancelamento = indiceCancel <= metaCancel;
+
   await Promise.all(
     rows.map((v) => {
       const { valor } = comissaoPap({
@@ -108,6 +116,7 @@ export async function recalcularPapMes(vendedorId: string, mesRef: string) {
         totalCoreMes,
         faixas: listaFaixas,
         produtos: listaProdutos,
+        dentroMetaCancelamento,
       });
       return supabase.from("vendas_pap").update({ comissao: valor }).eq("id", v.id);
     }),
