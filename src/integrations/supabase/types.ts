@@ -119,6 +119,39 @@ export type Database = {
         }
         Relationships: []
       }
+      comissao_condicionantes: {
+        Row: {
+          created_at: string
+          em_ferias_atestado: boolean
+          id: string
+          indice_cancelamento: number
+          mes_ref: string
+          observacao: string | null
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          em_ferias_atestado?: boolean
+          id?: string
+          indice_cancelamento?: number
+          mes_ref: string
+          observacao?: string | null
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          em_ferias_atestado?: boolean
+          id?: string
+          indice_cancelamento?: number
+          mes_ref?: string
+          observacao?: string | null
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       contestacao_importacoes: {
         Row: {
           arquivo_nome: string
@@ -546,6 +579,39 @@ export type Database = {
           ordem?: number
           tipo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      parametros_gerais: {
+        Row: {
+          chave: string
+          created_at: string
+          descricao: string | null
+          label: string
+          ordem: number
+          updated_at: string
+          valor_bool: boolean | null
+          valor_num: number | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          label: string
+          ordem?: number
+          updated_at?: string
+          valor_bool?: boolean | null
+          valor_num?: number | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          label?: string
+          ordem?: number
+          updated_at?: string
+          valor_bool?: boolean | null
+          valor_num?: number | null
         }
         Relationships: []
       }
