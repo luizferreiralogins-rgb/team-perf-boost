@@ -619,7 +619,6 @@ export type Database = {
         Row: {
           diff_ate: number
           diff_de: number
-          faixa_0: number
           faixa_1: number
           faixa_2: number
           faixa_3: number
@@ -628,7 +627,6 @@ export type Database = {
         Insert: {
           diff_ate: number
           diff_de: number
-          faixa_0: number
           faixa_1: number
           faixa_2: number
           faixa_3: number
@@ -637,7 +635,6 @@ export type Database = {
         Update: {
           diff_ate?: number
           diff_de?: number
-          faixa_0?: number
           faixa_1?: number
           faixa_2?: number
           faixa_3?: number
@@ -666,16 +663,22 @@ export type Database = {
       parametros_loja_novos_produtos: {
         Row: {
           codigo: string
+          limitado: boolean
+          limite: number
           nome: string
           percentual: number
         }
         Insert: {
           codigo: string
+          limitado?: boolean
+          limite?: number
           nome: string
           percentual: number
         }
         Update: {
           codigo?: string
+          limitado?: boolean
+          limite?: number
           nome?: string
           percentual?: number
         }
