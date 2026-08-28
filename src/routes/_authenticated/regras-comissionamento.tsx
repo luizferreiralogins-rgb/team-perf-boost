@@ -5,6 +5,9 @@ import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParamTable } from "@/components/regras/param-table";
+import { Condicionantes } from "@/components/regras/condicionantes";
+import { ParametrosGerais } from "@/components/regras/parametros-gerais";
+import { DocumentosRegras } from "@/components/regras/documentos";
 
 export const Route = createFileRoute("/_authenticated/regras-comissionamento")({
   beforeLoad: async () => {
