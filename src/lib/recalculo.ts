@@ -75,37 +75,63 @@ export async function recalcularLojaMes(vendedorId: string, mesRef: string) {
 }
 
 export async function recalcularPapMes(vendedorId: string, mesRef: string) {
-  const [{ data: faixas }, { data: produtos }, { data: vendas }] = await Promise.all([
-    supabase
-      .from("parametros_pap_faixas")
-      .select(
-        "faixa, receita_de, receita_ate, pct_comissao, meta_max_cancel, acelerador_baixo_cancel, bonus_venda_indireta",
-      ),
-    supabase.from("parametros_pap_novos_produtos").select("codigo, nome, percentual, limitado, limite"),
-    supabase
-      .from("vendas_pap")
-      .select("id, valor, produto, tipo_protocolo, status")
-      .eq("vendedor_id", vendedorId)
-      .eq("mes_ref", mesRef),
-  ]);
+  const [{ data: faixas }, { data: produtos }, { data: vendas }, { data: cond }, { data: gerais }] =
+    await Promise.all([
+      supabase
+        .from("parametros_pap_faixas")
+        .select(
+          "faixa, receita_de, receita_ate, pct_comissao, meta_max_cancel, acelerador_baixo_cancel, bonus_venda_indireta",
+        ),
+      supabase
+        .from("parametros_pap_novos_produtos")
+        .select("codigo, nome, percentual, limitado, limite"),
+      supabase
+        .from("vendas_pap")
+        .select("id, valor, produto, tipo_protocolo, status")
+        .eq("vendedor_id", vendedorId)
+        .eq("mes_ref", mesRef),
+      supabase
+        .from("comissao_condicionantes")
+        .select("indice_cancelamento")
+        .eq("vendedor_id", vendedorId)
+        .eq("mes_ref", mesRef)
+        .maybeSingle(),
+      supabase.from("parametros_gerais").select("chave, valor_bool"),
+    ]);
 
   const listaFaixas = (faixas ?? []) as PapFaixa[];
   const listaProdutos = (produtos ?? []) as PapNovoProduto[];
   const rows = vendas ?? [];
   if (!rows.length) return;
 
-  // Faixa PAP: considera TODA a receita instalada do mês (inclui produtos da 8.2).
+  const flag = (chave: string, padrao: boolean) =>
+    (gerais ?? []).find((g) => g.chave === chave)?.valor_bool ?? padrao;
+  const incluiNovosNaFaixa = flag("pap_faixa_inclui_novos_produtos", true);
+  const estimarCancel = flag("pap_acelerador_automatico", true);
+
+  // Faixa da Tabela 8.1: receita de ativações instaladas no mês.
   const totalCoreMes = rows
     .filter((v) => v.status === "instalado")
+    .filter(
+      (v) =>
+        incluiNovosNaFaixa ||
+        ehCorePap(v.tipo_protocolo ?? "", v.produto ?? "", listaProdutos),
+    )
     .reduce((s, v) => s + Number(v.valor ?? 0), 0);
 
-  // Índice de cancelamento D+5 do mês: vendas canceladas ÷ (instaladas + canceladas).
+  // Índice de cancelamento (M-5): informado manualmente em Regras de comissionamento.
+  // Sem informe, opcionalmente estima pelas vendas canceladas do próprio mês.
   const canceladas = rows.filter((v) => v.status === "cancelado").length;
   const instaladas = rows.filter((v) => v.status === "instalado").length;
   const denom = canceladas + instaladas;
-  const indiceCancel = denom > 0 ? canceladas / denom : 0;
+  const indiceCancel =
+    cond?.indice_cancelamento !== undefined && cond?.indice_cancelamento !== null
+      ? Number(cond.indice_cancelamento)
+      : estimarCancel && denom > 0
+        ? canceladas / denom
+        : null;
   const metaCancel = Number(faixaPap(listaFaixas, totalCoreMes)?.meta_max_cancel ?? 0);
-  const dentroMetaCancelamento = indiceCancel <= metaCancel;
+  const dentroMetaCancelamento = indiceCancel !== null && indiceCancel <= metaCancel;
 
   await Promise.all(
     rows.map((v) => {
