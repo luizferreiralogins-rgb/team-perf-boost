@@ -22,9 +22,9 @@ export async function recalcularLojaMes(vendedorId: string, mesRef: string) {
   const [{ data: faixas }, { data: metas }, { data: novos }, { data: vendas }] = await Promise.all([
     supabase
       .from("parametros_loja_faixas_ticket")
-      .select("diff_de, diff_ate, faixa_0, faixa_1, faixa_2, faixa_3"),
+      .select("diff_de, diff_ate, faixa_1, faixa_2, faixa_3"),
     supabase.from("parametros_loja_metas").select("faixa, meta_receita, meta_renov_movel"),
-    supabase.from("parametros_loja_novos_produtos").select("codigo, nome, percentual"),
+    supabase.from("parametros_loja_novos_produtos").select("codigo, nome, percentual, limitado, limite"),
     supabase
       .from("vendas_loja")
       .select("id, valor_novo, valor_antigo, classe_protocolo, contem_movel, tecnologia, status")

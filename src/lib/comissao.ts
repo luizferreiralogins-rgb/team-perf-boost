@@ -5,7 +5,6 @@
 export type LojaFaixaTicket = {
   diff_de: number;
   diff_ate: number;
-  faixa_0: number;
   faixa_1: number;
   faixa_2: number;
   faixa_3: number;
@@ -21,6 +20,8 @@ export type LojaNovoProduto = {
   codigo: string;
   nome: string;
   percentual: number;
+  limitado?: boolean;
+  limite?: number;
 };
 
 export type PapFaixa = {
@@ -144,27 +145,18 @@ function valorTabelaRenovacao(faixas: LojaFaixaTicket[], diff: number, faixa: nu
       ? ordenadas[ordenadas.length - 1]
       : undefined);
   if (!row) return 0;
-  const key = (["faixa_0", "faixa_1", "faixa_2", "faixa_3"] as const)[
+  const key = (["faixa_1", "faixa_1", "faixa_2", "faixa_3"] as const)[
     Math.max(0, Math.min(3, faixa))
   ];
   return Number(row[key]) || 0;
 }
 
 /**
- * Fator de progressão da faixa efetiva, derivado da própria tabela de diferença
- * de ticket (faixa_N ÷ faixa_1 na última linha): 1 → 1x, 2 → 1,25x, 3 → 1,5x.
- * Usado para escalar as vendas novas, que antes pagavam percentual fixo.
+ * DC-MER-020 (v002): os percentuais das tabelas 8.2 e 8.3 são fixos — a faixa
+ * efetiva altera apenas os valores da tabela 8.1 (renovação contratual).
  */
-export function fatorFaixaLoja(faixas: LojaFaixaTicket[], faixa: number): number {
-  const f = Math.max(0, Math.min(3, Math.round(faixa)));
-  if (f === 0) return 0;
-  if (f === 1) return 1;
-  const ord = [...(faixas ?? [])].sort((a, b) => Number(a.diff_de) - Number(b.diff_de));
-  const row = ord[ord.length - 1];
-  const base = Number(row?.faixa_1) || 0;
-  const alvo = Number(row?.[(["faixa_0", "faixa_1", "faixa_2", "faixa_3"] as const)[f]]) || 0;
-  if (base > 0 && alvo > 0) return alvo / base;
-  return f === 2 ? 1.25 : 1.5;
+export function fatorFaixaLoja(_faixas: LojaFaixaTicket[], _faixa: number): number {
+  return 1;
 }
 
 export type CtxLoja = {
@@ -181,23 +173,30 @@ export type CtxLoja = {
 /** Comissão (R$) de uma venda Loja para uma determinada faixa efetiva. */
 export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
   if (!ctx.instalado) return 0;
-  const diff = diferencaTicket(ctx.valorNovo, ctx.valorAntigo);
-  if (diff <= 0) return 0;
-
   const tipo = tipoComissaoLoja(ctx.classe, ctx.contemMovel, ctx.tecnologia, ctx.novos);
-  const fator = fatorFaixaLoja(ctx.faixas, faixa);
+  const diff = diferencaTicket(ctx.valorNovo, ctx.valorAntigo);
 
-  if (ctx.classe === "Novo Acesso" && ehTecnologiaPP(ctx.tecnologia)) {
-    return round2(diff * (diff <= 99.9 ? 0.05 : 0.1) * fator);
-  }
-  if (tipo === "Renovação com Mobilidade" || tipo === "Renovação sem Mobilidade") {
-    return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
-  }
+  // Tabela 8.3 — Novos produtos: percentual fixo sobre o valor da venda,
+  // com limite de R$ 5.000,00 por venda quando previsto. Não soma com a 8.2.
   if (tipo === "Novos Serviços") {
     const p = produtoNovoServico(ctx.tecnologia, ctx.novos);
-    return round2(diff * (Number(p?.percentual) || 0));
+    const bruto = round2((ctx.valorNovo || 0) * (Number(p?.percentual) || 0));
+    const limite = Number(p?.limite) || 0;
+    return p?.limitado && limite > 0 ? Math.min(bruto, limite) : bruto;
   }
-  return round2(diff * 0.1 * fator);
+
+  // Tabela 8.1 — Renovação contratual: valor fixo pela diferença de ticket.
+  if (tipo === "Renovação com Mobilidade" || tipo === "Renovação sem Mobilidade") {
+    if (diff <= 0) return 0;
+    return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
+  }
+
+  // Tabela 8.2 — Novo acesso: 5% para planos até R$ 99,90 e 10% acima.
+  // Adicional de serviço: 10% independentemente do valor.
+  const base = ctx.valorNovo || 0;
+  if (base <= 0) return 0;
+  const pct = ctx.classe === "Novo Acesso" && base <= 99.9 ? 0.05 : 0.1;
+  return round2(base * pct);
 }
 
 /** Resultado completo: diferença, tipo e comissão em cada faixa efetiva (0 a 3). */
@@ -209,7 +208,7 @@ export function comissaoLoja(ctx: CtxLoja): {
   return {
     diff: diferencaTicket(ctx.valorNovo, ctx.valorAntigo),
     tipo: tipoComissaoLoja(ctx.classe, ctx.contemMovel, ctx.tecnologia, ctx.novos),
-    porFaixa: [0, 1, 2, 3].map((f) => comissaoLojaNaFaixa(ctx, f)) as [
+    porFaixa: [1, 1, 2, 3].map((f) => comissaoLojaNaFaixa(ctx, f)) as [
       number,
       number,
       number,
