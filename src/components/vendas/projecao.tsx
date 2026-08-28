@@ -24,9 +24,9 @@ export function useParametrosLoja() {
       const [{ data: faixas }, { data: novos }] = await Promise.all([
         supabase
           .from("parametros_loja_faixas_ticket")
-          .select("diff_de,diff_ate,faixa_0,faixa_1,faixa_2,faixa_3")
+          .select("diff_de,diff_ate,faixa_1,faixa_2,faixa_3")
           .order("diff_de"),
-        supabase.from("parametros_loja_novos_produtos").select("codigo,nome,percentual"),
+        supabase.from("parametros_loja_novos_produtos").select("codigo,nome,percentual,limitado,limite"),
       ]);
       return {
         faixas: (faixas ?? []) as LojaFaixaTicket[],

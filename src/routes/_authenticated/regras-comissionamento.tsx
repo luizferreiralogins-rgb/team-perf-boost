@@ -116,11 +116,10 @@ function RegrasPage() {
             pk="id"
             orderBy="diff_de"
             editavel={editavel}
-            novoPadrao={{ diff_de: 0, diff_ate: 0, faixa_0: 0, faixa_1: 0, faixa_2: 0, faixa_3: 0 }}
+            novoPadrao={{ diff_de: 0, diff_ate: 0, faixa_1: 0, faixa_2: 0, faixa_3: 0 }}
             cols={[
               { key: "diff_de", label: "De (R$)", kind: "currency" },
               { key: "diff_ate", label: "Até (R$)", kind: "currency" },
-              { key: "faixa_0", label: "Faixa 0 (R$)", kind: "currency" },
               { key: "faixa_1", label: "Faixa 1 (R$)", kind: "currency" },
               { key: "faixa_2", label: "Faixa 2 (R$)", kind: "currency" },
               { key: "faixa_3", label: "Faixa 3 (R$)", kind: "currency" },
@@ -133,11 +132,13 @@ function RegrasPage() {
             pk="codigo"
             orderBy="codigo"
             editavel={editavel}
-            novoPadrao={{ codigo: "", nome: "", percentual: 0 }}
+            novoPadrao={{ codigo: "", nome: "", percentual: 0, limitado: false, limite: 0 }}
             cols={[
               { key: "codigo", label: "Código", kind: "text", lockOnEdit: true },
               { key: "nome", label: "Produto", kind: "text" },
               { key: "percentual", label: "% Comissão", kind: "percent" },
+              { key: "limitado", label: "Limitado", kind: "boolean" },
+              { key: "limite", label: "Limite (R$)", kind: "currency" },
             ]}
           />
         </TabsContent>
