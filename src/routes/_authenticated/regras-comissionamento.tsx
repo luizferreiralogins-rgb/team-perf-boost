@@ -5,6 +5,9 @@ import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParamTable } from "@/components/regras/param-table";
+import { Condicionantes } from "@/components/regras/condicionantes";
+import { ParametrosGerais } from "@/components/regras/parametros-gerais";
+import { DocumentosRegras } from "@/components/regras/documentos";
 
 export const Route = createFileRoute("/_authenticated/regras-comissionamento")({
   beforeLoad: async () => {
@@ -70,10 +73,25 @@ function RegrasPage() {
       </div>
 
       <Tabs defaultValue="loja">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="loja">Loja</TabsTrigger>
           <TabsTrigger value="pap">PAP</TabsTrigger>
+          <TabsTrigger value="condicionantes">Condicionantes</TabsTrigger>
+          <TabsTrigger value="gerais">Parâmetros gerais</TabsTrigger>
+          <TabsTrigger value="docs">Circulares</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="condicionantes" className="pt-4">
+          <Condicionantes editavel={editavel} />
+        </TabsContent>
+
+        <TabsContent value="gerais" className="pt-4">
+          <ParametrosGerais editavel={editavel} />
+        </TabsContent>
+
+        <TabsContent value="docs" className="pt-4">
+          <DocumentosRegras />
+        </TabsContent>
 
         <TabsContent value="loja" className="space-y-6 pt-4">
           <ParamTable
