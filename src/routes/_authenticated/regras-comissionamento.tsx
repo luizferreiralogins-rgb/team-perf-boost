@@ -73,10 +73,25 @@ function RegrasPage() {
       </div>
 
       <Tabs defaultValue="loja">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="loja">Loja</TabsTrigger>
           <TabsTrigger value="pap">PAP</TabsTrigger>
+          <TabsTrigger value="condicionantes">Condicionantes</TabsTrigger>
+          <TabsTrigger value="gerais">Parâmetros gerais</TabsTrigger>
+          <TabsTrigger value="docs">Circulares</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="condicionantes" className="pt-4">
+          <Condicionantes editavel={editavel} />
+        </TabsContent>
+
+        <TabsContent value="gerais" className="pt-4">
+          <ParametrosGerais editavel={editavel} />
+        </TabsContent>
+
+        <TabsContent value="docs" className="pt-4">
+          <DocumentosRegras />
+        </TabsContent>
 
         <TabsContent value="loja" className="space-y-6 pt-4">
           <ParamTable
