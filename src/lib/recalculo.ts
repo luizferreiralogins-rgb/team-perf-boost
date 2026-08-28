@@ -7,6 +7,7 @@ import {
   comissaoLojaNaFaixa,
   comissaoPap,
   diferencaTicket,
+  ehCorePap,
   faixaEfetivaLoja,
   faixaPap,
   tipoComissaoLoja,
