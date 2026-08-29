@@ -256,8 +256,9 @@ export function RankingEquipe({
         .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status, data_ativacao")
         .in("vendedor_id", ids);
       if (ehMesAtual) {
-        lojaQ.is("arquivada_em", null);
-        papQ.is("arquivada_em", null);
+        // mês atual: vendas ativas + as já arquivadas com referência neste mês
+        lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
+        papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
       } else {
         lojaQ.eq("mes_ref", mesRef);
         papQ.eq("mes_ref", mesRef);
