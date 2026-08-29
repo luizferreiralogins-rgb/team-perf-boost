@@ -71,8 +71,8 @@ export function NaoInstaladasDialog({
         .not("status", "in", "(instalado,cancelado)");
 
       if (ativas) {
-        lojaQ = lojaQ.is("arquivada_em", null);
-        papQ = papQ.is("arquivada_em", null);
+        lojaQ = lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
+        papQ = papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
       } else {
         lojaQ = lojaQ.eq("mes_ref", mesRefISO);
         papQ = papQ.eq("mes_ref", mesRefISO);

@@ -207,8 +207,9 @@ function Dashboard() {
         .from("vendas_pap")
         .select("valor, valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas");
       if (usarAtivas) {
-        lojaQ.is("arquivada_em", null);
-        papQ.is("arquivada_em", null);
+        // mês atual: vendas ativas + as já arquivadas com referência neste mês
+        lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
+        papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
       } else {
         lojaQ.eq("mes_ref", mesRefISO);
         papQ.eq("mes_ref", mesRefISO);
