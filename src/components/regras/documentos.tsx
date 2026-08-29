@@ -20,6 +20,13 @@ const DOCS = [
     url: diretrizPap.url,
     arquivo: "DC-MER-008_Diretriz_Consultor_PAP.pdf",
   },
+  {
+    codigo: "DC-MER-020",
+    titulo: "Diretriz Comercial para Canal Presencial Receptivo",
+    versao: "Versão 002 — aprovada em 01/09/2025",
+    url: "/circulares/DC-MER-020_Diretriz_Comercial_Canal_Presencial_Receptivo.pdf",
+    arquivo: "DC-MER-020_Diretriz_Comercial_Canal_Presencial_Receptivo.pdf",
+  },
 ];
 
 export function DocumentosRegras() {
