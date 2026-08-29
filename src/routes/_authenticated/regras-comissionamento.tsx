@@ -137,7 +137,7 @@ function RegrasPage() {
               { key: "codigo", label: "Código", kind: "text", lockOnEdit: true },
               { key: "nome", label: "Produto", kind: "text" },
               { key: "percentual", label: "% Comissão", kind: "percent" },
-              { key: "limitado", label: "Limitado", kind: "boolean" },
+              { key: "limitado", label: "Limitado", kind: "bool" },
               { key: "limite", label: "Limite (R$)", kind: "currency" },
             ]}
           />
