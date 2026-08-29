@@ -191,12 +191,11 @@ export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
     return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
   }
 
-  // Tabela 8.2 — Novo acesso: 5% para planos até R$ 99,90 e 10% acima.
-  // Adicional de serviço: 10% independentemente do valor.
+  // Tabela 8.2 — Novo acesso e adicional de serviço: 10% sobre o valor do plano.
   const base = ctx.valorNovo || 0;
   if (base <= 0) return 0;
-  const pct = ctx.classe === "Novo Acesso" && base <= 99.9 ? 0.05 : 0.1;
-  return round2(base * pct);
+  return round2(base * 0.1);
+
 }
 
 /** Resultado completo: diferença, tipo e comissão em cada faixa efetiva (0 a 3). */
