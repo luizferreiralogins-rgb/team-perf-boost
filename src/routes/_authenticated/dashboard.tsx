@@ -39,6 +39,7 @@ import {
 } from "@/components/dashboard/filtros-ranking";
 import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
+import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
@@ -173,6 +174,7 @@ function Dashboard() {
   const role = roleInfo?.role ?? "consultor";
 
   const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
+  const [verVendasMes, setVerVendasMes] = useState(false);
   const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
   const comercial = !isGestor || aba === "comercial";
   const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
@@ -477,7 +479,12 @@ function Dashboard() {
       />
 
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard title="Vendas no mês" value={isLoading ? null : String(data?.total ?? 0)} icon={TrendingUp} />
+        <StatCard
+          title="Vendas no mês"
+          value={isLoading ? null : String(data?.total ?? 0)}
+          icon={TrendingUp}
+          onClick={() => setVerVendasMes(true)}
+        />
         <StatCard title="Instaladas" value={isLoading ? null : String(data?.instaladas ?? 0)} icon={Award} />
         <StatCard
           title="Não instaladas"
@@ -576,6 +583,19 @@ function Dashboard() {
         ativas={usarAtivas}
         mesRefISO={`${filtros.mes}-01`}
       />
+
+      <VendasMesDialog
+        open={verVendasMes}
+        onOpenChange={setVerVendasMes}
+        isGestor={isGestor}
+        uid={roleInfo?.uid}
+        canalConsultor={data?.canal}
+        escopoIds={escopoIds}
+        ativas={usarAtivas}
+        mesRefISO={`${filtros.mes}-01`}
+      />
+
+
 
 
 
