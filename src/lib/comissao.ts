@@ -191,10 +191,16 @@ export function comissaoLojaNaFaixa(ctx: CtxLoja, faixa: number): number {
     return round2(valorTabelaRenovacao(ctx.faixas, diff, faixa));
   }
 
-  // Tabela 8.2 — Novo acesso e adicional de serviço: 10% sobre o valor do plano.
+  // Tabela 8.2 — Adicional de Serviço: 10% fixo sobre o valor do plano.
   const base = ctx.valorNovo || 0;
   if (base <= 0) return 0;
-  return round2(base * 0.1);
+  if (ctx.classe === "Adicional de Serviço") return round2(base * 0.1);
+
+  // Tabela 8.2 — Novo Acesso: 5% para planos até R$ 99,90 quando Fibra (FTTH/FTTA);
+  // demais casos (planos acima de R$ 99,90 ou outras tecnologias, ex.: Móvel): 10%.
+  const ehFibra = codigoTecnologia(ctx.tecnologia) === "01.04";
+  const pct = ehFibra && base <= 99.9 ? 0.05 : 0.1;
+  return round2(base * pct);
 
 }
 
