@@ -420,10 +420,20 @@ function RankCard({
 }) {
   const ordenado = [...linhas].sort((a, b) => valorDe(b) - valorDe(a));
   const max = Math.max(1, valorDe(ordenado[0] ?? ({} as Linha)) || 1);
+  const total = linhas.reduce((s, l) => s + valorDe(l), 0);
+  const media = linhas.length ? total / linhas.length : 0;
+  const fmt = (n: number) =>
+    format ? format(n) : n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+        <div className="flex items-baseline justify-between gap-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{titulo}</CardTitle>
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            Total <span className="font-semibold text-foreground">{fmt(total)}</span>
+            {" · "}Média <span className="font-semibold text-foreground">{fmt(media)}</span>
+          </span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {ordenado.map((l, i) => (
