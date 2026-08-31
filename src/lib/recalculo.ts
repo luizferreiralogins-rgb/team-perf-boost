@@ -36,6 +36,9 @@ export async function recalcularLojaMes(vendedorId: string, mesRef: string) {
   const listaNovos = (novos ?? []) as LojaNovoProduto[];
   const rows = vendas ?? [];
   if (!rows.length) return;
+  // Sem os parâmetros vigentes o cálculo zeraria comissões válidas — aborta.
+  if (!listaFaixas.length || !(metas ?? []).length) return;
+
 
   const receitaMes = rows.reduce(
     (s, v) => s + diferencaTicket(Number(v.valor_novo), v.valor_antigo),
@@ -104,6 +107,8 @@ export async function recalcularPapMes(vendedorId: string, mesRef: string) {
   const listaProdutos = (produtos ?? []) as PapNovoProduto[];
   const rows = vendas ?? [];
   if (!rows.length) return;
+  if (!listaFaixas.length) return;
+
 
   const flag = (chave: string, padrao: boolean) =>
     (gerais ?? []).find((g) => g.chave === chave)?.valor_bool ?? padrao;
