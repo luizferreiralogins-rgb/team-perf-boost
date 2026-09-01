@@ -304,13 +304,8 @@ export function RankingEquipe({
         return l;
       };
 
-      // mesmos critérios da dashboard do consultor
-      const isBL = (t?: string | null) =>
-        !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
-      const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
-      // Qtds de BL/Móvel contam apenas vendas instaladas com data de ativação no mês
-      const instaladaNoMes = (v: { status?: string | null; data_ativacao?: string | null }) =>
-        v.status === "instalado" && (v.data_ativacao ?? "").slice(0, 7) === filtros.mes;
+      // mesmos critérios da dashboard do consultor (ver src/lib/kpi-qtd.ts)
+
 
       for (const v of loja.data ?? []) {
         const k = chaveDe(v.vendedor_id);
