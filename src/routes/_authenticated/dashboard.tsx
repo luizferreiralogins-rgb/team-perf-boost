@@ -43,6 +43,8 @@ import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
+import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -273,9 +275,7 @@ function Dashboard() {
       const comissao = soInstaladas.reduce((s, v) => s + v.comissao, 0);
 
       // KPIs por categoria
-      const isBL = (t?: string | null) =>
-        !!t && (/banda\s*larga/i.test(t) || /fibra|fttx|internet/i.test(t));
-      const isMovel = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
+      const isMovelTec = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
 
       const scopeLoja = isGestor || canal === "loja" ? lojaRows : [];
       const scopePap = isGestor || canal === "pap" ? papRows : [];
@@ -288,29 +288,29 @@ function Dashboard() {
       for (const v of scopeLoja) {
         const inst = v.status === "instalado";
         const val = inst ? receitaLoja(v) : 0;
-        const linhas = Number(v.qtd_linhas ?? 0);
+        const linhas = linhasMovel(v);
         const renovLoja = (v.classe_protocolo ?? "").startsWith("Renovação");
-        if (isBL(v.tecnologia) && !renovLoja) { blQtd++; if (inst) blInst++; blRs += val; }
-        if (isMovel(v.tecnologia) || v.contem_movel || linhas > 0) {
+        if (isBlLoja(v)) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (isMovelTec(v.tecnologia) || v.contem_movel || linhas > 0) {
           mvQtd++; if (inst) mvInst++; mvRs += val;
-          mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
         }
+        mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
         if (renovLoja) { rvQtd++; if (inst) rvInst++; rvRs += val; }
       }
       for (const v of scopePap) {
         const inst = v.status === "instalado";
         const val = inst ? receitaPap(v) : 0;
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
-        const linhas = Number(v.qtd_linhas ?? 0);
-        const temMovel = isMovel(desc) || linhas > 0;
+        const linhas = linhasMovel(v);
         const renovPap = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if (isBL(desc) && !renovPap) { blQtd++; if (inst) blInst++; blRs += val; }
-        if (temMovel) {
+        if (isBlPap(v)) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (isMovelTec(desc) || linhas > 0) {
           mvQtd++; if (inst) mvInst++; mvRs += val;
-          mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
         }
+        mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
         if (renovPap) { rvQtd++; if (inst) rvInst++; rvRs += val; }
       }
+
 
 
       return {
