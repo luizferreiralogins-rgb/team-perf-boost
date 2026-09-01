@@ -43,6 +43,8 @@ import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
+import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
