@@ -319,11 +319,9 @@ export function RankingEquipe({
         const novo = Number(v.valor_novo ?? 0);
         const antigo = Number(v.valor_antigo ?? 0);
         const val = antigo > 0 ? novo - antigo : novo;
-        const qtdLinhas = Number(v.qtd_linhas ?? 0);
         const renov = (v.classe_protocolo ?? "").startsWith("Renovação");
-        const instalada = instaladaNoMes(v);
-        if (instalada && isBL(v.tecnologia) && !renov) l.fibraQtd++;
-        if (instalada && (isMovel(v.tecnologia) || v.contem_movel || qtdLinhas > 0)) l.movelQtd += qtdLinhas;
+        if (isBlLoja(v)) l.fibraQtd++;
+        l.movelQtd += linhasMovel(v);
         if (renov) l.renovacoesRs += val;
         if (v.status === "instalado") {
           l.receitaRs += val;
@@ -337,18 +335,16 @@ export function RankingEquipe({
         const novo = Number(v.valor_novo ?? 0) || Number(v.valor ?? 0);
         const antigo = Number(v.valor_antigo ?? 0);
         const val = antigo > 0 ? novo - antigo : novo;
-        const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
-        const qtdLinhas = Number(v.qtd_linhas ?? 0);
         const renov = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        const instalada = instaladaNoMes(v);
-        if (instalada && isBL(desc) && !renov) l.fibraQtd++;
-        if (instalada && (isMovel(desc) || qtdLinhas > 0)) l.movelQtd += qtdLinhas;
+        if (isBlPap(v)) l.fibraQtd++;
+        l.movelQtd += linhasMovel(v);
         if (renov) l.renovacoesRs += val;
         if (v.status === "instalado") {
           l.receitaRs += val;
           l.comissaoRs += Number(v.comissao ?? 0);
         }
       }
+
 
       for (const ld of leads.data ?? []) {
         const k = chaveDe(ld.vendedor_id);
