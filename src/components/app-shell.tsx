@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AtalhosExternos } from "@/components/atalhos-externos";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAlertas } from "@/hooks/use-alertas";
 
 
@@ -91,6 +92,7 @@ function TopBar({ onMenu, nome }: { onMenu: () => void; nome: string }) {
         <span className="hidden text-sm text-muted-foreground md:inline">
           Olá, <span className="font-medium text-foreground">{nome || "Consultor"}</span>
         </span>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="sm"
