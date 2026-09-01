@@ -588,18 +588,33 @@ export function FormLoja({
                 onChange={(e) => setForm({ ...form, valor_antigo: e.target.value })}
               />
             </Field>
-            <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
+            <Field
+              label="Instalado?"
+              hint={
+                form.data_ativacao
+                  ? "Comissão só é contabilizada quando Sim."
+                  : "Preencha a data de ativação para marcar como instalado."
+              }
+              required
+            >
               <Select
                 value={form.instalado ? "sim" : "nao"}
-                onValueChange={(v) => setForm({ ...form, instalado: v === "sim" })}
+                onValueChange={(v) => {
+                  if (v === "sim" && !form.data_ativacao) {
+                    toast.error("Preencha a data de ativação antes de marcar como Instalado.");
+                    return;
+                  }
+                  setForm({ ...form, instalado: v === "sim" });
+                }}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nao">Não</SelectItem>
-                  <SelectItem value="sim">Sim</SelectItem>
+                  <SelectItem value="sim" disabled={!form.data_ativacao}>Sim</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
+
           </div>
 
           <Field label="Observações">
@@ -918,18 +933,33 @@ export function FormPap({
                 onChange={(e) => setForm({ ...form, qtd_linhas: e.target.value })}
               />
             </Field>
-            <Field label="Instalado?" hint="Comissão só é contabilizada quando Sim." required>
+            <Field
+              label="Instalado?"
+              hint={
+                form.data_instalacao
+                  ? "Comissão só é contabilizada quando Sim."
+                  : "Preencha a data de instalação para marcar como instalado."
+              }
+              required
+            >
               <Select
                 value={form.instalado ? "sim" : "nao"}
-                onValueChange={(v) => setForm({ ...form, instalado: v === "sim" })}
+                onValueChange={(v) => {
+                  if (v === "sim" && !form.data_instalacao) {
+                    toast.error("Preencha a data de instalação antes de marcar como Instalado.");
+                    return;
+                  }
+                  setForm({ ...form, instalado: v === "sim" });
+                }}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nao">Não</SelectItem>
-                  <SelectItem value="sim">Sim</SelectItem>
+                  <SelectItem value="sim" disabled={!form.data_instalacao}>Sim</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
+
           </div>
           {precisaJustificar && (
             <MotivoReagendamentoField
