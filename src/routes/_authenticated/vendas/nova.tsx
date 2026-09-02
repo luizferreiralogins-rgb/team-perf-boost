@@ -327,6 +327,10 @@ export function FormLoja({
       toast.error(parsed.error.issues[0].message);
       return;
     }
+    if (parsed.data.instalado && !parsed.data.data_ativacao) {
+      toast.error("Preencha a data de ativação antes de marcar como Instalado.");
+      return;
+    }
     if (precisaJustificar && motivoReagendamento.trim().length < MOTIVO_MIN) {
       toast.error(
         `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
@@ -718,6 +722,10 @@ export function FormPap({
     const parsed = papSchema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    if (parsed.data.instalado && !parsed.data.data_instalacao) {
+      toast.error("Preencha a data de instalação antes de marcar como Instalado.");
       return;
     }
     if (precisaJustificar && motivoReagendamento.trim().length < MOTIVO_MIN) {
