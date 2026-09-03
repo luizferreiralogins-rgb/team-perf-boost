@@ -159,7 +159,7 @@ export function Estrategico() {
     Array.from({ length: new Date().getMonth() + 1 }, (_, i) => i + 1),
   );
   const [tipoGrafico, setTipoGrafico] = useState<"linha" | "coluna">("linha");
-  const [mesEdicao, setMesEdicao] = useState(new Date().getMonth() + 1);
+  
   const [novaCidade, setNovaCidade] = useState("");
   const [abrirNova, setAbrirNova] = useState(false);
 
