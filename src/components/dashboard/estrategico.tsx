@@ -18,6 +18,8 @@ import {
 } from "recharts";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ImportarEstrategico } from "@/components/dashboard/estrategico-import";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
