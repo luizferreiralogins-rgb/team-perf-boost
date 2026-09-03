@@ -18,6 +18,8 @@ import {
 } from "recharts";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ImportarEstrategico } from "@/components/dashboard/estrategico-import";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -85,31 +87,8 @@ type Cidade = {
   owner_id: string;
 };
 
-type CampoEdit = { key: keyof Mensal; label: string; pct?: boolean };
 
-const CAMPOS_BL: CampoEdit[] = [
-  { key: "vendas", label: "Vendas" },
-  { key: "meta_vendas", label: "Meta de vendas" },
-  { key: "quebra_venda", label: "Quebra de venda" },
-  { key: "vendas_brutas", label: "Vendas brutas" },
-  { key: "ativacoes", label: "Ativações" },
-  { key: "meta_ativacoes", label: "Meta de ativações" },
-  { key: "acessos_anatel", label: "Acessos Anatel" },
-  { key: "cancel_voluntario", label: "Cancel. voluntário" },
-  { key: "cancel_involuntario", label: "Cancel. involuntário" },
-  { key: "market_share", label: "Market share (%)", pct: true },
-];
 
-const CAMPOS_MV: CampoEdit[] = [
-  { key: "mv_linhas_vendidas", label: "Linhas vendidas" },
-  { key: "mv_meta_vendidas", label: "Meta linhas vendidas" },
-  { key: "mv_linhas_ativadas", label: "Linhas ativadas" },
-  { key: "mv_meta_ativadas", label: "Meta linhas ativadas" },
-  { key: "mv_acessos_anatel", label: "Acessos Anatel" },
-  { key: "mv_cancel_voluntario", label: "Cancel. voluntário" },
-  { key: "mv_cancel_involuntario", label: "Cancel. involuntário" },
-  { key: "mv_market_share", label: "Market share (%)", pct: true },
-];
 
 const num = (n: number) => (n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const pct = (n: number) => `${((n || 0) * 100).toFixed(1).replace(".", ",")}%`;
@@ -180,7 +159,7 @@ export function Estrategico() {
     Array.from({ length: new Date().getMonth() + 1 }, (_, i) => i + 1),
   );
   const [tipoGrafico, setTipoGrafico] = useState<"linha" | "coluna">("linha");
-  const [mesEdicao, setMesEdicao] = useState(new Date().getMonth() + 1);
+  
   const [novaCidade, setNovaCidade] = useState("");
   const [abrirNova, setAbrirNova] = useState(false);
 
@@ -212,28 +191,8 @@ export function Estrategico() {
   const idsSel = cidadesSel ?? cidades.map((c) => c.id);
   const idsSelKey = idsSel.join(",");
 
-  const linha = (cidadeId: string, m: number) =>
-    mensais.find((x) => x.cidade_id === cidadeId && x.mes === m);
 
-  const salvarMensal = useMutation({
-    mutationFn: async (p: { cidade_id: string; mes: number; campo: string; valor: number }) => {
-      const atual = linha(p.cidade_id, p.mes);
-      if (atual) {
-        const { error } = await supabase
-          .from("estrategico_mensal")
-          .update({ [p.campo]: p.valor } as never)
-          .eq("id", atual.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("estrategico_mensal")
-          .insert({ cidade_id: p.cidade_id, mes: p.mes, [p.campo]: p.valor } as never);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estrategico", ano] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const salvarCidade = useMutation({
     mutationFn: async (p: { id: string; campo: string; valor: number | string }) => {
@@ -618,75 +577,8 @@ export function Estrategico() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-          <div>
-            <CardTitle>Preenchimento manual — {MESES[mesEdicao - 1]}/{ano}</CardTitle>
-            <CardDescription>
-              Lance os números do mês por cidade. Percentuais, churn, líquidas e Net Ads são calculados.
-            </CardDescription>
-          </div>
-          <Select value={String(mesEdicao)} onValueChange={(v) => setMesEdicao(Number(v))}>
-            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MESES.map((m, i) => (
-                <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardHeader>
-        <CardContent className="space-y-8 overflow-x-auto">
-          {[
-            { titulo: "Banda Larga", campos: CAMPOS_BL },
-            { titulo: "Móvel", campos: CAMPOS_MV },
-          ].map((bloco) => (
-            <div key={bloco.titulo} className="space-y-2">
-              <h4 className="text-sm font-semibold">{bloco.titulo}</h4>
-              <table className="w-full min-w-[1000px] text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-2">Cidade</th>
-                    {bloco.campos.map((c) => <th key={c.key} className="py-2 pr-2">{c.label}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {cidades.map((c) => {
-                    const r = linha(c.id, mesEdicao);
-                    return (
-                      <tr key={c.id} className="border-b last:border-0">
-                        <td className="py-1 pr-2 whitespace-nowrap font-medium">{c.cidade}</td>
-                        {bloco.campos.map((campo) => {
-                          const v = Number(r?.[campo.key] ?? 0);
-                          return (
-                            <td key={campo.key} className="py-1 pr-2">
-                              <CampoNum
-                                valor={campo.pct ? v * 100 : v}
-                                onSalvar={(val) =>
-                                  salvarMensal.mutate({
-                                    cidade_id: c.id,
-                                    mes: mesEdicao,
-                                    campo: campo.key as string,
-                                    valor: campo.pct ? val / 100 : val,
-                                  })
-                                }
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                  {!cidades.length && (
-                    <tr><td colSpan={bloco.campos.length + 1} className="py-6 text-center text-muted-foreground">
-                      Cadastre uma cidade para começar.
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <ImportarEstrategico ano={ano} onPronto={() => qc.invalidateQueries({ queryKey: ["estrategico", ano] })} />
+
     </div>
   );
 }
