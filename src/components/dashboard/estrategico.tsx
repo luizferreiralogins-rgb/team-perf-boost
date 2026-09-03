@@ -189,28 +189,8 @@ export function Estrategico() {
   const idsSel = cidadesSel ?? cidades.map((c) => c.id);
   const idsSelKey = idsSel.join(",");
 
-  const linha = (cidadeId: string, m: number) =>
-    mensais.find((x) => x.cidade_id === cidadeId && x.mes === m);
 
-  const salvarMensal = useMutation({
-    mutationFn: async (p: { cidade_id: string; mes: number; campo: string; valor: number }) => {
-      const atual = linha(p.cidade_id, p.mes);
-      if (atual) {
-        const { error } = await supabase
-          .from("estrategico_mensal")
-          .update({ [p.campo]: p.valor } as never)
-          .eq("id", atual.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("estrategico_mensal")
-          .insert({ cidade_id: p.cidade_id, mes: p.mes, [p.campo]: p.valor } as never);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estrategico", ano] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const salvarCidade = useMutation({
     mutationFn: async (p: { id: string; campo: string; valor: number | string }) => {
