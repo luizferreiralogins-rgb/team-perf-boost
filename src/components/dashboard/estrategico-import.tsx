@@ -33,7 +33,13 @@ function paraNumero(v: unknown): number | null {
   return v.includes("%") ? n / 100 : n;
 }
 
-type Bloco = { id: number; aba: string; titulo: string; colunas: { mes: number; col: number }[] };
+type Bloco = {
+  id: number;
+  aba: string;
+  titulo: string;
+  colunas: { mes: number; col: number }[];
+  extras: Record<string, number>;
+};
 type LinhaCidade = { cidade: string; unidade: string; regional: string; celulas: unknown[] };
 
 /** Interpreta a estrutura de uma aba: blocos de indicadores x meses x cidades. */
