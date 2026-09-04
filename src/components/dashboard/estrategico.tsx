@@ -66,6 +66,9 @@ type Mensal = {
   cancel_voluntario: number;
   cancel_involuntario: number;
   market_share: number;
+  churn_geral: number | null;
+  ativacoes_liquidas: number | null;
+  net_ads: number | null;
   mv_linhas_vendidas: number;
   mv_meta_vendidas: number;
   mv_linhas_ativadas: number;
@@ -74,6 +77,9 @@ type Mensal = {
   mv_cancel_voluntario: number;
   mv_cancel_involuntario: number;
   mv_market_share: number;
+  mv_churn_geral: number | null;
+  mv_ativacoes_liquidas: number | null;
+  mv_net_ads: number | null;
 };
 
 type Cidade = {
