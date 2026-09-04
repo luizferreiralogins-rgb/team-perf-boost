@@ -71,11 +71,16 @@ function lerAba(nome: string, matriz: unknown[][], proximoId: () => number) {
   let atual: Bloco | null = null;
   for (let c = 0; c < header.length; c++) {
     if (titulos[c]) {
-      atual = { id: proximoId(), aba: nome, titulo: titulos[c] as string, colunas: [] };
+      atual = { id: proximoId(), aba: nome, titulo: titulos[c] as string, colunas: [], extras: {} };
       blocos.push(atual);
     }
     const mes = mesDoTexto(header[c]);
     if (mes && atual) atual.colunas.push({ mes, col: c });
+    // Colunas fixas (sem mês) do bloco de portas: Total / Ocupadas / Livres.
+    if (!mes && atual && typeof header[c] === "string") {
+      const rot = semAcento(header[c] as string);
+      if (rot === "total" || rot === "ocupadas" || rot === "livres") atual.extras[rot] = c;
+    }
   }
 
   // Blocos com mais de 12 meses começam no mês anterior (Dez do ano passado).
@@ -94,7 +99,7 @@ function lerAba(nome: string, matriz: unknown[][], proximoId: () => number) {
     });
   }
 
-  return { blocos: blocos.filter((b) => b.colunas.length), linhas };
+  return { blocos: blocos.filter((b) => b.colunas.length || b.extras.ocupadas !== undefined), linhas };
 }
 
 export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: () => void }) {
