@@ -273,8 +273,12 @@ export function Estrategico() {
     });
     return base.map((r, i, arr) => ({
       ...r,
-      netAds: i > 0 && arr[i - 1].anatel && r.anatel ? r.anatel - arr[i - 1].anatel : 0,
-      mvNetAds: i > 0 && arr[i - 1].mvAnatel && r.mvAnatel ? r.mvAnatel - arr[i - 1].mvAnatel : 0,
+      netAds:
+        r.netAdsInf ??
+        (i > 0 && arr[i - 1].anatel && r.anatel ? r.anatel - arr[i - 1].anatel : 0),
+      mvNetAds:
+        r.mvNetAdsInf ??
+        (i > 0 && arr[i - 1].mvAnatel && r.mvAnatel ? r.mvAnatel - arr[i - 1].mvAnatel : 0),
     }));
   }, [mensais, idsSelKey]);
 
