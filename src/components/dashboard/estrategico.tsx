@@ -66,6 +66,9 @@ type Mensal = {
   cancel_voluntario: number;
   cancel_involuntario: number;
   market_share: number;
+  churn_geral: number | null;
+  ativacoes_liquidas: number | null;
+  net_ads: number | null;
   mv_linhas_vendidas: number;
   mv_meta_vendidas: number;
   mv_linhas_ativadas: number;
@@ -74,6 +77,9 @@ type Mensal = {
   mv_cancel_voluntario: number;
   mv_cancel_involuntario: number;
   mv_market_share: number;
+  mv_churn_geral: number | null;
+  mv_ativacoes_liquidas: number | null;
+  mv_net_ads: number | null;
 };
 
 type Cidade = {
@@ -121,11 +127,25 @@ function agregar(rows: Mensal[]) {
       mvCinv: s.mvCinv + Number(r.mv_cancel_involuntario),
       mvShare: s.mvShare + Number(r.mv_market_share),
       nMvShare: s.nMvShare + (Number(r.mv_market_share) > 0 ? 1 : 0),
+      churnInf: s.churnInf + (r.churn_geral != null ? Number(r.churn_geral) : 0),
+      nChurnInf: s.nChurnInf + (r.churn_geral != null ? 1 : 0),
+      liqInf: s.liqInf + (r.ativacoes_liquidas != null ? Number(r.ativacoes_liquidas) : 0),
+      nLiqInf: s.nLiqInf + (r.ativacoes_liquidas != null ? 1 : 0),
+      netInf: s.netInf + (r.net_ads != null ? Number(r.net_ads) : 0),
+      nNetInf: s.nNetInf + (r.net_ads != null ? 1 : 0),
+      mvChurnInf: s.mvChurnInf + (r.mv_churn_geral != null ? Number(r.mv_churn_geral) : 0),
+      nMvChurnInf: s.nMvChurnInf + (r.mv_churn_geral != null ? 1 : 0),
+      mvLiqInf: s.mvLiqInf + (r.mv_ativacoes_liquidas != null ? Number(r.mv_ativacoes_liquidas) : 0),
+      nMvLiqInf: s.nMvLiqInf + (r.mv_ativacoes_liquidas != null ? 1 : 0),
+      mvNetInf: s.mvNetInf + (r.mv_net_ads != null ? Number(r.mv_net_ads) : 0),
+      nMvNetInf: s.nMvNetInf + (r.mv_net_ads != null ? 1 : 0),
     }),
     {
       vendas: 0, metaVendas: 0, quebra: 0, brutas: 0, ativacoes: 0, metaAtivacoes: 0,
       anatel: 0, cvol: 0, cinv: 0, share: 0, nShare: 0, mvVendidas: 0, mvMetaVendidas: 0,
       mvAtivadas: 0, mvMetaAtivadas: 0, mvAnatel: 0, mvCvol: 0, mvCinv: 0, mvShare: 0, nMvShare: 0,
+      churnInf: 0, nChurnInf: 0, liqInf: 0, nLiqInf: 0, netInf: 0, nNetInf: 0,
+      mvChurnInf: 0, nMvChurnInf: 0, mvLiqInf: 0, nMvLiqInf: 0, mvNetInf: 0, nMvNetInf: 0,
     },
   );
   const cancel = acc.cvol + acc.cinv;
@@ -138,15 +158,22 @@ function agregar(rows: Mensal[]) {
     pctAtivacoes: acc.metaAtivacoes ? acc.ativacoes / acc.metaAtivacoes : 0,
     churnVol: acc.anatel ? acc.cvol / acc.anatel : 0,
     churnInv: acc.anatel ? acc.cinv / acc.anatel : 0,
-    churnGeral: acc.anatel ? cancel / acc.anatel : 0,
-    liquidas: acc.ativacoes - cancel,
+    // Prefere o valor informado na planilha; se ausente, calcula.
+    churnGeral: acc.nChurnInf ? acc.churnInf / acc.nChurnInf : acc.anatel ? cancel / acc.anatel : 0,
+    liquidas: acc.nLiqInf ? acc.liqInf : acc.ativacoes - cancel,
+    netAdsInf: acc.nNetInf ? acc.netInf : null,
     marketShare: acc.nShare ? acc.share / acc.nShare : 0,
     mvPctVendidas: acc.mvMetaVendidas ? acc.mvVendidas / acc.mvMetaVendidas : 0,
     mvPctAtivadas: acc.mvMetaAtivadas ? acc.mvAtivadas / acc.mvMetaAtivadas : 0,
     mvChurnVol: acc.mvAnatel ? acc.mvCvol / acc.mvAnatel : 0,
     mvChurnInv: acc.mvAnatel ? acc.mvCinv / acc.mvAnatel : 0,
-    mvChurnGeral: acc.mvAnatel ? mvCancel / acc.mvAnatel : 0,
-    mvLiquidas: acc.mvAtivadas - mvCancel,
+    mvChurnGeral: acc.nMvChurnInf
+      ? acc.mvChurnInf / acc.nMvChurnInf
+      : acc.mvAnatel
+        ? mvCancel / acc.mvAnatel
+        : 0,
+    mvLiquidas: acc.nMvLiqInf ? acc.mvLiqInf : acc.mvAtivadas - mvCancel,
+    mvNetAdsInf: acc.nMvNetInf ? acc.mvNetInf : null,
     mvMarketShare: acc.nMvShare ? acc.mvShare / acc.nMvShare : 0,
   };
 }
@@ -246,8 +273,12 @@ export function Estrategico() {
     });
     return base.map((r, i, arr) => ({
       ...r,
-      netAds: i > 0 && arr[i - 1].anatel && r.anatel ? r.anatel - arr[i - 1].anatel : 0,
-      mvNetAds: i > 0 && arr[i - 1].mvAnatel && r.mvAnatel ? r.mvAnatel - arr[i - 1].mvAnatel : 0,
+      netAds:
+        r.netAdsInf ??
+        (i > 0 && arr[i - 1].anatel && r.anatel ? r.anatel - arr[i - 1].anatel : 0),
+      mvNetAds:
+        r.mvNetAdsInf ??
+        (i > 0 && arr[i - 1].mvAnatel && r.mvAnatel ? r.mvAnatel - arr[i - 1].mvAnatel : 0),
     }));
   }, [mensais, idsSelKey]);
 

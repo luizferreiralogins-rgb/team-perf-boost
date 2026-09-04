@@ -307,8 +307,10 @@ export type Database = {
         Row: {
           acessos_anatel: number
           ativacoes: number
+          ativacoes_liquidas: number | null
           cancel_involuntario: number
           cancel_voluntario: number
+          churn_geral: number | null
           cidade_id: string
           created_at: string
           id: string
@@ -317,13 +319,17 @@ export type Database = {
           meta_ativacoes: number
           meta_vendas: number
           mv_acessos_anatel: number
+          mv_ativacoes_liquidas: number | null
           mv_cancel_involuntario: number
           mv_cancel_voluntario: number
+          mv_churn_geral: number | null
           mv_linhas_ativadas: number
           mv_linhas_vendidas: number
           mv_market_share: number
           mv_meta_ativadas: number
           mv_meta_vendidas: number
+          mv_net_ads: number | null
+          net_ads: number | null
           quebra_venda: number
           updated_at: string
           vendas: number
@@ -332,8 +338,10 @@ export type Database = {
         Insert: {
           acessos_anatel?: number
           ativacoes?: number
+          ativacoes_liquidas?: number | null
           cancel_involuntario?: number
           cancel_voluntario?: number
+          churn_geral?: number | null
           cidade_id: string
           created_at?: string
           id?: string
@@ -342,13 +350,17 @@ export type Database = {
           meta_ativacoes?: number
           meta_vendas?: number
           mv_acessos_anatel?: number
+          mv_ativacoes_liquidas?: number | null
           mv_cancel_involuntario?: number
           mv_cancel_voluntario?: number
+          mv_churn_geral?: number | null
           mv_linhas_ativadas?: number
           mv_linhas_vendidas?: number
           mv_market_share?: number
           mv_meta_ativadas?: number
           mv_meta_vendidas?: number
+          mv_net_ads?: number | null
+          net_ads?: number | null
           quebra_venda?: number
           updated_at?: string
           vendas?: number
@@ -357,8 +369,10 @@ export type Database = {
         Update: {
           acessos_anatel?: number
           ativacoes?: number
+          ativacoes_liquidas?: number | null
           cancel_involuntario?: number
           cancel_voluntario?: number
+          churn_geral?: number | null
           cidade_id?: string
           created_at?: string
           id?: string
@@ -367,13 +381,17 @@ export type Database = {
           meta_ativacoes?: number
           meta_vendas?: number
           mv_acessos_anatel?: number
+          mv_ativacoes_liquidas?: number | null
           mv_cancel_involuntario?: number
           mv_cancel_voluntario?: number
+          mv_churn_geral?: number | null
           mv_linhas_ativadas?: number
           mv_linhas_vendidas?: number
           mv_market_share?: number
           mv_meta_ativadas?: number
           mv_meta_vendidas?: number
+          mv_net_ads?: number | null
+          net_ads?: number | null
           quebra_venda?: number
           updated_at?: string
           vendas?: number

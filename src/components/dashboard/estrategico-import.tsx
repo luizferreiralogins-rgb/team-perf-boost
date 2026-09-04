@@ -33,7 +33,13 @@ function paraNumero(v: unknown): number | null {
   return v.includes("%") ? n / 100 : n;
 }
 
-type Bloco = { id: number; aba: string; titulo: string; colunas: { mes: number; col: number }[] };
+type Bloco = {
+  id: number;
+  aba: string;
+  titulo: string;
+  colunas: { mes: number; col: number }[];
+  extras: Record<string, number>;
+};
 type LinhaCidade = { cidade: string; unidade: string; regional: string; celulas: unknown[] };
 
 /** Interpreta a estrutura de uma aba: blocos de indicadores x meses x cidades. */
@@ -65,11 +71,16 @@ function lerAba(nome: string, matriz: unknown[][], proximoId: () => number) {
   let atual: Bloco | null = null;
   for (let c = 0; c < header.length; c++) {
     if (titulos[c]) {
-      atual = { id: proximoId(), aba: nome, titulo: titulos[c] as string, colunas: [] };
+      atual = { id: proximoId(), aba: nome, titulo: titulos[c] as string, colunas: [], extras: {} };
       blocos.push(atual);
     }
     const mes = mesDoTexto(header[c]);
     if (mes && atual) atual.colunas.push({ mes, col: c });
+    // Colunas fixas (sem mês) do bloco de portas: Total / Ocupadas / Livres.
+    if (!mes && atual && typeof header[c] === "string") {
+      const rot = semAcento(header[c] as string);
+      if (rot === "total" || rot === "ocupadas" || rot === "livres") atual.extras[rot] = c;
+    }
   }
 
   // Blocos com mais de 12 meses começam no mês anterior (Dez do ano passado).
@@ -88,7 +99,7 @@ function lerAba(nome: string, matriz: unknown[][], proximoId: () => number) {
     });
   }
 
-  return { blocos: blocos.filter((b) => b.colunas.length), linhas };
+  return { blocos: blocos.filter((b) => b.colunas.length || b.extras.ocupadas !== undefined), linhas };
 }
 
 export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: () => void }) {
@@ -168,12 +179,26 @@ export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: 
         for (const c of criadas ?? []) porNome.set(semAcento(c.cidade), c);
       }
 
-      // Monta os valores por cidade e mês.
+      // Monta os valores por cidade e mês; o bloco de portas atualiza a cidade (não é mensal).
       const valores = new Map<string, Record<string, number>>();
+      const portasPorCidade = new Map<string, { portas_total?: number; portas_ocupadas?: number }>();
       for (const aba of abas) {
         for (const bloco of aba.blocos) {
           const campo = campoPorBloco.get(bloco.id);
           if (!campo || campo === "ignorar") continue;
+          if (campo === "portas_ocupadas") {
+            for (const l of aba.linhas) {
+              const cid = porNome.get(semAcento(l.cidade))?.id;
+              if (!cid) continue;
+              const total = bloco.extras.total !== undefined ? paraNumero(l.celulas[bloco.extras.total]) : null;
+              const ocupadas = bloco.extras.ocupadas !== undefined ? paraNumero(l.celulas[bloco.extras.ocupadas]) : null;
+              const p = portasPorCidade.get(cid) ?? {};
+              if (total !== null) p.portas_total = total;
+              if (ocupadas !== null) p.portas_ocupadas = ocupadas;
+              portasPorCidade.set(cid, p);
+            }
+            continue;
+          }
           for (const l of aba.linhas) {
             const cid = porNome.get(semAcento(l.cidade))?.id;
             if (!cid) continue;
@@ -189,7 +214,12 @@ export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: 
         }
       }
 
-      if (!valores.size) throw new Error("Nenhum valor numérico foi encontrado na planilha.");
+      for (const [cid, p] of portasPorCidade) {
+        const { error } = await supabase.from("estrategico_cidades").update(p as never).eq("id", cid);
+        if (error) throw error;
+      }
+
+      if (!valores.size && !portasPorCidade.size) throw new Error("Nenhum valor numérico foi encontrado na planilha.");
 
       const ids = [...porNome.values()].map((c) => c.id);
       const { data: mensais, error: errMensal } = await supabase
