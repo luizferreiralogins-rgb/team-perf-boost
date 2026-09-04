@@ -103,13 +103,21 @@ export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: 
       let seq = 0;
       const proximoId = () => ++seq;
       const abas = wb.SheetNames.map((nome) => {
-        const matriz = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[nome], {
+        const ws = wb.Sheets[nome];
+        const ref = ws?.["!ref"];
+        if (!ref) return null;
+        // Limita a leitura às primeiras linhas: abas do Excel podem declarar milhões de linhas vazias.
+        const rng = XLSX.utils.decode_range(ref);
+        rng.e.r = Math.min(rng.e.r, rng.s.r + 500);
+        const matriz = XLSX.utils.sheet_to_json<unknown[]>(ws, {
           header: 1,
           defval: null,
           blankrows: true,
+          range: rng,
         });
         const lido = lerAba(nome, matriz, proximoId);
         return lido && lido.blocos.length && lido.linhas.length ? { nome, ...lido } : null;
+
       }).filter(Boolean) as Array<{ nome: string; blocos: Bloco[]; linhas: LinhaCidade[] }>;
 
       if (!abas.length) throw new Error("Nenhuma aba com coluna “Cidade” e meses foi encontrada.");
