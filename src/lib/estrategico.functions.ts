@@ -26,6 +26,9 @@ export const CAMPOS_ESTRATEGICOS = [
   "mv_cancel_voluntario",
   "mv_cancel_involuntario",
   "mv_market_share",
+  "mv_churn_geral",
+  "mv_ativacoes_liquidas",
+  "mv_net_ads",
   "ignorar",
 ] as const;
 
