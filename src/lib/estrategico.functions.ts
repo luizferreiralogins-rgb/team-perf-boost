@@ -77,9 +77,11 @@ export const mapearBlocosEstrategicos = createServerFn({ method: "POST" })
     const instrucao = `Você recebe os títulos dos blocos de indicadores de uma planilha de análise sistemática (Banda Larga e Móvel) de um provedor de telecom.
 
 Para cada bloco, escolha o campo do sistema correspondente:
-- vendas, meta_vendas, quebra_venda, vendas_brutas, ativacoes, meta_ativacoes, acessos_anatel, cancel_voluntario, cancel_involuntario, market_share → indicadores de BANDA LARGA (aba de Banda Larga/Fibra);
-- mv_linhas_vendidas (linhas vendidas), mv_meta_vendidas (meta de linhas vendidas), mv_linhas_ativadas (linhas ativadas), mv_meta_ativadas (meta de linhas ativadas), mv_acessos_anatel, mv_cancel_voluntario (linhas canceladas voluntário), mv_cancel_involuntario, mv_market_share → indicadores de MÓVEL (aba de Móvel);
-- "ignorar" para blocos calculados ou irrelevantes: percentuais de atingimento, % churn, churn geral, ativações líquidas, net ads, indicadores de portas, ERBs, data de lançamento 5G, pós-pago/MVNO e qualquer outro que não seja um dos campos acima.
+BANDA LARGA (aba de Banda Larga/Fibra):
+- portas_ocupadas (portas ocupadas — no bloco "Indicadores de Portas", coluna "Ocupadas"), vendas, meta_vendas, quebra_venda (quebra de venda), vendas_brutas, ativacoes, meta_ativacoes, acessos_anatel, cancel_voluntario, cancel_involuntario, churn_geral (Churn Geral), ativacoes_liquidas (Ativações Líquidas), net_ads (Net Ads / variação de acesso Anatel), market_share.
+MÓVEL (aba de Móvel):
+- mv_linhas_vendidas (Linhas Vendidas BOSS), mv_meta_vendidas, mv_linhas_ativadas (Linhas Ativadas BOSS), mv_meta_ativadas, mv_acessos_anatel (Acessos Anatel - Unifique), mv_cancel_voluntario (Linhas Canceladas - Voluntário), mv_cancel_involuntario, mv_churn_geral (Churn - Geral), mv_ativacoes_liquidas (Ativações Líquidas), mv_net_ads (Net Ads), mv_market_share.
+- "ignorar" para blocos calculados ou irrelevantes: percentuais de atingimento (% de Vendas, % de Ativações, Atingimento de Meta), % Churn Voluntário/Involuntário, portas Total/Livres/% Ocupação, ERBs, data de lançamento 5G, Pós-Pago (BTV/Falcon), Acessos Anatel - MVNO e qualquer outro que não seja um dos campos acima.
 
 Use o nome da aba para decidir entre Banda Larga e Móvel. Responda um item por bloco, na mesma ordem.
 
