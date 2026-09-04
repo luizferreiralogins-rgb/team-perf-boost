@@ -179,12 +179,26 @@ export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: 
         for (const c of criadas ?? []) porNome.set(semAcento(c.cidade), c);
       }
 
-      // Monta os valores por cidade e mês.
+      // Monta os valores por cidade e mês; o bloco de portas atualiza a cidade (não é mensal).
       const valores = new Map<string, Record<string, number>>();
+      const portasPorCidade = new Map<string, { portas_total?: number; portas_ocupadas?: number }>();
       for (const aba of abas) {
         for (const bloco of aba.blocos) {
           const campo = campoPorBloco.get(bloco.id);
           if (!campo || campo === "ignorar") continue;
+          if (campo === "portas_ocupadas") {
+            for (const l of aba.linhas) {
+              const cid = porNome.get(semAcento(l.cidade))?.id;
+              if (!cid) continue;
+              const total = bloco.extras.total !== undefined ? paraNumero(l.celulas[bloco.extras.total]) : null;
+              const ocupadas = bloco.extras.ocupadas !== undefined ? paraNumero(l.celulas[bloco.extras.ocupadas]) : null;
+              const p = portasPorCidade.get(cid) ?? {};
+              if (total !== null) p.portas_total = total;
+              if (ocupadas !== null) p.portas_ocupadas = ocupadas;
+              portasPorCidade.set(cid, p);
+            }
+            continue;
+          }
           for (const l of aba.linhas) {
             const cid = porNome.get(semAcento(l.cidade))?.id;
             if (!cid) continue;
@@ -200,7 +214,12 @@ export function ImportarEstrategico({ ano, onPronto }: { ano: number; onPronto: 
         }
       }
 
-      if (!valores.size) throw new Error("Nenhum valor numérico foi encontrado na planilha.");
+      for (const [cid, p] of portasPorCidade) {
+        const { error } = await supabase.from("estrategico_cidades").update(p as never).eq("id", cid);
+        if (error) throw error;
+      }
+
+      if (!valores.size && !portasPorCidade.size) throw new Error("Nenhum valor numérico foi encontrado na planilha.");
 
       const ids = [...porNome.values()].map((c) => c.id);
       const { data: mensais, error: errMensal } = await supabase
