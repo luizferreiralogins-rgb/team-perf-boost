@@ -324,7 +324,8 @@ function Dashboard() {
 
 
       return {
-        canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
+        canal, total, instaladas, naoInstaladas, receita, comissao,
+        receitaPendente, comissaoPendente, nome: profile?.nome ?? "",
         blQtd, blInst, blRs,
         mvQtd, mvInst, mvRs, mvLinhas, mvLinhasInst,
         rvQtd, rvInst, rvRs,
