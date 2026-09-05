@@ -11,7 +11,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
-import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
 import { Button } from "@/components/ui/button";
@@ -329,8 +328,7 @@ function TarefasPage() {
 
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Agenda / Tarefas</h1>
@@ -559,8 +557,7 @@ function TarefasPage() {
             qc.invalidateQueries({ queryKey: ["tarefas"] });
           }}
         />
-      </div>
-    </AppShell>
+    </div>
   );
 }
 
