@@ -502,6 +502,24 @@ function Dashboard() {
           value={isLoading ? null : String(data?.naoInstaladas ?? 0)}
           icon={Clock}
           onClick={() => setVerNaoInstaladas(true)}
+          footer={
+            !isLoading ? (
+              <div className="mt-3 space-y-2 border-t pt-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Receita pendente</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">
+                    {brl(data?.receitaPendente ?? 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Comissão pendente</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">
+                    {brl(data?.comissaoPendente ?? 0)}
+                  </span>
+                </div>
+              </div>
+            ) : undefined
+          }
         />
         <StatCard
           title="Receita gerada"
