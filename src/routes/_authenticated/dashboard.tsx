@@ -274,6 +274,16 @@ function Dashboard() {
       const receita = soInstaladas.reduce((s, v) => s + v.valor, 0);
       const comissao = soInstaladas.reduce((s, v) => s + v.comissao, 0);
 
+      // Pendentes (não instaladas e não canceladas): receita e comissão a realizar
+      const pendentes = vendas.filter(
+        (v) => v.status !== "instalado" && v.status !== "cancelado",
+      );
+      const receitaPendente = pendentes.reduce((s, v) => s + v.valor, 0);
+      const comissaoGravadaPend = pendentes.reduce((s, v) => s + v.comissao, 0);
+      const pctMedio = receita > 0 ? comissao / receita : 0;
+      const comissaoPendente =
+        comissaoGravadaPend > 0 ? comissaoGravadaPend : receitaPendente * pctMedio;
+
       // KPIs por categoria
       const isMovelTec = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
 
@@ -314,7 +324,8 @@ function Dashboard() {
 
 
       return {
-        canal, total, instaladas, naoInstaladas, receita, comissao, nome: profile?.nome ?? "",
+        canal, total, instaladas, naoInstaladas, receita, comissao,
+        receitaPendente, comissaoPendente, nome: profile?.nome ?? "",
         blQtd, blInst, blRs,
         mvQtd, mvInst, mvRs, mvLinhas, mvLinhasInst,
         rvQtd, rvInst, rvRs,
@@ -491,6 +502,24 @@ function Dashboard() {
           value={isLoading ? null : String(data?.naoInstaladas ?? 0)}
           icon={Clock}
           onClick={() => setVerNaoInstaladas(true)}
+          footer={
+            !isLoading ? (
+              <div className="mt-3 space-y-2 border-t pt-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Receita pendente</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">
+                    {brl(data?.receitaPendente ?? 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="leading-tight text-muted-foreground">Comissão pendente</span>
+                  <span className="whitespace-nowrap font-medium text-foreground">
+                    {brl(data?.comissaoPendente ?? 0)}
+                  </span>
+                </div>
+              </div>
+            ) : undefined
+          }
         />
         <StatCard
           title="Receita gerada"
