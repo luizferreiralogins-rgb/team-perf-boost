@@ -41,6 +41,7 @@ import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
+import { AgendaHoje } from "@/components/dashboard/agenda-hoje";
 import { Estrategico } from "@/components/dashboard/estrategico";
 import { AgendamentosVencidos } from "@/components/vendas/agendamentos-vencidos";
 import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
@@ -593,6 +594,8 @@ function Dashboard() {
 
         </div>
       </div>
+
+      <AgendaHoje uid={roleInfo?.uid} />
 
       <LeadsResumo isGestor={isGestor} uid={roleInfo?.uid} escopoIds={escopoIds} />
 
