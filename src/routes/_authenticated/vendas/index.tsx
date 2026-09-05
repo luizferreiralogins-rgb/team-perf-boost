@@ -94,6 +94,7 @@ type Row = {
   id: string;
   data: string;
   cliente: string;
+  protocolo: string | null;
   valor: number;
   status: string;
   comissao: number;
@@ -134,7 +135,7 @@ function VendasList() {
       if (canal === "loja") {
         const { data: rows } = await supabase
           .from("vendas_loja")
-          .select("id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas")
+          .select("id, protocolo, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas")
           .eq("vendedor_id", uid)
           .is("arquivada_em", null)
           .order("data_abertura", { ascending: false, nullsFirst: false })
@@ -145,6 +146,7 @@ function VendasList() {
             id: v.id,
             data: v.data_abertura ?? "",
             cliente: v.nome_cliente,
+            protocolo: v.protocolo ?? null,
             valor: Number(v.valor_novo ?? 0),
             status: v.status,
             comissao: Number(v.comissao ?? 0),
@@ -157,7 +159,7 @@ function VendasList() {
       }
       const { data: rows } = await supabase
         .from("vendas_pap")
-        .select("id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas")
+        .select("id, protocolo, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas")
         .eq("vendedor_id", uid)
         .is("arquivada_em", null)
         .order("data_venda", { ascending: false })
@@ -168,6 +170,7 @@ function VendasList() {
           id: v.id,
           data: v.data_venda,
           cliente: v.nome_cliente,
+          protocolo: v.protocolo ?? null,
           valor: Number(v.valor ?? 0),
           status: v.status,
           comissao: Number(v.comissao ?? 0),
@@ -340,6 +343,7 @@ function VendasList() {
                         onCheckedChange={(c: boolean | "indeterminate") => setSelecionadas(c === true ? idsElegiveis : [])}
                       />
                     </TableHead>
+                    <TableHead>Protocolo</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data do agendamento</TableHead>
@@ -363,6 +367,7 @@ function VendasList() {
                           onCheckedChange={() => toggleSelecao(v.id)}
                         />
                       </TableCell>
+                      <TableCell className="whitespace-nowrap">{v.protocolo || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {v.data
                           ? new Date(v.data + "T00:00:00").toLocaleDateString("pt-BR")
