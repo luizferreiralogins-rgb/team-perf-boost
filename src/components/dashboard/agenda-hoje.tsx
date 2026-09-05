@@ -121,7 +121,9 @@ export function AgendaHoje({ uid }: { uid?: string }) {
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link to="/tarefas">Ver todas</Link>
+          <Link to="/tarefas" search={{ responsavel: undefined }}>
+            Ver todas
+          </Link>
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
