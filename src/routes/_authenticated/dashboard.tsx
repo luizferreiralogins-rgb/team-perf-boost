@@ -274,6 +274,16 @@ function Dashboard() {
       const receita = soInstaladas.reduce((s, v) => s + v.valor, 0);
       const comissao = soInstaladas.reduce((s, v) => s + v.comissao, 0);
 
+      // Pendentes (não instaladas e não canceladas): receita e comissão a realizar
+      const pendentes = vendas.filter(
+        (v) => v.status !== "instalado" && v.status !== "cancelado",
+      );
+      const receitaPendente = pendentes.reduce((s, v) => s + v.valor, 0);
+      const comissaoGravadaPend = pendentes.reduce((s, v) => s + v.comissao, 0);
+      const pctMedio = receita > 0 ? comissao / receita : 0;
+      const comissaoPendente =
+        comissaoGravadaPend > 0 ? comissaoGravadaPend : receitaPendente * pctMedio;
+
       // KPIs por categoria
       const isMovelTec = (t?: string | null) => !!t && /m[óo]vel|movel|celular|5g|4g/i.test(t);
 
