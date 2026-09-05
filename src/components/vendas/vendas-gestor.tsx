@@ -47,6 +47,7 @@ type Linha = {
   canal: "loja" | "pap";
   vendedor: string;
   data: string;
+  protocolo: string | null;
   cliente: string;
   data_agendamento: string | null;
   tipo_protocolo: string | null;
@@ -106,7 +107,7 @@ export function VendasGestor() {
         supabase
           .from("vendas_loja")
           .select(
-            "id, vendedor_id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas",
+            "id, protocolo, vendedor_id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas",
           )
           .in("vendedor_id", consultoresIds)
           .gte("data_abertura", de)
@@ -114,7 +115,7 @@ export function VendasGestor() {
         supabase
           .from("vendas_pap")
           .select(
-            "id, vendedor_id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas",
+            "id, protocolo, vendedor_id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas",
           )
           .in("vendedor_id", consultoresIds)
           .gte("data_venda", de)
@@ -126,6 +127,7 @@ export function VendasGestor() {
           canal: "loja" as const,
           vendedor: nomePorId.get(v.vendedor_id) ?? "—",
           data: v.data_abertura ?? "",
+          protocolo: v.protocolo ?? null,
           cliente: v.nome_cliente,
           data_agendamento: v.data_agendamento ?? null,
           tipo_protocolo: v.classe_protocolo ?? null,
@@ -140,6 +142,7 @@ export function VendasGestor() {
           canal: "pap" as const,
           vendedor: nomePorId.get(v.vendedor_id) ?? "—",
           data: v.data_venda,
+          protocolo: v.protocolo ?? null,
           cliente: v.nome_cliente,
           data_agendamento: v.data_agendamento ?? null,
           tipo_protocolo: v.tipo_protocolo ?? null,
@@ -206,6 +209,7 @@ export function VendasGestor() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Protocolo</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Vendedor</TableHead>
                     <TableHead>Setor</TableHead>
@@ -222,6 +226,7 @@ export function VendasGestor() {
                 <TableBody>
                   {linhas.map((v) => (
                     <TableRow key={`${v.canal}-${v.id}`}>
+                      <TableCell className="whitespace-nowrap">{v.protocolo || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">{dataBR(v.data || null)}</TableCell>
                       <TableCell className="whitespace-nowrap">{v.vendedor}</TableCell>
                       <TableCell>
