@@ -760,11 +760,13 @@ function EditarTarefa({
 function NovaTarefa({
   meId,
   pessoas,
+  equipeIds,
   responsavelInicial,
   onCriada,
 }: {
   meId: string | null;
   pessoas: { id: string; nome: string; email: string | null }[];
+  equipeIds: string[];
   responsavelInicial?: string;
   onCriada: () => void;
 }) {
@@ -891,20 +893,33 @@ function NovaTarefa({
 
           {alvo === "usuario" && (
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <Label>Responsáveis ({responsaveis.length})</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setResponsaveis(
-                      responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
-                    )
-                  }
-                >
-                  {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
-                </Button>
+                <div className="flex items-center gap-1">
+                  {equipeIds.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      title="Selecionar apenas os membros da minha equipe"
+                      onClick={() => setResponsaveis(equipeIds)}
+                    >
+                      <Users className="mr-1 h-3.5 w-3.5" /> Minha equipe
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setResponsaveis(
+                        responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
+                      )
+                    }
+                  >
+                    {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
+                  </Button>
+                </div>
               </div>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-3">
                 {pessoas.length === 0 && (
