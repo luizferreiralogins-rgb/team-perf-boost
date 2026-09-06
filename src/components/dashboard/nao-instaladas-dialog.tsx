@@ -176,6 +176,7 @@ export function NaoInstaladasDialog({
                   <TableHead>Agendamento</TableHead>
                   <TableHead className="text-right">Adiamentos</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Editar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
