@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, ClipboardPaste, Save, ScanSearch, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardPaste, Pencil, Save, ScanSearch, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { salvarRelatorioContestacao, limparRelatorioContestacao } from "@/lib/contestacao-manual.functions";
@@ -627,6 +627,7 @@ function Contestacoes() {
                       <TableHead className="text-right">Preço Antigo</TableHead>
                       <TableHead className="text-right">Diferença</TableHead>
                       <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Editar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -644,6 +645,13 @@ function Contestacoes() {
                         <TableCell className="text-right">{brl(v.valor_antigo)}</TableCell>
                         <TableCell className="text-right">{brl(v.diferenca)}</TableCell>
                         <TableCell className="text-right">{brl(v.comissao)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button asChild variant="ghost" size="icon" aria-label="Editar venda">
+                            <Link to="/vendas/$id" params={{ id: v.id }}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

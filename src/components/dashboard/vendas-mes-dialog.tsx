@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -167,6 +170,7 @@ export function VendasMesDialog({
                   <TableHead>Data</TableHead>
                   <TableHead>Ativação</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Editar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -185,6 +189,13 @@ export function VendasMesDialog({
                     <TableCell>{fmtDate(i.data)}</TableCell>
                     <TableCell>{fmtDate(i.dataAtivacao)}</TableCell>
                     <TableCell className="text-right">{brl(i.valor)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild variant="ghost" size="icon" aria-label="Editar venda">
+                        <Link to="/vendas/$id" params={{ id: i.id }} onClick={() => onOpenChange(false)}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

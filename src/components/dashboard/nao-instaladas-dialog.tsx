@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -173,6 +176,7 @@ export function NaoInstaladasDialog({
                   <TableHead>Agendamento</TableHead>
                   <TableHead className="text-right">Adiamentos</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Editar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
