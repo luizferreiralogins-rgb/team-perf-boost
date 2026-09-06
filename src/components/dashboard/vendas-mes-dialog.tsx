@@ -170,6 +170,7 @@ export function VendasMesDialog({
                   <TableHead>Data</TableHead>
                   <TableHead>Ativação</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Editar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
