@@ -627,6 +627,7 @@ function Contestacoes() {
                       <TableHead className="text-right">Preço Antigo</TableHead>
                       <TableHead className="text-right">Diferença</TableHead>
                       <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Editar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
