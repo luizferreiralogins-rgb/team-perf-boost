@@ -9,7 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Bell, CalendarDays, Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
@@ -162,6 +162,30 @@ function TarefasPage() {
   });
 
   const uid = me.data ?? null;
+
+  /** Equipe direta do usuário (para gestores): subordinados imediatos. */
+  const equipe = useQuery({
+    enabled: !!uid,
+    queryKey: ["tarefas-equipe", uid],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("gerente_id", uid!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.id as string);
+    },
+    staleTime: 60_000,
+  });
+
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+  const alternarExpandida = (id: string) =>
+    setExpandidas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const participo = useQuery({
     enabled: !!uid,
