@@ -9,7 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bell, CalendarDays, Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Bell, CalendarDays, Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppLink } from "@/components/whatsapp-link";
@@ -162,6 +162,30 @@ function TarefasPage() {
   });
 
   const uid = me.data ?? null;
+
+  /** Equipe direta do usuário (para gestores): subordinados imediatos. */
+  const equipe = useQuery({
+    enabled: !!uid,
+    queryKey: ["tarefas-equipe", uid],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("gerente_id", uid!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.id as string);
+    },
+    staleTime: 60_000,
+  });
+
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+  const alternarExpandida = (id: string) =>
+    setExpandidas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const participo = useQuery({
     enabled: !!uid,
@@ -372,6 +396,7 @@ function TarefasPage() {
           key={responsavelInicial ?? "novo"}
           meId={me.data ?? null}
           pessoas={pessoas.data ?? []}
+          equipeIds={equipe.data ?? []}
           responsavelInicial={responsavelInicial}
           onCriada={() => qc.invalidateQueries({ queryKey: ["tarefas"] })}
         />
@@ -399,11 +424,25 @@ function TarefasPage() {
                   const minha = parts.find((p) => p.user_id === uid);
                   const meuStatus = minha?.status ?? t.status;
                   const souCriador = t.criador_id === uid;
+                  const aberta = expandidas.has(t.id);
                   return (
                   <Card key={t.id} className={cn(!emAberto(t.status) && "opacity-60")}>
                     <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
-                      <div className="min-w-0 space-y-1">
-                        <p className="font-medium">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="flex items-center gap-1 font-medium">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 shrink-0 p-0"
+                            title={aberta ? "Recolher detalhes" : "Ver destinatários e status"}
+                            onClick={() => alternarExpandida(t.id)}
+                          >
+                            {aberta ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
                           {t.titulo}
                           {t.hora_venc && (
                             <span className="ml-2 text-xs text-muted-foreground">
@@ -411,7 +450,7 @@ function TarefasPage() {
                             </span>
                           )}
                         </p>
-                        {t.descricao && (
+                        {aberta && t.descricao && (
                           <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                             {t.descricao}
                           </p>
@@ -447,7 +486,7 @@ function TarefasPage() {
                           )}
                         </p>
 
-                        {parts.length > 0 && (
+                        {aberta && parts.length > 0 && (
                           <div className="space-y-1 pt-2">
                             <p className="text-xs font-medium">Fase por destinatário</p>
                             <ul className="space-y-1">
@@ -735,11 +774,13 @@ function EditarTarefa({
 function NovaTarefa({
   meId,
   pessoas,
+  equipeIds,
   responsavelInicial,
   onCriada,
 }: {
   meId: string | null;
   pessoas: { id: string; nome: string; email: string | null }[];
+  equipeIds: string[];
   responsavelInicial?: string;
   onCriada: () => void;
 }) {
@@ -866,20 +907,33 @@ function NovaTarefa({
 
           {alvo === "usuario" && (
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <Label>Responsáveis ({responsaveis.length})</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setResponsaveis(
-                      responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
-                    )
-                  }
-                >
-                  {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
-                </Button>
+                <div className="flex items-center gap-1">
+                  {equipeIds.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      title="Selecionar apenas os membros da minha equipe"
+                      onClick={() => setResponsaveis(equipeIds)}
+                    >
+                      <Users className="mr-1 h-3.5 w-3.5" /> Minha equipe
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setResponsaveis(
+                        responsaveis.length === pessoas.length ? [] : pessoas.map((p) => p.id),
+                      )
+                    }
+                  >
+                    {responsaveis.length === pessoas.length ? "Limpar" : "Selecionar todos"}
+                  </Button>
+                </div>
               </div>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border p-3">
                 {pessoas.length === 0 && (
