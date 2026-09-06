@@ -645,6 +645,13 @@ function Contestacoes() {
                         <TableCell className="text-right">{brl(v.valor_antigo)}</TableCell>
                         <TableCell className="text-right">{brl(v.diferenca)}</TableCell>
                         <TableCell className="text-right">{brl(v.comissao)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button asChild variant="ghost" size="icon" aria-label="Editar venda">
+                            <Link to="/vendas/$id" params={{ id: v.id }}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
