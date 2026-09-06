@@ -424,11 +424,25 @@ function TarefasPage() {
                   const minha = parts.find((p) => p.user_id === uid);
                   const meuStatus = minha?.status ?? t.status;
                   const souCriador = t.criador_id === uid;
+                  const aberta = expandidas.has(t.id);
                   return (
                   <Card key={t.id} className={cn(!emAberto(t.status) && "opacity-60")}>
                     <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
-                      <div className="min-w-0 space-y-1">
-                        <p className="font-medium">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="flex items-center gap-1 font-medium">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 shrink-0 p-0"
+                            title={aberta ? "Recolher detalhes" : "Ver destinatários e status"}
+                            onClick={() => alternarExpandida(t.id)}
+                          >
+                            {aberta ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
                           {t.titulo}
                           {t.hora_venc && (
                             <span className="ml-2 text-xs text-muted-foreground">
@@ -436,7 +450,7 @@ function TarefasPage() {
                             </span>
                           )}
                         </p>
-                        {t.descricao && (
+                        {aberta && t.descricao && (
                           <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                             {t.descricao}
                           </p>
@@ -472,7 +486,7 @@ function TarefasPage() {
                           )}
                         </p>
 
-                        {parts.length > 0 && (
+                        {aberta && parts.length > 0 && (
                           <div className="space-y-1 pt-2">
                             <p className="text-xs font-medium">Fase por destinatário</p>
                             <ul className="space-y-1">
