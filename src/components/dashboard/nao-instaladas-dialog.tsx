@@ -204,6 +204,13 @@ export function NaoInstaladasDialog({
                     </TableCell>
                     <TableCell className="text-right">{i.adiamentos}</TableCell>
                     <TableCell className="text-right">{brl(i.valor)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild variant="ghost" size="icon" aria-label="Editar venda">
+                        <Link to="/vendas/$id" params={{ id: i.id }} onClick={() => onOpenChange(false)}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
