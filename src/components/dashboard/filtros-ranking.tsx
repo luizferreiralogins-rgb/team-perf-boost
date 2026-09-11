@@ -3,10 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidades } from "@/components/unidades-loja";
 import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
+import { ChevronsUpDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -27,7 +31,7 @@ export type Membro = {
 export type Filtros = {
   mes: string; // YYYY-MM
   pessoa: string; // 'all' | profile id
-  unidade: string; // 'all' | norte | sul | shopping | pap
+  unidades: string[]; // [] = todas | nomes de loja_unidade | 'pap'
 };
 
 const brl = (n: number) =>
@@ -111,11 +115,11 @@ export function useEquipe(uid?: string, role?: string) {
 
 export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
   let list = membros;
-  if (f.unidade !== "all") {
-    list =
-      f.unidade === "pap"
-        ? list.filter((m) => m.canal === "pap")
-        : list.filter((m) => m.loja_unidade === f.unidade);
+  if (f.unidades.length > 0) {
+    const sel = new Set(f.unidades);
+    list = list.filter((m) =>
+      m.canal === "pap" ? sel.has("pap") : sel.has(m.loja_unidade ?? ""),
+    );
   }
   if (f.pessoa !== "all") {
     // pessoa = gestor selecionado → ele + toda a sua cadeia
@@ -176,18 +180,69 @@ export function FiltrosBar({
 
         <div className="space-y-1.5">
           <Label className="text-xs">Loja / Canal</Label>
-          <Select value={filtros.unidade} onValueChange={(v) => onChange({ ...filtros, unidade: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {(unidadesLoja ?? []).map((u) => (
-                <SelectItem key={u.id} value={u.nome}>Loja {u.nome}</SelectItem>
-              ))}
-              <SelectItem value="pap">PAP</SelectItem>
-            </SelectContent>
-          </Select>
+          {(() => {
+            // somente lojas/canais presentes na equipe visível do gestor
+            const presentes = new Set<string>();
+            let temPap = false;
+            for (const m of membros) {
+              if (m.canal === "pap") temPap = true;
+              else if (m.loja_unidade) presentes.add(m.loja_unidade);
+            }
+            const opcoesLojas = (unidadesLoja ?? [])
+              .filter((u) => presentes.has(u.nome))
+              .map((u) => ({ value: u.nome, label: `Loja ${u.nome}` }));
+            // lojas sem cadastro em unidades_loja (ou já removidas) ainda aparecem
+            for (const nome of presentes) {
+              if (!opcoesLojas.some((o) => o.value === nome)) {
+                opcoesLojas.push({ value: nome, label: `Loja ${nome}` });
+              }
+            }
+            const opcoes = temPap ? [...opcoesLojas, { value: "pap", label: "PAP" }] : opcoesLojas;
+            const sel = new Set(filtros.unidades);
+            const toggle = (v: string) => {
+              const next = sel.has(v)
+                ? filtros.unidades.filter((x) => x !== v)
+                : [...filtros.unidades, v];
+              onChange({ ...filtros, unidades: next });
+            };
+            const rotulo =
+              filtros.unidades.length === 0
+                ? "Todas"
+                : filtros.unidades.length === 1
+                  ? (opcoes.find((o) => o.value === filtros.unidades[0])?.label ?? filtros.unidades[0])
+                  : `${filtros.unidades.length} selecionadas`;
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal">
+                    <span className="truncate">{rotulo}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
+                  <button
+                    type="button"
+                    className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                    onClick={() => onChange({ ...filtros, unidades: [] })}
+                  >
+                    <Checkbox checked={filtros.unidades.length === 0} />
+                    Todas
+                  </button>
+                  {opcoes.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                      onClick={() => toggle(o.value)}
+                    >
+                      <Checkbox checked={sel.has(o.value)} />
+                      {o.label}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            );
+          })()}
         </div>
 
 

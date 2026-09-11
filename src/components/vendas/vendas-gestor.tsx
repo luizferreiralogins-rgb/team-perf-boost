@@ -85,7 +85,7 @@ export function VendasGestor() {
     })();
   }, []);
 
-  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidade: "all" });
+  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidades: [] });
   const equipe = useEquipe(uid, role);
   const membros = useMemo(
     () => aplicarFiltros(equipe.data ?? [], filtros, role ?? ""),
