@@ -3,10 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidades } from "@/components/unidades-loja";
 import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
+import { ChevronsUpDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -27,7 +31,7 @@ export type Membro = {
 export type Filtros = {
   mes: string; // YYYY-MM
   pessoa: string; // 'all' | profile id
-  unidade: string; // 'all' | norte | sul | shopping | pap
+  unidades: string[]; // [] = todas | nomes de loja_unidade | 'pap'
 };
 
 const brl = (n: number) =>
@@ -111,11 +115,11 @@ export function useEquipe(uid?: string, role?: string) {
 
 export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
   let list = membros;
-  if (f.unidade !== "all") {
-    list =
-      f.unidade === "pap"
-        ? list.filter((m) => m.canal === "pap")
-        : list.filter((m) => m.loja_unidade === f.unidade);
+  if (f.unidades.length > 0) {
+    const sel = new Set(f.unidades);
+    list = list.filter((m) =>
+      m.canal === "pap" ? sel.has("pap") : sel.has(m.loja_unidade ?? ""),
+    );
   }
   if (f.pessoa !== "all") {
     // pessoa = gestor selecionado → ele + toda a sua cadeia
