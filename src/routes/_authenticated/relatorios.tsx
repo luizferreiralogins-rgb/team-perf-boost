@@ -169,7 +169,7 @@ function RelatoriosPage() {
     () => new Map(membrosVisiveis.map((membro) => [membro.id, membro.nome])),
     [membrosVisiveis],
   );
-  const carregandoEscopo = me.isLoading || (me.data?.isGestor && equipe.isLoading);
+  const carregandoEscopo = me.isLoading || (!!me.data?.isGestor && equipe.isLoading);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
