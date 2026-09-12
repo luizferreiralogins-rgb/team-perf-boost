@@ -16,6 +16,7 @@ import {
   FiltrosBar,
   aplicarFiltros,
   mesAtual,
+  mesesRecentes,
   useEquipe,
   type Filtros,
   type Membro,
@@ -24,6 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -203,6 +206,30 @@ function RelatoriosPage() {
               filtros={filtros}
               onChange={setFiltros}
             />
+          )}
+          {me.data && !me.data.isGestor && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="max-w-xs space-y-1.5">
+                  <Label className="text-xs">Mês</Label>
+                  <Select
+                    value={filtros.mes}
+                    onValueChange={(mes) => setFiltros((atual) => ({ ...atual, mes }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mesesRecentes().map((mes) => (
+                        <SelectItem key={mes.value} value={mes.value} className="capitalize">
+                          {mes.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           )}
           {tipo === "reagendamentos" ? (
             <RelatorioReagendamentos
