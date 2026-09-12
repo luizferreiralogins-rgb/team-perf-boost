@@ -17,6 +17,7 @@ import {
   History,
   Scale,
   MapPinned,
+  ChartNoAxesCombined,
 
 } from "lucide-react";
 
@@ -148,6 +149,7 @@ function Sidebar({
         roles.includes("admin"),
     },
     { to: "/historico", label: "Histórico", icon: History, show: true },
+    { to: "/relatorios", label: "Relatórios", icon: ChartNoAxesCombined, show: true },
     { to: "/contestacoes", label: "Contestações", icon: Scale, show: true, badge: alertas?.contestacoes },
     
     { to: "/tarefas", label: "Agenda/Tarefas", icon: CalendarCheck, show: true, badge: alertas?.tarefas },
