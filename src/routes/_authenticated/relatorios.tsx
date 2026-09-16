@@ -287,7 +287,7 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
   ];
 
   return (
-    <section className="grid gap-4 md:grid-cols-2" aria-label="Tipos de relatório">
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Tipos de relatório">
       {opcoes.map((opcao) => (
         <Card key={opcao.tipo} className="group overflow-hidden transition-shadow hover:shadow-md">
           <CardHeader>
