@@ -277,6 +277,13 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
       titulo: "Vendas por canal de vendas",
       descricao: "Compare a origem das vendas por volume, receita, comissão e participação no período.",
     },
+    {
+      tipo: "tarefas" as const,
+      icon: ListChecks,
+      titulo: "Agenda / Tarefas",
+      descricao:
+        "Consulte o que foi feito por dia, semana, mês ou ano, de todos, de um colaborador ou apenas suas tarefas.",
+    },
   ];
 
   return (
