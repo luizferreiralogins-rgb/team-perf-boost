@@ -201,6 +201,13 @@ function RelatoriosPage() {
 
       {!tipo ? (
         <EscolhaRelatorio onSelect={setTipo} />
+      ) : tipo === "tarefas" ? (
+        <RelatorioTarefas
+          uid={me.data?.uid}
+          meuNome={me.data?.profile?.nome ?? "Eu"}
+          membros={membrosVisiveis}
+          carregandoEscopo={carregandoEscopo}
+        />
       ) : (
         <>
           {me.data?.isGestor && (
