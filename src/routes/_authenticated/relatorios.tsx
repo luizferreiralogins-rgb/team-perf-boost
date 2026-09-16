@@ -61,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
 });
 
-type TipoRelatorio = "reagendamentos" | "canais";
+type TipoRelatorio = "reagendamentos" | "canais" | "tarefas";
 type CanalVenda = "loja" | "pap";
 
 type VendaRelatorio = {
