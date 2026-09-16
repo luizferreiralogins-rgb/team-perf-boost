@@ -5,7 +5,11 @@ import {
   ArrowLeft,
   CalendarClock,
   ChartNoAxesCombined,
+  CheckCircle2,
   ChevronRight,
+  ClipboardList,
+  Clock,
+  ListChecks,
   Pencil,
   RadioTower,
   ReceiptText,
@@ -57,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
   component: RelatoriosPage,
 });
 
-type TipoRelatorio = "reagendamentos" | "canais";
+type TipoRelatorio = "reagendamentos" | "canais" | "tarefas";
 type CanalVenda = "loja" | "pap";
 
 type VendaRelatorio = {
@@ -197,6 +201,13 @@ function RelatoriosPage() {
 
       {!tipo ? (
         <EscolhaRelatorio onSelect={setTipo} />
+      ) : tipo === "tarefas" ? (
+        <RelatorioTarefas
+          uid={me.data?.uid}
+          meuNome={me.data?.profile?.nome ?? "Eu"}
+          membros={membrosVisiveis}
+          carregandoEscopo={carregandoEscopo}
+        />
       ) : (
         <>
           {me.data?.isGestor && (
@@ -266,10 +277,17 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
       titulo: "Vendas por canal de vendas",
       descricao: "Compare a origem das vendas por volume, receita, comissão e participação no período.",
     },
+    {
+      tipo: "tarefas" as const,
+      icon: ListChecks,
+      titulo: "Agenda / Tarefas",
+      descricao:
+        "Consulte o que foi feito por dia, semana, mês ou ano, de todos, de um colaborador ou apenas suas tarefas.",
+    },
   ];
 
   return (
-    <section className="grid gap-4 md:grid-cols-2" aria-label="Tipos de relatório">
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Tipos de relatório">
       {opcoes.map((opcao) => (
         <Card key={opcao.tipo} className="group overflow-hidden transition-shadow hover:shadow-md">
           <CardHeader>
@@ -654,4 +672,256 @@ function CarregandoRelatorio() {
 
 function Vazio({ texto }: { texto: string }) {
   return <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">{texto}</div>;
+}
+
+type Periodo = "dia" | "semana" | "mes" | "ano";
+
+const STATUS_LABEL: Record<string, string> = {
+  pendente: "Pendente",
+  iniciada: "Em andamento",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+};
+
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+function intervalo(periodo: Periodo, referencia: string) {
+  const base = new Date(`${referencia}T00:00:00`);
+  if (periodo === "dia") return { inicio: referencia, fim: referencia };
+  if (periodo === "semana") {
+    const diaSemana = base.getDay();
+    const inicio = new Date(base);
+    inicio.setDate(base.getDate() - diaSemana);
+    const fim = new Date(inicio);
+    fim.setDate(inicio.getDate() + 6);
+    return { inicio: iso(inicio), fim: iso(fim) };
+  }
+  if (periodo === "mes") {
+    const inicio = new Date(base.getFullYear(), base.getMonth(), 1);
+    const fim = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    return { inicio: iso(inicio), fim: iso(fim) };
+  }
+  return { inicio: `${base.getFullYear()}-01-01`, fim: `${base.getFullYear()}-12-31` };
+}
+
+function RelatorioTarefas({
+  uid,
+  meuNome,
+  membros,
+  carregandoEscopo,
+}: {
+  uid?: string;
+  meuNome: string;
+  membros: Membro[];
+  carregandoEscopo: boolean;
+}) {
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [referencia, setReferencia] = useState(() => iso(new Date()));
+  const [pessoa, setPessoa] = useState("all");
+
+  const { inicio, fim } = useMemo(() => intervalo(periodo, referencia), [periodo, referencia]);
+
+  const pessoas = useMemo(
+    () => membros.filter((m) => m.id !== uid).sort((a, b) => a.nome.localeCompare(b.nome)),
+    [membros, uid],
+  );
+
+  const alvos = useMemo(() => {
+    if (!uid) return [];
+    if (pessoa === "me") return [uid];
+    if (pessoa !== "all") return [pessoa];
+    return [uid, ...pessoas.map((m) => m.id)];
+  }, [pessoa, pessoas, uid]);
+
+  const nomePorId = useMemo(() => {
+    const mapa = new Map<string, string>(membros.map((m) => [m.id, m.nome]));
+    if (uid) mapa.set(uid, meuNome);
+    return mapa;
+  }, [membros, meuNome, uid]);
+
+  const q = useQuery({
+    queryKey: ["relatorio-tarefas", inicio, fim, alvos.join(",")],
+    enabled: alvos.length > 0,
+    queryFn: async () => {
+      const { data: tarefas, error } = await supabase
+        .from("tarefas")
+        .select(
+          "id, titulo, descricao, cliente_nome, status, prioridade, data_venc, hora_venc, responsavel_id, criador_id, updated_at",
+        )
+        .gte("data_venc", inicio)
+        .lte("data_venc", fim)
+        .order("data_venc", { ascending: false });
+      if (error) throw error;
+
+      const ids = (tarefas ?? []).map((t) => t.id);
+      const participantes = ids.length
+        ? (
+            await supabase
+              .from("tarefa_participantes")
+              .select("tarefa_id, user_id, status")
+              .in("tarefa_id", ids)
+          ).data ?? []
+        : [];
+
+      const porTarefa = new Map<string, { user_id: string; status: string }[]>();
+      for (const p of participantes) {
+        const lista = porTarefa.get(p.tarefa_id) ?? [];
+        lista.push({ user_id: p.user_id, status: p.status as string });
+        porTarefa.set(p.tarefa_id, lista);
+      }
+
+      const alvo = new Set(alvos);
+      return (tarefas ?? [])
+        .filter(
+          (t) =>
+            alvo.has(t.responsavel_id ?? "") ||
+            alvo.has(t.criador_id) ||
+            (porTarefa.get(t.id) ?? []).some((p) => alvo.has(p.user_id)),
+        )
+        .map((t) => ({ ...t, participantes: porTarefa.get(t.id) ?? [] }));
+    },
+  });
+
+  const linhas = q.data ?? [];
+  const resumo = useMemo(
+    () => ({
+      total: linhas.length,
+      concluidas: linhas.filter((t) => t.status === "concluida").length,
+      abertas: linhas.filter((t) => t.status === "pendente" || t.status === "iniciada").length,
+    }),
+    [linhas],
+  );
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Período</Label>
+            <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dia">Dia</SelectItem>
+                <SelectItem value="semana">Semana</SelectItem>
+                <SelectItem value="mes">Mês</SelectItem>
+                <SelectItem value="ano">Ano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs" htmlFor="ref-tarefas">
+              Data de referência
+            </Label>
+            <input
+              id="ref-tarefas"
+              type="date"
+              value={referencia}
+              onChange={(e) => setReferencia(e.target.value || iso(new Date()))}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Agenda de</Label>
+            <Select value={pessoa} onValueChange={setPessoa}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos (minha hierarquia)</SelectItem>
+                <SelectItem value="me">Somente eu</SelectItem>
+                {pessoas.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo da agenda">
+        <Resumo titulo="Tarefas no período" valor={String(resumo.total)} icon={ClipboardList} />
+        <Resumo titulo="Concluídas" valor={String(resumo.concluidas)} icon={CheckCircle2} />
+        <Resumo titulo="Em aberto" valor={String(resumo.abertas)} icon={Clock} />
+      </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-primary" /> Agenda / Tarefas
+          </CardTitle>
+          <CardDescription>
+            {dataBR(inicio)} a {dataBR(fim)} · {resumo.total} registro(s)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {carregandoEscopo || q.isLoading ? (
+            <CarregandoRelatorio />
+          ) : linhas.length === 0 ? (
+            <Vazio texto="Nenhuma tarefa encontrada para o período e a seleção atual." />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Tarefa</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Responsáveis</TableHead>
+                    <TableHead>Prioridade</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {linhas.map((t) => {
+                    const envolvidos = t.participantes.length
+                      ? t.participantes
+                      : [{ user_id: t.responsavel_id ?? t.criador_id, status: t.status as string }];
+                    return (
+                      <TableRow key={t.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {dataBR(t.data_venc)}
+                          {t.hora_venc ? ` ${String(t.hora_venc).slice(0, 5)}` : ""}
+                        </TableCell>
+                        <TableCell className="max-w-72">
+                          <p className="font-medium">{t.titulo}</p>
+                          {t.descricao && (
+                            <p className="truncate text-xs text-muted-foreground">{t.descricao}</p>
+                          )}
+                        </TableCell>
+                        <TableCell>{t.cliente_nome ?? "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {envolvidos.map((p, i) => (
+                              <Badge key={`${t.id}-${p.user_id}-${i}`} variant="outline">
+                                {nomePorId.get(p.user_id) ?? "—"} · {STATUS_LABEL[p.status] ?? p.status}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={t.prioridade === "alta" ? "destructive" : "secondary"}>
+                            {t.prioridade}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={t.status === "concluida" ? "default" : "outline"}>
+                            {STATUS_LABEL[t.status] ?? t.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
