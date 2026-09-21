@@ -924,6 +924,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_venda_contatos: {
+        Row: {
+          created_at: string
+          criado_por: string
+          fase: Database["public"]["Enums"]["pos_venda_fase"]
+          id: string
+          motivo: string | null
+          observacao: string | null
+          produtos: Json
+          resultado: Database["public"]["Enums"]["pos_venda_resultado"] | null
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string
+          fase: Database["public"]["Enums"]["pos_venda_fase"]
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          produtos?: Json
+          resultado?: Database["public"]["Enums"]["pos_venda_resultado"] | null
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          fase?: Database["public"]["Enums"]["pos_venda_fase"]
+          id?: string
+          motivo?: string | null
+          observacao?: string | null
+          produtos?: Json
+          resultado?: Database["public"]["Enums"]["pos_venda_resultado"] | null
+          tabela?: string
+          venda_id?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
@@ -1423,6 +1465,13 @@ export type Database = {
         | "nao_perturbar"
         | "transferido"
       loja_unidade: "norte" | "sul" | "shopping"
+      pos_venda_fase: "satisfacao" | "produtos"
+      pos_venda_resultado:
+        | "neutro"
+        | "sem_resposta"
+        | "satisfeito"
+        | "suporte"
+        | "insatisfeito"
       tarefa_alvo: "propria" | "usuario" | "cliente"
       tarefa_prioridade: "baixa" | "media" | "alta"
       tarefa_status: "pendente" | "concluida" | "cancelada" | "iniciada"
@@ -1583,6 +1632,14 @@ export const Constants = {
         "transferido",
       ],
       loja_unidade: ["norte", "sul", "shopping"],
+      pos_venda_fase: ["satisfacao", "produtos"],
+      pos_venda_resultado: [
+        "neutro",
+        "sem_resposta",
+        "satisfeito",
+        "suporte",
+        "insatisfeito",
+      ],
       tarefa_alvo: ["propria", "usuario", "cliente"],
       tarefa_prioridade: ["baixa", "media", "alta"],
       tarefa_status: ["pendente", "concluida", "cancelada", "iniciada"],
