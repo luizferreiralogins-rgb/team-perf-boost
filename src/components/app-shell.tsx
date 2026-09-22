@@ -18,6 +18,7 @@ import {
   Scale,
   MapPinned,
   ChartNoAxesCombined,
+  HeartHandshake,
 
 } from "lucide-react";
 
@@ -135,6 +136,7 @@ function Sidebar({
     },
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: true, badge: alertas?.vendas },
+    { to: "/pos-vendas", label: "Pós vendas", icon: HeartHandshake, show: true },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
     {
       to: "/planejamento",
