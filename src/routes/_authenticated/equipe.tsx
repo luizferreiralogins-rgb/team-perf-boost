@@ -488,7 +488,21 @@ function NovoAcessoDialog({
           </div>
           <div className="space-y-2">
             <Label>Senha temporária</Label>
-            <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+              />
+              <Button type="button" variant="outline" onClick={() => setPassword(gerarSenha())}>
+                Gerar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Evite senhas comuns como 12345678. Use "Gerar" para criar uma senha aceita pelo sistema
+              e informe-a ao colaborador.
+            </p>
           </div>
           {role === "lider_pap" && isRegional && (
             <div className="space-y-2">
