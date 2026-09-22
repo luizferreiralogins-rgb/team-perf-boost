@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, ChevronDown, ChevronRight, HeartHandshake, Search } from "lucide-react";
@@ -365,8 +365,8 @@ function PosVendasPage() {
               </TableHeader>
               <TableBody>
                 {filtrados.map((i) => (
-                  <>
-                    <TableRow key={i.id}>
+                  <Fragment key={i.id}>
+                    <TableRow>
                       <TableCell>
                         <button
                           onClick={() => setExpandido(expandido === i.id ? null : i.id)}
@@ -432,7 +432,7 @@ function PosVendasPage() {
                       </TableCell>
                     </TableRow>
                     {expandido === i.id && (
-                      <TableRow key={`${i.id}-hist`}>
+                      <TableRow>
                         <TableCell colSpan={9} className="bg-muted/40">
                           {i.contatos.length === 0 ? (
                             <p className="py-2 text-sm text-muted-foreground">
@@ -466,7 +466,7 @@ function PosVendasPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
