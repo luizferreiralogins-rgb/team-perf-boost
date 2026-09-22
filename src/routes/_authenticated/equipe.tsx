@@ -442,7 +442,7 @@ function NovoAcessoDialog({
       setOpen(false);
       setNome(""); setEmail(""); setPassword(""); setUnidade(""); setGerenteId(""); setNascimento("");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(traduzErroSenha(e.message)),
   });
 
   return (
