@@ -765,7 +765,7 @@ function SenhaDialog({ member }: { member: Member }) {
       setPassword("");
       setOpen(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(traduzErroSenha(e.message)),
   });
 
   return (
