@@ -786,13 +786,25 @@ function SenhaDialog({ member }: { member: Member }) {
           </p>
           <div className="space-y-2">
             <Label>Nova senha</Label>
-            <Input
-              type={mostrar ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-              autoComplete="new-password"
-            />
+            <div className="flex gap-2">
+              <Input
+                type={mostrar ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPassword(gerarSenha());
+                  setMostrar(true);
+                }}
+              >
+                Gerar
+              </Button>
+            </div>
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" checked={mostrar} onChange={(e) => setMostrar(e.target.checked)} />
               Mostrar senha
