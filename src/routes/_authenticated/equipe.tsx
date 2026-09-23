@@ -15,6 +15,34 @@ import {
 } from "@/lib/team.functions";
 
 import { supabase } from "@/integrations/supabase/client";
+
+/** Gera uma senha temporária forte, aceita pela verificação de senhas vazadas. */
+function gerarSenha() {
+  const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const minus = "abcdefghijkmnopqrstuvwxyz";
+  const nums = "23456789";
+  const simb = "!@#$%&*?";
+  const todos = letras + minus + nums + simb;
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  const base = [pick(letras), pick(minus), pick(nums), pick(simb)];
+  while (base.length < 12) base.push(pick(todos));
+  return base.sort(() => Math.random() - 0.5).join("");
+}
+
+/** Traduz mensagens de erro de senha vindas do sistema de login. */
+function traduzErroSenha(msg: string) {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("weak") || m.includes("easy to guess") || m.includes("pwned")) {
+    return 'Essa senha é muito comum e foi bloqueada. Clique em "Gerar" para criar uma senha segura.';
+  }
+  if (m.includes("at least") && m.includes("characters")) {
+    return "A senha precisa ter no mínimo 8 caracteres.";
+  }
+  if (m.includes("already been registered") || m.includes("already registered")) {
+    return "Já existe um acesso com esse e-mail.";
+  }
+  return msg;
+}
 import { SelectUnidade, UnidadesConfig, useUnidades } from "@/components/unidades-loja";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -737,7 +765,7 @@ function SenhaDialog({ member }: { member: Member }) {
       setPassword("");
       setOpen(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(traduzErroSenha(e.message)),
   });
 
   return (
@@ -758,13 +786,25 @@ function SenhaDialog({ member }: { member: Member }) {
           </p>
           <div className="space-y-2">
             <Label>Nova senha</Label>
-            <Input
-              type={mostrar ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-              autoComplete="new-password"
-            />
+            <div className="flex gap-2">
+              <Input
+                type={mostrar ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPassword(gerarSenha());
+                  setMostrar(true);
+                }}
+              >
+                Gerar
+              </Button>
+            </div>
             <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input type="checkbox" checked={mostrar} onChange={(e) => setMostrar(e.target.checked)} />
               Mostrar senha
