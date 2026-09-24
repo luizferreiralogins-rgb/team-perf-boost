@@ -18,6 +18,7 @@ import {
   labelResultado,
   type VendaAlvo,
 } from "@/components/pos-vendas/dialogs";
+import { WhatsAppLink } from "@/components/whatsapp-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +77,7 @@ type Item = {
   vendedor: string;
   cliente: string;
   protocolo: string | null;
+  telefone: string | null;
   ativacao: string;
   fase: Fase;
   prazo: string | null;
@@ -155,7 +157,7 @@ function PosVendasPage() {
           .in("vendedor_id", idsVisiveis),
         supabase
           .from("vendas_pap")
-          .select("id, vendedor_id, protocolo, nome_cliente, data_ativacao")
+          .select("id, vendedor_id, protocolo, nome_cliente, data_ativacao, telefone")
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
           .gte("data_ativacao", desde)
@@ -167,6 +169,14 @@ function PosVendasPage() {
           .order("created_at", { ascending: true }),
         supabase.from("profiles").select("id, nome").in("id", idsVisiveis),
       ]);
+      // Vendas de Loja não guardam telefone: busca o WhatsApp no lead de mesmo nome do consultor
+      const { data: leadsTel } = await supabase
+        .from("leads")
+        .select("vendedor_id, nome, whatsapp")
+        .in("vendedor_id", idsVisiveis)
+        .not("whatsapp", "is", null);
+      const chave = (vid: string, nome: string) => `${vid}|${(nome || "").trim().toLowerCase()}`;
+      const telLead = new Map((leadsTel ?? []).map((l) => [chave(l.vendedor_id, l.nome), l.whatsapp]));
 
       const nomes = new Map((profs.data ?? []).map((p) => [p.id, p.nome || "—"]));
       const porVenda = new Map<string, Contato[]>();
@@ -212,6 +222,7 @@ function PosVendasPage() {
           vendedor: nomes.get(v.vendedor_id) ?? "—",
           cliente: v.nome_cliente,
           protocolo: v.protocolo,
+          telefone: v.telefone || telLead.get(chave(v.vendedor_id, v.nome_cliente)) || null,
           ativacao: v.data_ativacao,
           fase,
           prazo,
@@ -354,6 +365,7 @@ function PosVendasPage() {
                 <TableRow>
                   <TableHead className="w-8" />
                   <TableHead>Protocolo</TableHead>
+                  <TableHead>WhatsApp</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Consultor</TableHead>
@@ -381,6 +393,9 @@ function PosVendasPage() {
                         </button>
                       </TableCell>
                       <TableCell>{i.protocolo || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}
+                      </TableCell>
                       <TableCell className="font-medium">{i.cliente}</TableCell>
                       <TableCell>{i.canal}</TableCell>
                       <TableCell>{i.vendedor}</TableCell>
@@ -433,7 +448,7 @@ function PosVendasPage() {
                     </TableRow>
                     {expandido === i.id && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/40">
+                        <TableCell colSpan={10} className="bg-muted/40">
                           {i.contatos.length === 0 ? (
                             <p className="py-2 text-sm text-muted-foreground">
                               Nenhum contato registrado ainda.
