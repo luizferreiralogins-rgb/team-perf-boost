@@ -37,7 +37,7 @@ function EditarVenda() {
       const { data: loja } = await supabase
         .from("vendas_loja")
         .select(
-          "vendedor_id, protocolo, nome_cliente, observacoes, data_abertura, data_ativacao, data_agendamento, classe_protocolo, canal_origem, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
+          "vendedor_id, protocolo, nome_cliente, telefone, observacoes, data_abertura, data_ativacao, data_agendamento, classe_protocolo, canal_origem, tecnologia, contem_movel, qtd_linhas, valor_novo, valor_antigo, status",
         )
         .eq("id", id)
         .maybeSingle();
@@ -48,6 +48,7 @@ function EditarVenda() {
           state: {
             protocolo: loja.protocolo ?? "",
             nome_cliente: loja.nome_cliente,
+            telefone: loja.telefone ?? "",
             observacoes: loja.observacoes ?? "",
             data_abertura: loja.data_abertura ?? "",
             data_ativacao: loja.data_ativacao ?? "",
@@ -68,7 +69,7 @@ function EditarVenda() {
       const { data: pap } = await supabase
         .from("vendas_pap")
         .select(
-          "vendedor_id, nome_cliente, protocolo, tipo_protocolo, canal_origem, data_venda, data_ativacao, data_agendamento, valor, valor_novo, valor_antigo, produto, qtd_linhas, status",
+          "vendedor_id, nome_cliente, telefone, protocolo, tipo_protocolo, canal_origem, data_venda, data_ativacao, data_agendamento, valor, valor_novo, valor_antigo, produto, qtd_linhas, status",
         )
         .eq("id", id)
         .maybeSingle();
@@ -81,6 +82,7 @@ function EditarVenda() {
           tipo_protocolo: (pap.tipo_protocolo ?? "Novo Acesso") as FormPapState["tipo_protocolo"],
           canal_origem: pap.canal_origem ?? "",
           nome_cliente: pap.nome_cliente,
+          telefone: pap.telefone ?? "",
           produto: (pap.produto ?? "Banda Larga") as FormPapState["produto"],
           data: pap.data_venda,
           data_instalacao: pap.data_ativacao ?? "",

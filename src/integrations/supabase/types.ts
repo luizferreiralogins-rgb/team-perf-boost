@@ -1179,6 +1179,7 @@ export type Database = {
           qtd_linhas: number
           status: Database["public"]["Enums"]["venda_status"]
           tecnologia: string | null
+          telefone: string | null
           tipo_comissao: string | null
           updated_at: string
           valor_antigo: number | null
@@ -1206,6 +1207,7 @@ export type Database = {
           qtd_linhas?: number
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
+          telefone?: string | null
           tipo_comissao?: string | null
           updated_at?: string
           valor_antigo?: number | null
@@ -1233,6 +1235,7 @@ export type Database = {
           qtd_linhas?: number
           status?: Database["public"]["Enums"]["venda_status"]
           tecnologia?: string | null
+          telefone?: string | null
           tipo_comissao?: string | null
           updated_at?: string
           valor_antigo?: number | null

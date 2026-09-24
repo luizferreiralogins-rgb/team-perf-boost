@@ -1,0 +1,1 @@
+ALTER TABLE public.vendas_loja ADD COLUMN IF NOT EXISTS telefone text;

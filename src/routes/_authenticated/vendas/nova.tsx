@@ -203,6 +203,7 @@ function NovaVenda() {
     ? {
         protocolo: "",
         nome_cliente: search.lead_nome ?? "",
+        telefone: search.lead_whatsapp ?? "",
         observacoes: obsLead ? `Origem: Lead. ${obsLead}` : "",
         data_abertura: today(),
         data_ativacao: "",
@@ -228,6 +229,7 @@ function NovaVenda() {
         tipo_protocolo: "Novo Acesso",
         canal_origem: "",
         nome_cliente: search.lead_nome ?? "",
+        telefone: search.lead_whatsapp ?? "",
         produto: produtoPap ?? "Banda Larga",
         data: today(),
         data_instalacao: "",
@@ -271,6 +273,7 @@ function NovaVenda() {
 export type FormLojaState = {
   protocolo: string;
   nome_cliente: string;
+  telefone?: string;
   observacoes: string;
   data_abertura: string;
   data_ativacao: string;
@@ -423,6 +426,7 @@ export function FormLoja({
       vendedor_id: uid,
       protocolo: parsed.data.protocolo || null,
       nome_cliente: parsed.data.nome_cliente,
+      telefone: form.telefone?.trim() || null,
       data_abertura: parsed.data.data_abertura,
       data_ativacao: parsed.data.data_ativacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
@@ -487,6 +491,15 @@ export function FormLoja({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Telefone/Whats">
+              <Input
+                type="tel"
+                value={form.telefone ?? ""}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                placeholder="(47) 99999-9999"
+                maxLength={30}
               />
             </Field>
             <Field label="Canal de vendas" required>
@@ -669,6 +682,7 @@ export type FormPapState = {
   tipo_protocolo: (typeof TIPOS_PROTOCOLO_PAP)[number];
   canal_origem: string;
   nome_cliente: string;
+  telefone?: string;
   produto: (typeof PRODUTOS_PAP)[number];
   data: string;
   data_instalacao: string;
@@ -785,6 +799,7 @@ export function FormPap({
       tipo_protocolo: parsed.data.tipo_protocolo,
       canal_origem: parsed.data.canal_origem,
       nome_cliente: parsed.data.nome_cliente,
+      telefone: form.telefone?.trim() || null,
       data_venda: parsed.data.data,
       data_ativacao: parsed.data.data_instalacao || null,
       data_agendamento: parsed.data.data_agendamento || null,
@@ -859,6 +874,15 @@ export function FormPap({
                 value={form.nome_cliente}
                 onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
                 required
+              />
+            </Field>
+            <Field label="Telefone/Whats">
+              <Input
+                type="tel"
+                value={form.telefone ?? ""}
+                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                placeholder="(47) 99999-9999"
+                maxLength={30}
               />
             </Field>
             <Field label="Canal de vendas" required>

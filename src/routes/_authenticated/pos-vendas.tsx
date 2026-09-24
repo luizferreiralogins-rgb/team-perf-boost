@@ -150,7 +150,7 @@ function PosVendasPage() {
       const [loja, pap, contatos, profs] = await Promise.all([
         supabase
           .from("vendas_loja")
-          .select("id, vendedor_id, protocolo, nome_cliente, data_ativacao")
+          .select("id, vendedor_id, protocolo, nome_cliente, data_ativacao, telefone")
           .eq("status", "instalado")
           .not("data_ativacao", "is", null)
           .gte("data_ativacao", desde)
