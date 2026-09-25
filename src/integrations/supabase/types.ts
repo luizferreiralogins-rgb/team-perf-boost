@@ -924,6 +924,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_venda_ajustes: {
+        Row: {
+          created_at: string
+          criado_por: string
+          fase: string | null
+          id: string
+          observacao: string | null
+          prazo: string | null
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string
+          fase?: string | null
+          id?: string
+          observacao?: string | null
+          prazo?: string | null
+          tabela: string
+          venda_id: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          fase?: string | null
+          id?: string
+          observacao?: string | null
+          prazo?: string | null
+          tabela?: string
+          venda_id?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       pos_venda_contatos: {
         Row: {
           created_at: string

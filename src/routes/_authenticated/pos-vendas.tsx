@@ -1,7 +1,24 @@
 import { Fragment, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, ChevronDown, ChevronRight, HeartHandshake, Search } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ChevronDown,
+  ChevronRight,
+  HeartHandshake,
+  MessageSquare,
+  Pencil,
+  Search,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -56,7 +73,13 @@ export const Route = createFileRoute("/_authenticated/pos-vendas")({
   component: PosVendasPage,
 });
 
-type Fase = "satisfacao" | "produtos" | "concluido";
+type Fase = "satisfacao" | "correcao" | "produtos" | "concluido";
+
+const FASE_LABEL: Record<string, string> = {
+  satisfacao: "Satisfação",
+  correcao: "Correção",
+  produtos: "Novos produtos",
+};
 
 type Contato = {
   id: string;
@@ -67,6 +90,16 @@ type Contato = {
   observacao: string | null;
   produtos: unknown;
   created_at: string;
+};
+
+type Ajuste = {
+  id: string;
+  venda_id: string;
+  fase: string | null;
+  prazo: string | null;
+  observacao: string | null;
+  created_at: string;
+  criado_por: string;
 };
 
 type Item = {
@@ -84,6 +117,7 @@ type Item = {
   atrasado: boolean;
   motivoConclusao: string | null;
   contatos: Contato[];
+  ajustes: Ajuste[];
 };
 
 const dataBR = (v?: string | null) =>
@@ -116,6 +150,39 @@ function PosVendasPage() {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [alvoSatisfacao, setAlvoSatisfacao] = useState<VendaAlvo | null>(null);
   const [alvoProdutos, setAlvoProdutos] = useState<VendaAlvo | null>(null);
+  const [alvoObs, setAlvoObs] = useState<Item | null>(null);
+  const qc = useQueryClient();
+
+  const ajustar = useMutation({
+    mutationFn: async ({
+      item,
+      fase,
+      prazo,
+      observacao,
+    }: {
+      item: Item;
+      fase?: string | null;
+      prazo?: string | null;
+      observacao?: string | null;
+    }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase.from("pos_venda_ajustes" as never).insert({
+        tabela: item.tabela,
+        venda_id: item.id,
+        vendedor_id: item.vendedorId,
+        fase: fase ?? null,
+        prazo: prazo ?? null,
+        observacao: observacao ?? null,
+        criado_por: auth.user!.id,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registro de pós-venda atualizado.");
+      qc.invalidateQueries({ queryKey: ["pos-venda-contatos"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar."),
+  });
 
   const me = useQuery({
     queryKey: ["me-pos-vendas"],
@@ -147,7 +214,7 @@ function PosVendasPage() {
     enabled: idsVisiveis.length > 0,
     queryFn: async () => {
       const desde = somarDias(hojeISO(), -365);
-      const [loja, pap, contatos, profs] = await Promise.all([
+      const [loja, pap, contatos, profs, ajustesQ] = await Promise.all([
         supabase
           .from("vendas_loja")
           .select("id, vendedor_id, protocolo, nome_cliente, data_ativacao, telefone")
@@ -168,6 +235,10 @@ function PosVendasPage() {
           .in("vendedor_id", idsVisiveis)
           .order("created_at", { ascending: true }),
         supabase.from("profiles").select("id, nome").in("id", idsVisiveis),
+        (supabase.from("pos_venda_ajustes" as never) as any)
+          .select("id, venda_id, fase, prazo, observacao, created_at, criado_por")
+          .in("vendedor_id", idsVisiveis)
+          .order("created_at", { ascending: true }),
       ]);
       // Vendas de Loja não guardam telefone: busca o WhatsApp no lead de mesmo nome do consultor
       const { data: leadsTel } = await supabase
@@ -185,6 +256,12 @@ function PosVendasPage() {
         arr.push(c);
         porVenda.set(c.venda_id, arr);
       }
+      const ajPorVenda = new Map<string, Ajuste[]>();
+      for (const a of (ajustesQ.data ?? []) as Ajuste[]) {
+        const arr = ajPorVenda.get(a.venda_id) ?? [];
+        arr.push(a);
+        ajPorVenda.set(a.venda_id, arr);
+      }
       const hoje = hojeISO();
 
       const montar = (
@@ -193,6 +270,7 @@ function PosVendasPage() {
         canal: "Loja" | "PAP",
       ): Item => {
         const lista = porVenda.get(v.id) ?? [];
+        const ajustes = ajPorVenda.get(v.id) ?? [];
         const sat = lista.find((c) => c.fase === "satisfacao");
         const prod = lista.find((c) => c.fase === "produtos");
         let fase: Fase = "satisfacao";
@@ -214,6 +292,17 @@ function PosVendasPage() {
             motivoConclusao = `Sem oferta — ${labelResultado(sat.resultado)}`;
           }
         }
+        // Ajustes manuais feitos após o último contato prevalecem
+        const ultimoContato = lista.length ? lista[lista.length - 1].created_at : "";
+        const recentes = ajustes.filter((a) => a.created_at > ultimoContato);
+        const ajFase = [...recentes].reverse().find((a) => a.fase);
+        const ajPrazo = [...recentes].reverse().find((a) => a.prazo);
+        if (ajFase?.fase) {
+          fase = ajFase.fase as Fase;
+          motivoConclusao = null;
+          if (!prazo) prazo = hoje;
+        }
+        if (ajPrazo?.prazo) prazo = ajPrazo.prazo;
         return {
           id: v.id,
           tabela,
@@ -229,6 +318,7 @@ function PosVendasPage() {
           atrasado: !!prazo && prazo < hoje,
           motivoConclusao,
           contatos: lista,
+          ajustes,
         };
       };
 
@@ -308,6 +398,7 @@ function PosVendasPage() {
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
                 <SelectItem value="satisfacao">Satisfação</SelectItem>
+                <SelectItem value="correcao">Correção</SelectItem>
                 <SelectItem value="produtos">Novos produtos</SelectItem>
                 <SelectItem value="concluido">Concluído</SelectItem>
               </SelectContent>
@@ -372,7 +463,8 @@ function PosVendasPage() {
                   <TableHead>Ativação</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Prazo</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
+                  <TableHead>Ação</TableHead>
+                  <TableHead className="text-right">Obs. / Venda</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -401,83 +493,93 @@ function PosVendasPage() {
                       <TableCell>{i.vendedor}</TableCell>
                       <TableCell>{dataBR(i.ativacao)}</TableCell>
                       <TableCell>
-                        {i.fase === "satisfacao" ? (
-                          <Badge variant="secondary">Satisfação</Badge>
-                        ) : i.fase === "produtos" ? (
-                          <Badge variant="secondary">Novos produtos</Badge>
-                        ) : (
-                          <Badge variant="outline">{i.motivoConclusao ?? "Concluído"}</Badge>
-                        )}
+                        <Select
+                          value={i.fase}
+                          onValueChange={(v) => v !== i.fase && ajustar.mutate({ item: i, fase: v })}
+                        >
+                          <SelectTrigger className="h-8 w-40 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="satisfacao">Satisfação</SelectItem>
+                            <SelectItem value="correcao">Correção</SelectItem>
+                            <SelectItem value="produtos">Novos produtos</SelectItem>
+                            {i.fase === "concluido" && (
+                              <SelectItem value="concluido" disabled>
+                                {i.motivoConclusao ?? "Concluído"}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
-                        {i.prazo ? (
-                          <span
-                            className={
-                              i.atrasado ? "font-medium text-destructive" : "text-muted-foreground"
-                            }
-                          >
-                            <CalendarClock className="mr-1 inline h-3.5 w-3.5" />
-                            {dataBR(i.prazo)}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                        <Input
+                          type="date"
+                          defaultValue={i.prazo ?? ""}
+                          key={`${i.id}-${i.prazo}`}
+                          className={`h-8 w-36 text-xs ${i.atrasado ? "font-medium text-destructive" : ""}`}
+                          onBlur={(e) => {
+                            const v = e.target.value;
+                            if (v && v !== i.prazo) ajustar.mutate({ item: i, prazo: v });
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value=""
+                          onValueChange={(v) => {
+                            const alvo: VendaAlvo = {
+                              id: i.id,
+                              tabela: i.tabela,
+                              vendedorId: i.vendedorId,
+                              cliente: i.cliente,
+                            };
+                            if (v === "satisfacao") setAlvoSatisfacao(alvo);
+                            else setAlvoProdutos(alvo);
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-44 text-xs">
+                            <SelectValue placeholder="Registrar contato" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="satisfacao">Contato de satisfação</SelectItem>
+                            <SelectItem value="produtos">Oferta de novos produtos</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-right">
-                        {i.fase === "concluido" ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : (
+                        <div className="flex justify-end gap-1">
                           <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              const alvo: VendaAlvo = {
-                                id: i.id,
-                                tabela: i.tabela,
-                                vendedorId: i.vendedorId,
-                                cliente: i.cliente,
-                              };
-                              if (i.fase === "satisfacao") setAlvoSatisfacao(alvo);
-                              else setAlvoProdutos(alvo);
-                            }}
+                            size="icon"
+                            variant="ghost"
+                            className="relative h-8 w-8"
+                            title="Observação"
+                            aria-label="Observação"
+                            onClick={() => setAlvoObs(i)}
                           >
-                            Registrar contato
+                            <MessageSquare className="h-4 w-4" />
+                            {i.ajustes.some((a) => a.observacao) && (
+                              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+                            )}
                           </Button>
-                        )}
+                          <Button
+                            asChild
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title="Abrir cadastro da venda"
+                          >
+                            <Link to="/vendas/$id" params={{ id: i.id }} aria-label="Editar venda">
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     {expandido === i.id && (
                       <TableRow>
-                        <TableCell colSpan={10} className="bg-muted/40">
-                          {i.contatos.length === 0 ? (
-                            <p className="py-2 text-sm text-muted-foreground">
-                              Nenhum contato registrado ainda.
-                            </p>
-                          ) : (
-                            <div className="space-y-2 py-2">
-                              {i.contatos.map((c) => (
-                                <div key={c.id} className="rounded-lg border bg-background p-2 text-sm">
-                                  <div className="text-xs text-muted-foreground">
-                                    {dataHoraBR(c.created_at)} ·{" "}
-                                    {c.fase === "satisfacao" ? "Satisfação" : "Novos produtos"}
-                                  </div>
-                                  {c.fase === "satisfacao" ? (
-                                    <div>
-                                      Resultado: <strong>{labelResultado(c.resultado)}</strong>
-                                      {c.motivo ? ` — ${c.motivo}` : ""}
-                                    </div>
-                                  ) : (
-                                    <ResumoProdutos produtos={c.produtos} />
-                                  )}
-                                  {c.observacao && (
-                                    <div className="whitespace-pre-wrap text-muted-foreground">
-                                      {c.observacao}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                        <TableCell colSpan={11} className="bg-muted/40">
+                          <Historico item={i} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -499,7 +601,131 @@ function PosVendasPage() {
         open={!!alvoProdutos}
         onOpenChange={(v) => !v && setAlvoProdutos(null)}
       />
+      <DialogObservacao
+        item={alvoObs ? (itens.find((x) => x.id === alvoObs.id) ?? alvoObs) : null}
+        salvando={ajustar.isPending}
+        onClose={() => setAlvoObs(null)}
+        onSalvar={(texto) =>
+          alvoObs && ajustar.mutateAsync({ item: alvoObs, observacao: texto })
+        }
+      />
     </div>
+  );
+}
+
+function Historico({ item }: { item: Item }) {
+  const eventos = [
+    ...item.contatos.map((c) => ({ tipo: "contato" as const, at: c.created_at, c })),
+    ...item.ajustes.map((a) => ({ tipo: "ajuste" as const, at: a.created_at, a })),
+  ].sort((x, y) => y.at.localeCompare(x.at));
+  if (eventos.length === 0)
+    return <p className="py-2 text-sm text-muted-foreground">Nenhum registro ainda.</p>;
+  return (
+    <div className="max-h-96 space-y-2 overflow-auto py-2">
+      {eventos.map((e) =>
+        e.tipo === "contato" ? (
+          <div key={e.c.id} className="rounded-lg border bg-background p-2 text-sm">
+            <div className="text-xs text-muted-foreground">
+              {dataHoraBR(e.at)} · Contato de {FASE_LABEL[e.c.fase]}
+            </div>
+            {e.c.fase === "satisfacao" ? (
+              <div>
+                Resultado: <strong>{labelResultado(e.c.resultado)}</strong>
+                {e.c.motivo ? ` — ${e.c.motivo}` : ""}
+              </div>
+            ) : (
+              <ResumoProdutos produtos={e.c.produtos} />
+            )}
+            {e.c.observacao && (
+              <div className="whitespace-pre-wrap text-muted-foreground">{e.c.observacao}</div>
+            )}
+          </div>
+        ) : (
+          <div key={e.a.id} className="rounded-lg border bg-background p-2 text-sm">
+            <div className="text-xs text-muted-foreground">{dataHoraBR(e.at)}</div>
+            {e.a.fase && (
+              <div>
+                Fase alterada para <strong>{FASE_LABEL[e.a.fase] ?? e.a.fase}</strong>
+              </div>
+            )}
+            {e.a.prazo && (
+              <div>
+                Próximo contato em <strong>{dataBR(e.a.prazo)}</strong>
+              </div>
+            )}
+            {e.a.observacao && (
+              <div className="flex gap-1.5 whitespace-pre-wrap">
+                <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                {e.a.observacao}
+              </div>
+            )}
+          </div>
+        ),
+      )}
+    </div>
+  );
+}
+
+function DialogObservacao({
+  item,
+  salvando,
+  onClose,
+  onSalvar,
+}: {
+  item: Item | null;
+  salvando: boolean;
+  onClose: () => void;
+  onSalvar: (texto: string) => Promise<unknown> | null;
+}) {
+  const [texto, setTexto] = useState("");
+  return (
+    <Dialog
+      open={!!item}
+      onOpenChange={(v) => {
+        if (!v) {
+          setTexto("");
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Observações</DialogTitle>
+          <DialogDescription>
+            {item?.cliente} {item?.protocolo ? `· Protocolo ${item.protocolo}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Textarea
+            rows={3}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Escreva uma observação sobre este pós-venda"
+          />
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              disabled={!texto.trim() || salvando}
+              onClick={async () => {
+                await onSalvar(texto.trim());
+                setTexto("");
+              }}
+            >
+              Adicionar observação
+            </Button>
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 text-sm font-medium">Histórico</div>
+          {item && <Historico item={item} />}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setTexto(""); onClose(); }}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
