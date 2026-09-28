@@ -6,7 +6,9 @@ import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
 import { ChevronsUpDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFaixasEquipe } from "@/lib/faixa-atual";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -290,6 +292,7 @@ export function RankingEquipe({
   const escopo = useMemo(() => aplicarFiltros(membros, filtros, role), [membros, filtros, role]);
   const ids = useMemo(() => escopo.map((m) => m.id), [escopo]);
   const mesRef = `${filtros.mes}-01`;
+  const faixas = useFaixasEquipe(ids, mesRef);
 
   const { data, isLoading } = useQuery({
     queryKey: ["ranking-equipe", role, isRegional, mesRef, ids.join(",")],
@@ -441,6 +444,10 @@ export function RankingEquipe({
             linhas={linhas}
             valorDe={(l) => l.comissaoRs}
             format={brl}
+            faixaDe={(id) => {
+              const f = faixas.data?.get(id);
+              return f ? `Faixa ${f.faixa}/${f.total}` : null;
+            }}
           />
           <RankCard titulo="Leads cadastrados" linhas={linhas} valorDe={(l) => l.leads} />
           <RankCard
@@ -460,11 +467,13 @@ function RankCard({
   linhas,
   valorDe,
   format,
+  faixaDe,
 }: {
   titulo: string;
   linhas: Linha[];
   valorDe: (l: Linha) => number;
   format?: (n: number) => string;
+  faixaDe?: (id: string) => string | null;
 }) {
   const ordenado = [...linhas].sort((a, b) => valorDe(b) - valorDe(a));
   const max = Math.max(1, valorDe(ordenado[0] ?? ({} as Linha)) || 1);
@@ -489,6 +498,11 @@ function RankCard({
             <div className="flex items-center gap-2 text-sm">
               <span className="w-5 text-xs font-bold text-muted-foreground">{i + 1}º</span>
               <span className="truncate">{l.nome}</span>
+              {faixaDe?.(l.id) && (
+                <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px] font-normal">
+                  {faixaDe(l.id)}
+                </Badge>
+              )}
               <span className="ml-auto font-semibold">
                 {format ? format(valorDe(l)) : valorDe(l)}
               </span>
