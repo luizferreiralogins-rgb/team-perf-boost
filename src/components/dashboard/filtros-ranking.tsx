@@ -498,9 +498,9 @@ function RankCard({
             <div className="flex items-center gap-2 text-sm">
               <span className="w-5 text-xs font-bold text-muted-foreground">{i + 1}º</span>
               <span className="truncate">{l.nome}</span>
-              {faixaDe && (
+              {faixaDe?.(l.id) && (
                 <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px] font-normal">
-                  {faixaDe(l.id) ?? ""}
+                  {faixaDe(l.id)}
                 </Badge>
               )}
               <span className="ml-auto font-semibold">
