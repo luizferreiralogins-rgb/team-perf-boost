@@ -39,6 +39,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/tarefas")({
   validateSearch: (search: Record<string, unknown>) => ({
     responsavel: typeof search.responsavel === "string" ? search.responsavel : undefined,
+    ...(typeof search.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.data)
+      ? { data: search.data as string }
+      : {}),
   }),
   head: () => ({
     meta: [
@@ -142,7 +145,7 @@ function formatarData(d: string) {
 
 function TarefasPage() {
   const qc = useQueryClient();
-  const { responsavel: responsavelInicial } = Route.useSearch();
+  const { responsavel: responsavelInicial, data: dataInicial } = Route.useSearch();
   const [editando, setEditando] = useState<Tarefa | null>(null);
 
   const me = useQuery({
@@ -393,7 +396,8 @@ function TarefasPage() {
         )}
 
         <NovaTarefa
-          key={responsavelInicial ?? "novo"}
+          key={`${responsavelInicial ?? "novo"}-${dataInicial ?? ""}`}
+          dataInicial={dataInicial}
           meId={me.data ?? null}
           pessoas={pessoas.data ?? []}
           equipeIds={equipe.data ?? []}
@@ -776,15 +780,17 @@ function NovaTarefa({
   pessoas,
   equipeIds,
   responsavelInicial,
+  dataInicial,
   onCriada,
 }: {
+  dataInicial?: string;
   meId: string | null;
   pessoas: { id: string; nome: string; email: string | null }[];
   equipeIds: string[];
   responsavelInicial?: string;
   onCriada: () => void;
 }) {
-  const [aberto, setAberto] = useState(Boolean(responsavelInicial));
+  const [aberto, setAberto] = useState(Boolean(responsavelInicial || dataInicial));
   const [alvo, setAlvo] = useState<Alvo>(responsavelInicial ? "usuario" : "propria");
   const [responsaveis, setResponsaveis] = useState<string[]>(
     responsavelInicial ? [responsavelInicial] : [],
@@ -794,7 +800,7 @@ function NovaTarefa({
   const [clienteContato, setClienteContato] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [data, setData] = useState(hoje());
+  const [data, setData] = useState(dataInicial ?? hoje());
   const [hora, setHora] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
   const [recorrencia, setRecorrencia] = useState<Recorrencia>("nenhuma");

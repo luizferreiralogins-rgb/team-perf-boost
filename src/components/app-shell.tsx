@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { AtalhosExternos } from "@/components/atalhos-externos";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAlertas } from "@/hooks/use-alertas";
+import { MiniCalendario } from "@/components/mini-calendario";
 
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
@@ -169,7 +170,7 @@ function Sidebar({
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 -translate-x-full bg-sidebar text-sidebar-foreground transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col -translate-x-full bg-sidebar text-sidebar-foreground transition-transform lg:translate-x-0",
           mobileOpen && "translate-x-0",
         )}
       >
@@ -188,7 +189,7 @@ function Sidebar({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1 overflow-y-auto">
           {items
             .filter((i) => i.show)
             .map((i) => (
@@ -211,8 +212,11 @@ function Sidebar({
               </Link>
             ))}
         </nav>
+        <div className="mt-auto border-t border-sidebar-border">
+          <MiniCalendario />
+        </div>
         {profile && (
-          <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4">
+          <div className="border-t border-sidebar-border p-4">
             <div className="text-xs text-sidebar-foreground/60">Canal</div>
             <div className="text-sm font-semibold uppercase tracking-wide">
               {profile.canal === "loja" ? "Loja" : "PAP"}
