@@ -215,18 +215,7 @@ function Sidebar({
         <div className="mt-auto border-t border-sidebar-border">
           <MiniCalendario />
         </div>
-        {profile && (
-          <div className="border-t border-sidebar-border p-4">
-            <div className="text-xs text-sidebar-foreground/60">Canal</div>
-            <div className="text-sm font-semibold uppercase tracking-wide">
-              {profile.canal === "loja" ? "Loja" : "PAP"}
-            </div>
-            <div className="mt-2 truncate text-xs text-sidebar-foreground/60">
-              {profile.email}
-            </div>
-          </div>
-        )}
-      </aside>
+        </aside>
     </>
   );
 }
