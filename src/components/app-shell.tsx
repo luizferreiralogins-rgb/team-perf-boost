@@ -19,6 +19,7 @@ import {
   MapPinned,
   ChartNoAxesCombined,
   HeartHandshake,
+  MessageCircle,
 
 } from "lucide-react";
 

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
@@ -42,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas/': typeof AuthenticatedVendasIndexRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas': typeof AuthenticatedVendasIndexRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/_authenticated/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/_authenticated/vendas/': typeof AuthenticatedVendasIndexRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
+    | '/whatsapp'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas/'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
+    | '/whatsapp'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/relatorios'
     | '/_authenticated/tarefas'
+    | '/_authenticated/whatsapp'
     | '/_authenticated/vendas/$id'
     | '/_authenticated/vendas/nova'
     | '/_authenticated/vendas/'
@@ -285,6 +297,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/whatsapp': {
+      id: '/_authenticated/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -414,6 +433,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedVendasIdRoute: typeof AuthenticatedVendasIdRoute
   AuthenticatedVendasNovaRoute: typeof AuthenticatedVendasNovaRoute
   AuthenticatedVendasIndexRoute: typeof AuthenticatedVendasIndexRoute
@@ -433,6 +453,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRegrasComissionamentoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedVendasIdRoute: AuthenticatedVendasIdRoute,
   AuthenticatedVendasNovaRoute: AuthenticatedVendasNovaRoute,
   AuthenticatedVendasIndexRoute: AuthenticatedVendasIndexRoute,
