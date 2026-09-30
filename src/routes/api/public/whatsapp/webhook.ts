@@ -103,11 +103,6 @@ async function processarEvento(admin: SupabaseAdmin, event: string, payload: any
       );
       if (msgErr) throw msgErr;
 
-      await admin.rpc("incrementar_nao_lidas" as never, { _conversation_id: conv.id } as never).then(
-        () => {},
-        () => {},
-      );
-      // fallback sem RPC: incremento simples
       const { data: atual } = await admin
         .from("whatsapp_conversations")
         .select("nao_lidas")
