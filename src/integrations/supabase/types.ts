@@ -1373,6 +1373,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_contas: {
+        Row: {
+          access_token_enc: string
+          app_secret_enc: string
+          created_at: string
+          numero_exibicao: string | null
+          phone_number_id: string
+          updated_at: string
+          user_id: string
+          verify_token: string
+        }
+        Insert: {
+          access_token_enc: string
+          app_secret_enc: string
+          created_at?: string
+          numero_exibicao?: string | null
+          phone_number_id: string
+          updated_at?: string
+          user_id: string
+          verify_token?: string
+        }
+        Update: {
+          access_token_enc?: string
+          app_secret_enc?: string
+          created_at?: string
+          numero_exibicao?: string | null
+          phone_number_id?: string
+          updated_at?: string
+          user_id?: string
+          verify_token?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversations: {
         Row: {
           created_at: string
