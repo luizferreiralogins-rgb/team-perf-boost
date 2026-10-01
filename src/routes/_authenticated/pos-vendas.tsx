@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   HeartHandshake,
+  Inbox,
   MessageSquare,
   Pencil,
   Search,
