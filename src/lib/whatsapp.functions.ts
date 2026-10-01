@@ -9,6 +9,32 @@ function digits(v: string): string {
   return v.replace(/\D/g, "");
 }
 
+async function enviarViaContaPropria(userId: string, to: string, texto: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: conta } = await supabaseAdmin
+    .from("whatsapp_contas" as any)
+    .select("phone_number_id, access_token_enc")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conta) return null;
+  const { decrypt, GRAPH_URL } = await import("./whatsapp-crypto.server");
+  const c = conta as any;
+  const response = await fetch(`${GRAPH_URL}/${c.phone_number_id}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${decrypt(c.access_token_enc)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body: texto } }),
+  });
+  const body = await response.text();
+  if (!response.ok) {
+    console.error(`WhatsApp (conta própria) falhou [${response.status}]: ${body}`);
+    throw new Error(`Falha ao enviar mensagem (${response.status}): ${body}`);
+  }
+  return JSON.parse(body) as { messages?: { id: string }[] };
+}
+
 async function enviarViaGateway(to: string, texto: string) {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
   const WHATSAPP_API_KEY = process.env.WHATSAPP_API_KEY;
@@ -86,7 +112,9 @@ export const sendWhatsappMessage = createServerFn({ method: "POST" })
     if (msgErr) throw msgErr;
 
     try {
-      const resp = await enviarViaGateway(telefone, data.texto);
+      const resp =
+        (await enviarViaContaPropria(context.userId, telefone, data.texto)) ??
+        (await enviarViaGateway(telefone, data.texto));
       const providerId = resp.messages?.[0]?.id ?? null;
       await supabaseAdmin
         .from("whatsapp_messages")
@@ -138,6 +166,75 @@ export const markConversationRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const whatsappConfigurado = createServerFn({ method: "GET" }).handler(async () => {
-  return { configurado: Boolean(process.env.WHATSAPP_API_KEY) };
-});
+export const whatsappConfigurado = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("whatsapp_contas" as any)
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return { configurado: Boolean(data) || Boolean(process.env.WHATSAPP_API_KEY), contaPropria: Boolean(data) };
+  });
+
+export const minhaContaWhatsapp = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("whatsapp_contas" as any)
+      .select("phone_number_id, numero_exibicao, verify_token, updated_at")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return (data as any) as
+      | { phone_number_id: string; numero_exibicao: string | null; verify_token: string; updated_at: string }
+      | null;
+  });
+
+export const salvarContaWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        phoneNumberId: z.string().trim().regex(/^\d{5,30}$/, "ID do número inválido"),
+        accessToken: z.string().trim().min(20).max(1000),
+        appSecret: z.string().trim().min(16).max(200),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { GRAPH_URL, encrypt } = await import("./whatsapp-crypto.server");
+    // valida as credenciais na Meta
+    const r = await fetch(
+      `${GRAPH_URL}/${data.phoneNumberId}?fields=display_phone_number,verified_name`,
+      { headers: { Authorization: `Bearer ${data.accessToken}` } },
+    );
+    const txt = await r.text();
+    if (!r.ok) throw new Error(`A Meta recusou os dados informados (${r.status}): ${txt}`);
+    const info = JSON.parse(txt) as { display_phone_number?: string };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("whatsapp_contas" as any).upsert(
+      {
+        user_id: context.userId,
+        phone_number_id: data.phoneNumberId,
+        numero_exibicao: info.display_phone_number ?? null,
+        access_token_enc: encrypt(data.accessToken),
+        app_secret_enc: encrypt(data.appSecret),
+      } as any,
+      { onConflict: "user_id" },
+    );
+    if (error) {
+      if (error.code === "23505") throw new Error("Esse número já está conectado por outro usuário.");
+      throw error;
+    }
+    return { ok: true, numero: info.display_phone_number ?? null };
+  });
+
+export const removerContaWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("whatsapp_contas" as any).delete().eq("user_id", context.userId);
+    return { ok: true };
+  });

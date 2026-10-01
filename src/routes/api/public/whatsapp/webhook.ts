@@ -51,7 +51,12 @@ async function acharVendedor(admin: SupabaseAdmin, telefone: string): Promise<st
   return adminRole?.user_id ?? null;
 }
 
-async function processarEvento(admin: SupabaseAdmin, event: string, payload: any) {
+export async function processarEvento(
+  admin: SupabaseAdmin,
+  event: string,
+  payload: any,
+  donoFixo?: string,
+) {
   const value = payload?.entry?.[0]?.changes?.[0]?.value;
   if (!value) return;
 
@@ -61,7 +66,7 @@ async function processarEvento(admin: SupabaseAdmin, event: string, payload: any
       const telefone = digits(msg.from);
       if (!telefone || !msg.id) continue;
 
-      const vendedorId = await acharVendedor(admin, telefone);
+      const vendedorId = donoFixo ?? (await acharVendedor(admin, telefone));
       if (!vendedorId) throw new Error(`Nenhum usuário para atribuir a conversa ${telefone}`);
 
       const texto =
