@@ -102,7 +102,7 @@ export const sendWhatsappMessage = createServerFn({ method: "POST" })
           .is("processed_at", null)
           .limit(50);
         for (const ev of pendentes ?? []) {
-          const statuses = ev.payload?.entry?.[0]?.changes?.[0]?.value?.statuses ?? [];
+          const statuses = (ev.payload as any)?.entry?.[0]?.changes?.[0]?.value?.statuses ?? [];
           if (statuses.some((s: any) => s?.id === providerId)) {
             const melhor = statuses.find((s: any) => s?.id === providerId);
             await supabaseAdmin

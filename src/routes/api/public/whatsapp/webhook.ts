@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyWebhookRequest } from "@lovable.dev/webhooks-js";
 
-type SupabaseAdmin = Awaited<
-  ReturnType<typeof import("@/integrations/supabase/client.server")>
->["supabaseAdmin"];
+type SupabaseAdmin = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
 
 const STATUS_ORDER = ["accepted", "sent", "delivered", "read"] as const;
 
@@ -159,7 +157,8 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
 
         let body: string;
         try {
-          const verified = await verifyWebhookRequest(request.clone(), {
+          const verified = await verifyWebhookRequest({
+            req: request.clone(),
             secret,
             maxBodyBytes: 4 * 1024 * 1024,
           });
