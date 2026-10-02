@@ -52,7 +52,7 @@ export function MinhaContaWhatsapp({ trigger }: { trigger?: React.ReactNode }) {
   };
   const salvar = useMutation({
     mutationFn: useServerFn(salvarContaWhatsapp),
-    onSuccess: (r) => {
+    onSuccess: (r: any) => {
       toast.success(`WhatsApp ${r.numero ?? ""} conectado!`);
       setForm({ phoneNumberId: "", accessToken: "", appSecret: "" });
       atualizar();
