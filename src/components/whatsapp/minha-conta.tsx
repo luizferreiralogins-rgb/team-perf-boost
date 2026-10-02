@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Settings2 } from "lucide-react";
+import { ChevronDown, Copy, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -44,6 +44,7 @@ function Copiar({ valor }: { valor: string }) {
 export function MinhaContaWhatsapp({ trigger }: { trigger?: React.ReactNode }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [passos, setPassos] = useState(false);
   const [form, setForm] = useState({ phoneNumberId: "", accessToken: "", appSecret: "" });
   const conta = useQuery({ queryKey: ["whatsapp-minha-conta"], queryFn: useServerFn(minhaContaWhatsapp) });
   const atualizar = () => {
