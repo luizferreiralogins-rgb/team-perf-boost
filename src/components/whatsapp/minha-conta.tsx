@@ -106,10 +106,25 @@ export function MinhaContaWhatsapp({ trigger }: { trigger?: React.ReactNode }) {
               comercial e clique em <strong>Criar app</strong>.
             </li>
             <li>
-              <strong>ID do número de telefone:</strong> no menu do app, abra{" "}
-              <strong>WhatsApp → API Setup</strong>, clique em "Adicionar número de telefone",
-              cadastre seu número e verifique por SMS ou ligação. O ID aparece logo abaixo do
-              número — copie-o aqui.
+              <strong>ID do número de telefone:</strong> no menu lateral do app, abra{" "}
+              <strong>WhatsApp → API Setup</strong>. Clique em "Adicionar número de telefone",
+              cadastre seu número e verifique por SMS ou ligação — o ID aparece logo abaixo do
+              número.
+              <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+                <li>
+                  <strong>Não achei o menu "WhatsApp" no app:</strong> o app ainda não tem o
+                  WhatsApp. No painel do app, role até <strong>"Adicionar produtos"</strong> (ou
+                  clique em <strong>Configurações do app → Básico → Adicionar produto</strong>),
+                  escolha <strong>WhatsApp</strong> e siga o assistente até a tela{" "}
+                  <strong>"Começar" / "API Setup"</strong>.
+                </li>
+                <li>
+                  <strong>Caminho alternativo pelo Gerenciador de Negócios:</strong> acesse{" "}
+                  <strong>business.facebook.com</strong> → <strong>Configurações</strong> →{" "}
+                  <strong>Contas → Contas do WhatsApp</strong>, clique na conta e depois no número
+                  — o <strong>ID do número de telefone</strong> aparece nos detalhes dele.
+                </li>
+              </ul>
             </li>
             <li>
               <strong>Token de acesso permanente:</strong> acesse{" "}
