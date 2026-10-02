@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { MinhaContaWhatsapp } from "@/components/whatsapp/minha-conta";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -196,9 +197,10 @@ function WhatsAppPage() {
         <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
         <h1 className="text-lg font-semibold">WhatsApp ainda não conectado</h1>
         <p className="text-sm text-muted-foreground">
-          A conexão com o WhatsApp Business ainda não foi concluída. Assim que estiver ativa, suas
+          Conecte o seu próprio WhatsApp Business para enviar e receber mensagens. Depois disso, suas
           conversas com clientes aparecerão aqui.
         </p>
+        <MinhaContaWhatsapp trigger={<Button>Conectar meu WhatsApp</Button>} />
       </div>
     );
   }
@@ -207,7 +209,8 @@ function WhatsAppPage() {
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       {/* Lista de conversas */}
       <div className={cn("w-full flex-col rounded-lg border bg-card md:flex md:w-80", convSelecionada && "hidden")}>
-        <div className="border-b p-3">
+        <div className="border-b p-3 space-y-2">
+          <MinhaContaWhatsapp />
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
