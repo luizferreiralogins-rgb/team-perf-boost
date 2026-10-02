@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Settings2 } from "lucide-react";
+import { ChevronDown, Copy, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -44,6 +44,7 @@ function Copiar({ valor }: { valor: string }) {
 export function MinhaContaWhatsapp({ trigger }: { trigger?: React.ReactNode }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [passos, setPassos] = useState(false);
   const [form, setForm] = useState({ phoneNumberId: "", accessToken: "", appSecret: "" });
   const conta = useQuery({ queryKey: ["whatsapp-minha-conta"], queryFn: useServerFn(minhaContaWhatsapp) });
   const atualizar = () => {
@@ -81,6 +82,63 @@ export function MinhaContaWhatsapp({ trigger }: { trigger?: React.ReactNode }) {
         <DialogHeader>
           <DialogTitle>Meu WhatsApp Business</DialogTitle>
         </DialogHeader>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-between"
+          onClick={() => setPassos((v) => !v)}
+        >
+          <span>Passo a passo na Meta (criar app e coletar os dados)</span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${passos ? "rotate-180" : ""}`} />
+        </Button>
+        {passos && (
+          <ol className="list-decimal space-y-2 rounded-md border p-3 pl-5 text-sm">
+            <li>
+              Acesse <strong>developers.facebook.com</strong> e entre com sua conta Meta (se for a
+              primeira vez, conclua o cadastro em "Registrar como desenvolvedor").
+            </li>
+            <li>
+              Em <strong>Meus aplicativos → Criar app</strong>, escolha o caso de uso{" "}
+              <strong>"Conectar-se com clientes pelo WhatsApp"</strong>, dê um nome ao app (ex.:
+              "WhatsApp — Seu Nome"), informe seu e-mail, selecione ou crie seu portfólio
+              comercial e clique em <strong>Criar app</strong>.
+            </li>
+            <li>
+              <strong>ID do número de telefone:</strong> no menu do app, abra{" "}
+              <strong>WhatsApp → API Setup</strong>, clique em "Adicionar número de telefone",
+              cadastre seu número e verifique por SMS ou ligação. O ID aparece logo abaixo do
+              número — copie-o aqui.
+            </li>
+            <li>
+              <strong>Token de acesso permanente:</strong> acesse{" "}
+              <strong>business.facebook.com → Configurações → Usuários → Usuários do sistema</strong>
+              , clique em <strong>Adicionar</strong>, dê um nome (ex.: "Token WhatsApp"), escolha a
+              função <strong>Administrador</strong> e crie. Depois clique em{" "}
+              <strong>Gerar novo token</strong> para esse usuário, selecione o app, marque as
+              permissões <strong>whatsapp_business_messaging</strong>,{" "}
+              <strong>whatsapp_business_management</strong> e{" "}
+              <strong>business_management</strong> e gere o token. Copie-o imediatamente (só é
+              exibido uma vez).
+            </li>
+            <li>
+              <strong>Chave secreta do app:</strong> de volta ao painel do app em{" "}
+              <strong>developers.facebook.com</strong>, abra{" "}
+              <strong>Configurações do app → Básico</strong> e copie a{" "}
+              <strong>"Chave secreta do aplicativo"</strong> (pedirá sua senha para mostrar).
+            </li>
+            <li>
+              Cole os três dados abaixo e clique em <strong>Conectar meu WhatsApp</strong>.
+            </li>
+            <li>
+              Após conectar, copie a <strong>URL de retorno</strong> e o{" "}
+              <strong>Token de verificação</strong> exibidos e cadastre no painel da Meta em{" "}
+              <strong>WhatsApp → Configuração → Webhook</strong>, assinando também o campo{" "}
+              <strong>messages</strong>.
+            </li>
+          </ol>
+        )}
 
         {c && (
           <div className="space-y-3 rounded-md border p-3 text-sm">
