@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   HeartHandshake,
-  Inbox,
   MessageSquare,
   Pencil,
   Search,
@@ -487,22 +486,7 @@ function PosVendasPage() {
                       </TableCell>
                       <TableCell>{i.protocolo || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {i.telefone ? (
-                          <span className="inline-flex items-center gap-2">
-                            <WhatsAppLink numero={i.telefone} />
-                            <Link
-                              to="/whatsapp"
-                              search={{ tel: i.telefone, nome: i.cliente }}
-                              title="Conversar dentro do sistema"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-muted-foreground hover:text-primary"
-                            >
-                              <Inbox className="h-3.5 w-3.5" />
-                            </Link>
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                        {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}
                       </TableCell>
                       <TableCell className="font-medium">{i.cliente}</TableCell>
                       <TableCell>{i.canal}</TableCell>
