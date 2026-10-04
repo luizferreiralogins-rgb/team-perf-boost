@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
@@ -28,8 +27,6 @@ import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authent
 import { Route as AuthenticatedVendasIndexRouteImport } from './routes/_authenticated/vendas/index'
 import { Route as AuthenticatedVendasNovaRouteImport } from './routes/_authenticated/vendas/nova'
 import { Route as AuthenticatedVendasIdRouteImport } from './routes/_authenticated/vendas/$id'
-import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
-import { Route as ApiPublicWhatsappMetaRouteImport } from './routes/api/public/whatsapp/meta'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -44,11 +41,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -130,17 +122,6 @@ const AuthenticatedVendasIdRoute = AuthenticatedVendasIdRouteImport.update({
   path: '/vendas/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicWhatsappWebhookRoute =
-  ApiPublicWhatsappWebhookRouteImport.update({
-    id: '/api/public/whatsapp/webhook',
-    path: '/api/public/whatsapp/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicWhatsappMetaRoute = ApiPublicWhatsappMetaRouteImport.update({
-  id: '/api/public/whatsapp/meta',
-  path: '/api/public/whatsapp/meta',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -157,12 +138,9 @@ export interface FileRoutesByFullPath {
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
-  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas/': typeof AuthenticatedVendasIndexRoute
-  '/api/public/whatsapp/meta': typeof ApiPublicWhatsappMetaRoute
-  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -179,12 +157,9 @@ export interface FileRoutesByTo {
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
-  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/vendas': typeof AuthenticatedVendasIndexRoute
-  '/api/public/whatsapp/meta': typeof ApiPublicWhatsappMetaRoute
-  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,12 +178,9 @@ export interface FileRoutesById {
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
-  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/vendas/$id': typeof AuthenticatedVendasIdRoute
   '/_authenticated/vendas/nova': typeof AuthenticatedVendasNovaRoute
   '/_authenticated/vendas/': typeof AuthenticatedVendasIndexRoute
-  '/api/public/whatsapp/meta': typeof ApiPublicWhatsappMetaRoute
-  '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -227,12 +199,9 @@ export interface FileRouteTypes {
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
-    | '/whatsapp'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas/'
-    | '/api/public/whatsapp/meta'
-    | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -249,12 +218,9 @@ export interface FileRouteTypes {
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
-    | '/whatsapp'
     | '/vendas/$id'
     | '/vendas/nova'
     | '/vendas'
-    | '/api/public/whatsapp/meta'
-    | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
     | '/'
@@ -272,20 +238,15 @@ export interface FileRouteTypes {
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/relatorios'
     | '/_authenticated/tarefas'
-    | '/_authenticated/whatsapp'
     | '/_authenticated/vendas/$id'
     | '/_authenticated/vendas/nova'
     | '/_authenticated/vendas/'
-    | '/api/public/whatsapp/meta'
-    | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ApiPublicWhatsappMetaRoute: typeof ApiPublicWhatsappMetaRoute
-  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -310,13 +271,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/whatsapp': {
-      id: '/_authenticated/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/whatsapp'
-      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -423,20 +377,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/whatsapp/webhook': {
-      id: '/api/public/whatsapp/webhook'
-      path: '/api/public/whatsapp/webhook'
-      fullPath: '/api/public/whatsapp/webhook'
-      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/whatsapp/meta': {
-      id: '/api/public/whatsapp/meta'
-      path: '/api/public/whatsapp/meta'
-      fullPath: '/api/public/whatsapp/meta'
-      preLoaderRoute: typeof ApiPublicWhatsappMetaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -453,7 +393,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
-  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedVendasIdRoute: typeof AuthenticatedVendasIdRoute
   AuthenticatedVendasNovaRoute: typeof AuthenticatedVendasNovaRoute
   AuthenticatedVendasIndexRoute: typeof AuthenticatedVendasIndexRoute
@@ -473,7 +412,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRegrasComissionamentoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
-  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedVendasIdRoute: AuthenticatedVendasIdRoute,
   AuthenticatedVendasNovaRoute: AuthenticatedVendasNovaRoute,
   AuthenticatedVendasIndexRoute: AuthenticatedVendasIndexRoute,
@@ -486,8 +424,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  ApiPublicWhatsappMetaRoute: ApiPublicWhatsappMetaRoute,
-  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
