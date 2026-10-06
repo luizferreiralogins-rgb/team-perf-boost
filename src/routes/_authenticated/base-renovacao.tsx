@@ -133,8 +133,23 @@ function Importar({ uid, equipe }: { uid: string; equipe: { id: string; nome: st
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], {
         defval: "",
       });
-      const mapa = new Map<string, string>();
-      for (const m of equipe) mapa.set(chave(m.nome), m.id);
+      const palavras = (n: string) => n.split(/\s+/).map(chave).filter(Boolean);
+      const cache = new Map<string, string | undefined>();
+      const achar = (c: string) => {
+        const k = chave(c);
+        if (!k) return undefined;
+        if (cache.has(k)) return cache.get(k);
+        const tenta = (f: (m: { nome: string }) => boolean) => {
+          const r = equipe.filter(f);
+          return r.length === 1 ? r[0].id : undefined;
+        };
+        const id =
+          tenta((m) => palavras(m.nome)[0] === k) ??
+          tenta((m) => (palavras(m.nome)[0] ?? "").startsWith(k)) ??
+          tenta((m) => palavras(m.nome).some((w) => w.startsWith(k)));
+        cache.set(k, id);
+        return id;
+      };
       const get = (r: Record<string, unknown>, ...ks: string[]) => {
         for (const k of Object.keys(r)) {
           const n = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -151,7 +166,7 @@ function Importar({ uid, equipe }: { uid: string; equipe: { id: string; nome: st
         const cons = get(r, "consultor");
         const nome = get(r, "nome do cliente", "nome");
         if (!nome) continue;
-        const cid = mapa.get(chave(cons));
+        const cid = achar(cons);
         if (!cid) {
           semDono.add(cons || "(vazio)");
           continue;
