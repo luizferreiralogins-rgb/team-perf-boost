@@ -8,6 +8,13 @@
       "when": 1791111758220,
       "tag": "0000_deprecate_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791291638454,
+      "tag": "0001_base_renovacao",
+      "breakpoints": true
     }
   ]
 }

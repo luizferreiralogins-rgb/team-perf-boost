@@ -119,6 +119,102 @@ export type Database = {
         }
         Relationships: []
       }
+      base_renovacao: {
+        Row: {
+          cidade: string | null
+          consultor_id: string
+          cpf_cnpj: string | null
+          created_at: string
+          data_contato: string | null
+          gerente_id: string
+          id: string
+          nome_cliente: string
+          obs: string | null
+          plano: string | null
+          status: string | null
+          telefone: string | null
+          tipo_pessoa: string | null
+          updated_at: string
+          valor: number | null
+          velox: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          consultor_id: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_contato?: string | null
+          gerente_id: string
+          id?: string
+          nome_cliente: string
+          obs?: string | null
+          plano?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo_pessoa?: string | null
+          updated_at?: string
+          valor?: number | null
+          velox?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          consultor_id?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_contato?: string | null
+          gerente_id?: string
+          id?: string
+          nome_cliente?: string
+          obs?: string | null
+          plano?: string | null
+          status?: string | null
+          telefone?: string | null
+          tipo_pessoa?: string | null
+          updated_at?: string
+          valor?: number | null
+          velox?: string | null
+        }
+        Relationships: []
+      }
+      base_renovacao_historico: {
+        Row: {
+          arquivado_em: string
+          consultor_id: string
+          cpf_cnpj: string | null
+          data_contato: string | null
+          gerente_id: string
+          id: string
+          nome_cliente: string
+          obs: string | null
+          status: string | null
+          telefone: string | null
+        }
+        Insert: {
+          arquivado_em?: string
+          consultor_id: string
+          cpf_cnpj?: string | null
+          data_contato?: string | null
+          gerente_id: string
+          id?: string
+          nome_cliente: string
+          obs?: string | null
+          status?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          arquivado_em?: string
+          consultor_id?: string
+          cpf_cnpj?: string | null
+          data_contato?: string | null
+          gerente_id?: string
+          id?: string
+          nome_cliente?: string
+          obs?: string | null
+          status?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       comissao_condicionantes: {
         Row: {
           created_at: string
@@ -1575,6 +1671,7 @@ export type Database = {
         Returns: boolean
       }
       is_gestor_regras: { Args: { _uid: string }; Returns: boolean }
+      limpar_base_renovacao: { Args: never; Returns: number }
       listar_destinatarios_venda: {
         Args: never
         Returns: {
