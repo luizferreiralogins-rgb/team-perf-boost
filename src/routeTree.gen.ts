@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedBaseRenovacaoRouteImport } from './routes/_authenticated/base-renovacao'
 import { Route as AuthenticatedContestacoesRouteImport } from './routes/_authenticated/contestacoes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
@@ -43,12 +42,6 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedBaseRenovacaoRoute =
-  AuthenticatedBaseRenovacaoRouteImport.update({
-    id: '/base-renovacao',
-    path: '/base-renovacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedContestacoesRoute =
   AuthenticatedContestacoesRouteImport.update({
     id: '/contestacoes',
@@ -133,7 +126,6 @@ const AuthenticatedVendasNovaRoute = AuthenticatedVendasNovaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/base-renovacao': typeof AuthenticatedBaseRenovacaoRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -153,7 +145,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/base-renovacao': typeof AuthenticatedBaseRenovacaoRoute
   '/contestacoes': typeof AuthenticatedContestacoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -175,7 +166,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/base-renovacao': typeof AuthenticatedBaseRenovacaoRoute
   '/_authenticated/contestacoes': typeof AuthenticatedContestacoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
@@ -197,7 +187,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/base-renovacao'
     | '/contestacoes'
     | '/dashboard'
     | '/equipe'
@@ -217,7 +206,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/base-renovacao'
     | '/contestacoes'
     | '/dashboard'
     | '/equipe'
@@ -238,7 +226,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/base-renovacao'
     | '/_authenticated/contestacoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipe'
@@ -284,13 +271,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/base-renovacao': {
-      id: '/_authenticated/base-renovacao'
-      path: '/base-renovacao'
-      fullPath: '/base-renovacao'
-      preLoaderRoute: typeof AuthenticatedBaseRenovacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/contestacoes': {
       id: '/_authenticated/contestacoes'
@@ -401,7 +381,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedBaseRenovacaoRoute: typeof AuthenticatedBaseRenovacaoRoute
   AuthenticatedContestacoesRoute: typeof AuthenticatedContestacoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
@@ -420,7 +399,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedBaseRenovacaoRoute: AuthenticatedBaseRenovacaoRoute,
   AuthenticatedContestacoesRoute: AuthenticatedContestacoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
