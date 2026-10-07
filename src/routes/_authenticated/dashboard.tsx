@@ -379,11 +379,13 @@ function Dashboard() {
                 {faixaAtual.data.canal === "pap" ? (
                   <p>
                     <span className="font-semibold text-foreground">
-                      Faixa Receita Atual: {faixaAtual.data.faixa}/{faixaAtual.data.total}
+                      {faixaAtual.data.porAtivacoes ? "Faixa BL Atual" : "Faixa Receita Atual"}: {faixaAtual.data.faixa}/{faixaAtual.data.total}
                     </span>{" "}
                     <span className="text-muted-foreground">
                       {faixaAtual.data.proxReceita
-                        ? `(Faltam ${brl(Math.ceil(faixaAtual.data.proxReceita.falta))} em Receita para a Faixa ${faixaAtual.data.proxReceita.faixa})`
+                        ? faixaAtual.data.porAtivacoes
+                          ? `(Faltam ${faixaAtual.data.proxReceita.falta} ativações de BL para a Faixa ${faixaAtual.data.proxReceita.faixa})`
+                          : `(Faltam ${brl(Math.ceil(faixaAtual.data.proxReceita.falta))} em Receita para a Faixa ${faixaAtual.data.proxReceita.faixa})`
                         : "(faixa máxima)"}
                     </span>
                   </p>

@@ -11,6 +11,8 @@ import {
   type PapFaixa,
   type PapNovoProduto,
 } from "@/lib/comissao";
+import { isBlPap } from "@/lib/kpi-qtd";
+import { usaPapV2 } from "@/lib/pap-v2";
 
 export type FaixaAtual = {
   canal: "loja" | "pap";
@@ -25,6 +27,8 @@ export type FaixaAtual = {
   faixaReceita?: number;
   /** O que falta para avançar para a próxima faixa (null quando já está na máxima). */
   proxima: { movel: number; receita: number } | null;
+  /** PAP a partir de 10/2026: faixa pela quantidade de BL ativadas. */
+  porAtivacoes?: boolean;
   /** Loja: quanto falta de renovações com móvel para a próxima faixa de móvel. */
   proxMovel?: { faixa: number; falta: number } | null;
   /** Quanto falta de receita para a próxima faixa de receita. */
@@ -44,7 +48,7 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
     .eq("status", "instalado");
   const papQ = supabase
     .from("vendas_pap")
-    .select("vendedor_id, valor, produto, tipo_protocolo")
+    .select("vendedor_id, valor, produto, tecnologia, tipo_protocolo")
     .eq("mes_ref", mesRefISO)
     .eq("status", "instalado");
   const profQ = supabase.from("profiles").select("id, canal");
@@ -54,7 +58,8 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
     profQ.in("id", ids);
   }
 
-  const [loja, pap, profs, metas, novosLoja, faixasPap, produtosPap] = await Promise.all([
+  const v2 = usaPapV2(mesRefISO);
+  const [loja, pap, profs, metas, novosLoja, faixasPap, produtosPap, faixasBl] = await Promise.all([
     lojaQ,
     papQ,
     profQ,
@@ -65,7 +70,11 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
       .select("faixa, receita_de, receita_ate, pct_comissao, acelerador_baixo_cancel, bonus_venda_indireta")
       .order("receita_de"),
     supabase.from("parametros_pap_novos_produtos").select("codigo, nome, percentual, limitado, limite"),
+    supabase.from("parametros_pap2_faixas_bl").select("faixa, ativ_de").order("ativ_de"),
   ]);
+  const ordBl = (faixasBl.data ?? []).map((f) => ({ faixa: Number(f.faixa), de: Number(f.ativ_de) }));
+  const blPorVend = new Map<string, number>();
+  for (const v of pap.data ?? []) if (isBlPap(v)) blPorVend.set(v.vendedor_id, (blPorVend.get(v.vendedor_id) ?? 0) + 1);
 
   const metasL = (metas.data ?? []) as LojaMeta[];
   const novosL = (novosLoja.data ?? []) as LojaNovoProduto[];
@@ -109,7 +118,22 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
   for (const p of profs.data ?? []) {
     const canal = (p.canal ?? "loja") as "loja" | "pap";
     const a = acc.get(p.id) ?? { receitaLoja: 0, renovTotal: 0, renovMovel: 0, corePap: 0 };
-    if (canal === "pap") {
+    if (canal === "pap" && v2 && ordBl.length) {
+      const bl = blPorVend.get(p.id) ?? 0;
+      let faixa = ordBl[0].faixa;
+      for (const f of ordBl) if (bl >= f.de) faixa = f.faixa;
+      const prox = ordBl.find((f) => f.de > bl);
+      out.set(p.id, {
+        canal,
+        faixa,
+        total: ordBl.length,
+        base: bl,
+        porAtivacoes: true,
+        proxima: prox ? { movel: 0, receita: prox.de - bl } : null,
+        proxReceita: prox ? { faixa: prox.faixa, falta: prox.de - bl } : null,
+        proxMovel: null,
+      });
+    } else if (canal === "pap") {
       const row = faixaPap(faixasP, a.corePap);
       const ordP = [...faixasP].sort((x, y) => Number(x.receita_de) - Number(y.receita_de));
       const prox = ordP.find((f) => Number(f.receita_de) > a.corePap);
