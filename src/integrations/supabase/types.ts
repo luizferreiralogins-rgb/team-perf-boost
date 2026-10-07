@@ -759,6 +759,132 @@ export type Database = {
         }
         Relationships: []
       }
+      parametros_pap2_acel_churn: {
+        Row: {
+          bonus: number
+          churn_ate: number
+          churn_de: number
+          faixa: number
+          id: string
+        }
+        Insert: {
+          bonus?: number
+          churn_ate: number
+          churn_de: number
+          faixa: number
+          id?: string
+        }
+        Update: {
+          bonus?: number
+          churn_ate?: number
+          churn_de?: number
+          faixa?: number
+          id?: string
+        }
+        Relationships: []
+      }
+      parametros_pap2_acel_razao: {
+        Row: {
+          bonus: number
+          faixa: number
+          id: string
+          razao_ate: number
+          razao_de: number
+        }
+        Insert: {
+          bonus?: number
+          faixa: number
+          id?: string
+          razao_ate: number
+          razao_de: number
+        }
+        Update: {
+          bonus?: number
+          faixa?: number
+          id?: string
+          razao_ate?: number
+          razao_de?: number
+        }
+        Relationships: []
+      }
+      parametros_pap2_faixas_bl: {
+        Row: {
+          ativ_ate: number
+          ativ_de: number
+          bonus_venda_indireta: number
+          faixa: number
+          id: string
+          pct_comissao: number
+        }
+        Insert: {
+          ativ_ate: number
+          ativ_de: number
+          bonus_venda_indireta?: number
+          faixa: number
+          id?: string
+          pct_comissao?: number
+        }
+        Update: {
+          ativ_ate?: number
+          ativ_de?: number
+          bonus_venda_indireta?: number
+          faixa?: number
+          id?: string
+          pct_comissao?: number
+        }
+        Relationships: []
+      }
+      parametros_pap2_faixas_demais: {
+        Row: {
+          bonus_venda_indireta: number
+          faixa: number
+          id: string
+          pct_comissao: number
+          receita_ate: number
+          receita_de: number
+        }
+        Insert: {
+          bonus_venda_indireta?: number
+          faixa: number
+          id?: string
+          pct_comissao?: number
+          receita_ate: number
+          receita_de: number
+        }
+        Update: {
+          bonus_venda_indireta?: number
+          faixa?: number
+          id?: string
+          pct_comissao?: number
+          receita_ate?: number
+          receita_de?: number
+        }
+        Relationships: []
+      }
+      parametros_pap2_novos_produtos: {
+        Row: {
+          codigo: string
+          limitado: boolean
+          limite: number
+          nome: string
+          percentual: number
+        }
+        Insert: {
+          codigo: string
+          limitado?: boolean
+          limite?: number
+          nome: string
+          percentual?: number
+        }
+        Update: {
+          codigo?: string
+          limitado?: boolean
+          limite?: number
+          nome?: string
+          percentual?: number
+        }
+        Relationships: []
+      }
       parametros_tempos: {
         Row: {
           chave: string

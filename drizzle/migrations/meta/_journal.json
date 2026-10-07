@@ -15,6 +15,13 @@
       "when": 1791291638454,
       "tag": "0001_base_renovacao",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791376079638,
+      "tag": "0002_pap_comissao_v2_out2026",
+      "breakpoints": true
     }
   ]
 }
