@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Trash2, Upload } from "lucide-react";
+import { ArrowRightLeft, ChevronLeft, ChevronRight, Trash2, Upload } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -194,7 +197,7 @@ function Page() {
               </TableHeader>
               <TableBody>
                 {(lista.data?.rows ?? []).map((r) => (
-                  <Linha key={r.id} r={r} gestor={gestor} nome={nomePorId[r.vendedor_id]} />
+                  <Linha key={r.id} r={r} gestor={gestor} nome={nomePorId[r.vendedor_id]} equipe={equipe.data ?? []} />
                 ))}
               </TableBody>
             </Table>
@@ -237,7 +240,8 @@ function Page() {
   );
 }
 
-function Linha({ r, gestor, nome }: { r: any; gestor: boolean; nome?: string }) {
+function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: string; equipe: { id: string; nome: string }[] }) {
+  const [abrirTransf, setAbrirTransf] = useState(false);
   const qc = useQueryClient();
   const [obs, setObs] = useState(r.observacao ?? "");
   const salvar = useMutation({
@@ -250,7 +254,37 @@ function Linha({ r, gestor, nome }: { r: any; gestor: boolean; nome?: string }) 
   });
   return (
     <TableRow>
-      {gestor && <TableCell className="whitespace-nowrap">{nome ?? "—"}</TableCell>}
+      {gestor && (
+        <TableCell className="whitespace-nowrap">
+          <div className="flex items-center gap-1">
+            <span>{nome ?? "—"}</span>
+            <Popover open={abrirTransf} onOpenChange={setAbrirTransf}>
+              <PopoverTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7" title="Transferir para outro consultor">
+                  <ArrowRightLeft className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2">
+                <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">Transferir para</p>
+                <div className="max-h-64 overflow-y-auto">
+                  {equipe.filter((p) => p.id !== r.vendedor_id).map((p) => (
+                    <button
+                      key={p.id}
+                      className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                      onClick={() => {
+                        salvar.mutate({ vendedor_id: p.id }, { onSuccess: () => toast.success(`Transferido para ${p.nome}.`) });
+                        setAbrirTransf(false);
+                      }}
+                    >
+                      {p.nome}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </TableCell>
+      )}
       <TableCell>
         <Input
           type="date"
@@ -303,36 +337,31 @@ function AcoesGestor({ uid }: { uid: string }) {
   const ref = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
 
-  const importar = async (file: File) => {
+  const [pendentes, setPendentes] = useState<Record<string, unknown>[] | null>(null);
+  const [equipeImp, setEquipeImp] = useState<{ id: string; nome: string; canal: string }[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+
+  const ler = async (file: File) => {
     setEnviando(true);
     try {
       const XLSX = await import("xlsx");
       const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
       const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: null });
-      const { data: equipe } = await supabase.from("profiles").select("id, nome").eq("gerente_id", uid);
-      const mapa = new Map((equipe ?? []).map((p) => [norm(p.nome), p.id]));
+      const { data: equipe } = await supabase.from("profiles").select("id, nome, canal").eq("gerente_id", uid).eq("ativo", true).order("nome");
       const pega = (l: Record<string, unknown>, ...ks: string[]) => {
         for (const k of Object.keys(l)) if (ks.includes(norm(k))) return l[k];
         return null;
       };
-      const faltando = new Map<string, number>();
       const registros: Record<string, unknown>[] = [];
       for (const l of linhas) {
-        const c = String(pega(l, "consultor") ?? "").trim();
         const nome = String(pega(l, "nome afetado", "nome", "cliente", "nome do cliente") ?? "").trim();
-        if (!c || !nome) continue;
-        const vid = mapa.get(norm(c));
-        if (!vid) {
-          faltando.set(c, (faltando.get(c) ?? 0) + 1);
-          continue;
-        }
+        if (!nome) continue;
         const d = pega(l, "data");
         const txt = (k: string) => {
           const v = pega(l, k);
           return v == null || v === "" ? null : String(v);
         };
         registros.push({
-          vendedor_id: vid,
           gerente_id: uid,
           nome_cliente: nome,
           cpf_cnpj: txt("cpf/cnpj"),
@@ -344,22 +373,37 @@ function AcoesGestor({ uid }: { uid: string }) {
           plano: txt("plano"),
         });
       }
-      for (let i = 0; i < registros.length; i += 500) {
-        const { error } = await supabase.from("prospeccoes").insert(registros.slice(i, i + 500) as never);
-        if (error) throw error;
-      }
-      toast.success(`${registros.length} clientes distribuídos.`);
-      if (faltando.size)
-        toast.warning(
-          `Consultores não encontrados na sua equipe: ${[...faltando].map(([n, q]) => `${n} (${q})`).join(", ")}`,
-          { duration: 15000 },
-        );
-      qc.invalidateQueries({ queryKey: ["prospeccoes"] });
+      if (!registros.length) throw new Error("Nenhum cliente encontrado na planilha.");
+      const eq = (equipe ?? []) as { id: string; nome: string; canal: string }[];
+      setEquipeImp(eq);
+      setSel(new Set(eq.filter((p) => p.canal === "loja").map((p) => p.id)));
+      setPendentes(registros);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setEnviando(false);
       if (ref.current) ref.current.value = "";
+    }
+  };
+
+  const distribuir = async () => {
+    if (!pendentes) return;
+    const ids = equipeImp.filter((p) => sel.has(p.id)).map((p) => p.id);
+    if (!ids.length) return toast.error("Selecione ao menos um consultor.");
+    setEnviando(true);
+    try {
+      const regs = pendentes.map((r, i) => ({ ...r, vendedor_id: ids[i % ids.length] }));
+      for (let i = 0; i < regs.length; i += 500) {
+        const { error } = await supabase.from("prospeccoes").insert(regs.slice(i, i + 500) as never);
+        if (error) throw error;
+      }
+      toast.success(`${regs.length} clientes distribuídos entre ${ids.length} consultor(es) (≈${Math.ceil(regs.length / ids.length)} cada).`);
+      setPendentes(null);
+      qc.invalidateQueries({ queryKey: ["prospeccoes"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -383,7 +427,7 @@ function AcoesGestor({ uid }: { uid: string }) {
         type="file"
         accept=".xlsx,.xls,.csv"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && importar(e.target.files[0])}
+        onChange={(e) => e.target.files?.[0] && ler(e.target.files[0])}
       />
       <Button onClick={() => ref.current?.click()} disabled={enviando}>
         <Upload className="mr-2 h-4 w-4" /> {enviando ? "Enviando…" : "Anexar planilha"}
@@ -398,6 +442,36 @@ function AcoesGestor({ uid }: { uid: string }) {
       >
         <Trash2 className="mr-2 h-4 w-4" /> Limpar base
       </Button>
+      <Dialog open={!!pendentes} onOpenChange={(o) => !o && !enviando && setPendentes(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Distribuir {pendentes?.length ?? 0} clientes</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Escolha os consultores. A base será dividida em quantidades iguais
+            {sel.size ? ` (≈${Math.ceil((pendentes?.length ?? 0) / sel.size)} para cada)` : ""}.
+          </p>
+          <div className="max-h-72 space-y-2 overflow-y-auto">
+            {equipeImp.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={sel.has(p.id)}
+                  onCheckedChange={(c) => {
+                    const n = new Set(sel);
+                    c ? n.add(p.id) : n.delete(p.id);
+                    setSel(n);
+                  }}
+                />
+                {p.nome} <span className="text-xs text-muted-foreground">({p.canal === "loja" ? "Loja" : "PAP"})</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendentes(null)} disabled={enviando}>Cancelar</Button>
+            <Button onClick={distribuir} disabled={enviando || !sel.size}>{enviando ? "Distribuindo…" : "Distribuir"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
