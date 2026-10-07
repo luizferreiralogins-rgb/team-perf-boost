@@ -17,6 +17,13 @@ import {
   type PapFaixa,
   type PapNovoProduto,
 } from "@/lib/comissao";
+import {
+  carregarParamsPapV2,
+  comissaoPapV2,
+  indiceCancelPap,
+  resumoMesPapV2,
+  usaPapV2,
+} from "@/lib/pap-v2";
 
 export async function recalcularLojaMes(vendedorId: string, mesRef: string) {
   const [{ data: faixas }, { data: metas }, { data: novos }, { data: vendas }] = await Promise.all([
@@ -78,7 +85,48 @@ export async function recalcularLojaMes(vendedorId: string, mesRef: string) {
   );
 }
 
+async function recalcularPapMesV2(vendedorId: string, mesRef: string) {
+  const [params, { data: vendas }, { data: cond }, { data: gerais }] = await Promise.all([
+    carregarParamsPapV2(),
+    supabase
+      .from("vendas_pap")
+      .select("id, valor, produto, tecnologia, tipo_protocolo, qtd_linhas, status")
+      .eq("vendedor_id", vendedorId)
+      .eq("mes_ref", mesRef),
+    supabase
+      .from("comissao_condicionantes")
+      .select("indice_cancelamento")
+      .eq("vendedor_id", vendedorId)
+      .eq("mes_ref", mesRef)
+      .maybeSingle(),
+    supabase.from("parametros_gerais").select("chave, valor_bool"),
+  ]);
+  const rows = vendas ?? [];
+  if (!rows.length) return;
+  if (!params.faixasBl.length || !params.faixasDemais.length) return;
+  const estimar =
+    (gerais ?? []).find((g) => g.chave === "pap_acelerador_automatico")?.valor_bool ?? true;
+  const indice = indiceCancelPap(cond?.indice_cancelamento, rows, estimar);
+  const resumo = resumoMesPapV2(rows, params.produtos, indice);
+  await Promise.all(
+    rows.map((v) => {
+      const { valor } = comissaoPapV2(
+        {
+          produto: v.produto ?? "",
+          tipoProtocolo: v.tipo_protocolo ?? "",
+          valor: Number(v.valor ?? 0),
+          instalado: v.status === "instalado",
+        },
+        resumo,
+        params,
+      );
+      return supabase.from("vendas_pap").update({ comissao: valor }).eq("id", v.id);
+    }),
+  );
+}
+
 export async function recalcularPapMes(vendedorId: string, mesRef: string) {
+  if (usaPapV2(mesRef)) return recalcularPapMesV2(vendedorId, mesRef);
   const [{ data: faixas }, { data: produtos }, { data: vendas }, { data: cond }, { data: gerais }] =
     await Promise.all([
       supabase
