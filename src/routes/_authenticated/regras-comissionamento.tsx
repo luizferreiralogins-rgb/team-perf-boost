@@ -144,6 +144,90 @@ function RegrasPage() {
         </TabsContent>
 
         <TabsContent value="pap" className="space-y-6 pt-4">
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+            <b>Vigente a partir de outubro/2026</b> — DC-MER-008 v009 e PV-MER-008 v001.
+          </div>
+          <ParamTable
+            table="parametros_pap2_faixas_bl"
+            title="Tabela 8.1 — Banda Larga e Móvel"
+            description="Faixa pela quantidade de ativações de BL no mês; % aplicado sobre a receita de BL e Móvel."
+            pk="id"
+            orderBy="ativ_de"
+            editavel={editavel}
+            novoPadrao={{ faixa: 1, ativ_de: 0, ativ_ate: 0, pct_comissao: 0, bonus_venda_indireta: 0 }}
+            cols={[
+              { key: "faixa", label: "Faixa", kind: "number", width: "80px" },
+              { key: "ativ_de", label: "De (ativações BL)", kind: "number" },
+              { key: "ativ_ate", label: "Até (ativações BL)", kind: "number" },
+              { key: "pct_comissao", label: "% Comissão ativações", kind: "percent" },
+              { key: "bonus_venda_indireta", label: "Bônus venda indireta", kind: "percent" },
+            ]}
+          />
+          <ParamTable
+            table="parametros_pap2_faixas_demais"
+            title="Tabela 8.2 — Demais produtos"
+            description="Faixa pela receita mensal dos demais produtos (ex.: TV, Telefonia Fixa)."
+            pk="id"
+            orderBy="receita_de"
+            editavel={editavel}
+            novoPadrao={{ faixa: 1, receita_de: 0, receita_ate: 0, pct_comissao: 0, bonus_venda_indireta: 0 }}
+            cols={[
+              { key: "faixa", label: "Faixa", kind: "number", width: "80px" },
+              { key: "receita_de", label: "De (R$)", kind: "currency" },
+              { key: "receita_ate", label: "Até (R$)", kind: "currency" },
+              { key: "pct_comissao", label: "% Comissão ativações", kind: "percent" },
+              { key: "bonus_venda_indireta", label: "Bônus venda indireta", kind: "percent" },
+            ]}
+          />
+          <ParamTable
+            table="parametros_pap2_novos_produtos"
+            title="Tabela 8.3 — Novos produtos"
+            description="Percentual fixo, sem aceleradores."
+            pk="codigo"
+            orderBy="nome"
+            editavel={editavel}
+            novoPadrao={{ codigo: "", nome: "", percentual: 0, limitado: false, limite: 999999999 }}
+            cols={[
+              { key: "codigo", label: "Código", kind: "text", lockOnEdit: true },
+              { key: "nome", label: "Produto", kind: "text" },
+              { key: "percentual", label: "% Comissionamento", kind: "percent" },
+              { key: "limitado", label: "Limitado por venda?", kind: "bool" },
+              { key: "limite", label: "Limite (R$)", kind: "currency" },
+            ]}
+          />
+          <ParamTable
+            table="parametros_pap2_acel_churn"
+            title="PV-MER-008 7.1 — Acelerador por índice de cancelamento (M-5)"
+            description="Vale para as tabelas 8.1 e 8.2."
+            pk="id"
+            orderBy="churn_de"
+            editavel={editavel}
+            novoPadrao={{ faixa: 1, churn_de: 0, churn_ate: 0, bonus: 0 }}
+            cols={[
+              { key: "faixa", label: "Faixa", kind: "number", width: "80px" },
+              { key: "churn_de", label: "De", kind: "percent" },
+              { key: "churn_ate", label: "Até", kind: "percent" },
+              { key: "bonus", label: "% Bônus", kind: "percent" },
+            ]}
+          />
+          <ParamTable
+            table="parametros_pap2_acel_razao"
+            title="PV-MER-008 7.2 — Acelerador razão Móvel × BL"
+            description="Exclusivo da tabela 8.1, a partir de 22 ativações de BL no mês. Aceleradores são cumulativos, com teto de 50%."
+            pk="id"
+            orderBy="razao_de"
+            editavel={editavel}
+            novoPadrao={{ faixa: 1, razao_de: 0, razao_ate: 0, bonus: 0 }}
+            cols={[
+              { key: "faixa", label: "Faixa", kind: "number", width: "80px" },
+              { key: "razao_de", label: "De (x)", kind: "number" },
+              { key: "razao_ate", label: "Até (x)", kind: "number" },
+              { key: "bonus", label: "% Bônus", kind: "percent" },
+            ]}
+          />
+          <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+            <b>Regras anteriores (até setembro/2026)</b> — mantidas para as vendas dos meses anteriores.
+          </div>
           <ParamTable
             table="parametros_pap_faixas"
             title="Tabela 8.1 — Metas de ativações (comissionamento padrão)"

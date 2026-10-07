@@ -3,7 +3,8 @@ import { Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import diretrizLoja from "@/assets/diretriz-loja.pdf.asset.json";
-import diretrizPap from "@/assets/diretriz-pap.pdf.asset.json";
+import diretrizPap from "@/assets/diretriz-pap-v9.pdf.asset.json";
+import planoPap from "@/assets/plano-pap.pdf.asset.json";
 
 const DOCS = [
   {
@@ -16,9 +17,16 @@ const DOCS = [
   {
     codigo: "DC-MER-008",
     titulo: "Diretriz Consultor de Vendas (PAP)",
-    versao: "Versão 008 — aprovada em 01/11/2025",
+    versao: "Versão 009 — aprovada em 01/10/2026",
     url: diretrizPap.url,
-    arquivo: "DC-MER-008_Diretriz_Consultor_PAP.pdf",
+    arquivo: "DC-MER-008_Diretriz_Consultor_de_Vendas.pdf",
+  },
+  {
+    codigo: "PV-MER-008",
+    titulo: "Plano de Vendas para Consultor de Vendas (PAP)",
+    versao: "Versão 001 — aprovada em 01/10/2026",
+    url: planoPap.url,
+    arquivo: "PV-MER-008_Planos_de_Vendas_para_Consultor_de_Vendas_-_PAP.pdf",
   },
   {
     codigo: "DC-MER-020",

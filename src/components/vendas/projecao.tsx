@@ -15,6 +15,7 @@ import {
   type PapFaixa,
   type PapNovoProduto,
 } from "@/lib/comissao";
+import { carregarParamsPapV2, comissaoPapV2, resumoMesPapV2, usaPapV2 } from "@/lib/pap-v2";
 
 export function useParametrosLoja() {
   return useQuery({
@@ -128,7 +129,7 @@ export function ProjecaoComissaoLoja({
   );
 }
 
-export function ProjecaoComissaoPap({
+function ProjecaoComissaoPapAntiga({
   valor,
   instalado,
   tipoProtocolo,
@@ -222,6 +223,124 @@ export function ProjecaoComissaoPap({
         )}
         <p className="text-xs text-muted-foreground">
           O acelerador é pago apenas quando o índice de cancelamento D+5 fica dentro da meta.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+type PropsPap = {
+  valor: string;
+  instalado: boolean;
+  tipoProtocolo: string;
+  produto: string;
+  mesRef: string;
+  vendedorId?: string;
+  editingId?: string;
+};
+
+export function ProjecaoComissaoPap(props: PropsPap) {
+  return usaPapV2(props.mesRef) ? (
+    <ProjecaoComissaoPapV2 {...props} />
+  ) : (
+    <ProjecaoComissaoPapAntiga {...props} />
+  );
+}
+
+function ProjecaoComissaoPapV2({ valor, instalado, tipoProtocolo, produto, mesRef, vendedorId, editingId }: PropsPap) {
+  const params = useQuery({ queryKey: ["parametros-pap-v2"], staleTime: 5 * 60_000, queryFn: carregarParamsPapV2 });
+  const mes = useQuery({
+    queryKey: ["pap-v2-mes", mesRef, vendedorId],
+    enabled: !!mesRef,
+    queryFn: async () => {
+      const uid = vendedorId ?? (await supabase.auth.getUser()).data.user?.id;
+      if (!uid) return { rows: [], indice: null as number | null };
+      const [{ data }, { data: cond }] = await Promise.all([
+        supabase
+          .from("vendas_pap")
+          .select("id, valor, produto, tecnologia, tipo_protocolo, qtd_linhas, status")
+          .eq("vendedor_id", uid)
+          .eq("mes_ref", mesRef)
+          .eq("status", "instalado"),
+        supabase
+          .from("comissao_condicionantes")
+          .select("indice_cancelamento")
+          .eq("vendedor_id", uid)
+          .eq("mes_ref", mesRef)
+          .maybeSingle(),
+      ]);
+      return { rows: data ?? [], indice: cond?.indice_cancelamento ?? null };
+    },
+  });
+
+  const calc = useMemo(() => {
+    if (!params.data) return null;
+    const v = parseFloat(valor) || 0;
+    const outras = (mes.data?.rows ?? []).filter((r) => r.id !== editingId);
+    const atual = { produto, tipo_protocolo: tipoProtocolo, valor: v, qtd_linhas: 1, status: "instalado" };
+    const resumo = resumoMesPapV2(
+      instalado ? [...outras, atual] : outras,
+      params.data.produtos,
+      mes.data?.indice === null || mes.data?.indice === undefined ? null : Number(mes.data.indice),
+    );
+    return { resumo, r: comissaoPapV2({ produto, tipoProtocolo, valor: v, instalado }, resumo, params.data) };
+  }, [params.data, mes.data, valor, instalado, tipoProtocolo, produto, editingId]);
+
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  const titulo =
+    calc?.r.grupo === "bl_movel"
+      ? "Tabela 8.1 — Banda Larga e Móvel (faixa pela quantidade de BL ativadas no mês)."
+      : calc?.r.grupo === "demais"
+        ? "Tabela 8.2 — Demais produtos (faixa pela receita mensal desses produtos)."
+        : calc?.r.grupo === "novo"
+          ? "Tabela 8.3 — Novos produtos: percentual fixo, sem aceleradores."
+          : "Venda indireta: bônus da faixa, sem aceleradores.";
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Projeção de comissão</CardTitle>
+        <CardDescription>{titulo}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {!instalado && (
+          <p className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+            Comissão só é contabilizada quando <span className="font-medium">instalado</span>.
+          </p>
+        )}
+        {calc && (
+          <>
+            {(calc.r.grupo === "bl_movel" || calc.r.grupo === "demais") && (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                <span className="text-muted-foreground">
+                  {calc.r.grupo === "bl_movel"
+                    ? `Faixa ${calc.r.faixa} · ${calc.resumo.blQtd} BL · ${calc.resumo.linhasMovel} móveis`
+                    : `Faixa ${calc.r.faixa} · ${brl(calc.resumo.receitaDemais)}`}
+                </span>
+                <span className="font-semibold">{pct(calc.r.pctBase)}</span>
+              </div>
+            )}
+            {(calc.r.grupo === "bl_movel" || calc.r.grupo === "demais") && (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                <span className="text-muted-foreground">Acelerador cancelamento (M-5)</span>
+                <span className="font-semibold">+{pct(calc.r.bonusChurn)}</span>
+              </div>
+            )}
+            {calc.r.grupo === "bl_movel" && (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                <span className="text-muted-foreground">Acelerador razão Móvel × BL</span>
+                <span className="font-semibold">+{pct(calc.r.bonusRazao)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-muted-foreground">Comissão ({pct(calc.r.pct)})</span>
+              <span className="font-semibold text-primary">{brl(calc.r.valor)}</span>
+            </div>
+          </>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Regras de outubro/2026 em diante (DC-MER-008 v009 e PV-MER-008). Aceleradores são
+          cumulativos, com teto de 50%. O de razão Móvel × BL vale a partir de 22 BL no mês.
         </p>
       </CardContent>
     </Card>
