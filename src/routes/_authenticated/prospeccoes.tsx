@@ -242,7 +242,7 @@ function Linha({ r, gestor, nome }: { r: any; gestor: boolean; nome?: string }) 
   const [obs, setObs] = useState(r.observacao ?? "");
   const salvar = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
-      const { error } = await supabase.from("prospeccoes").update(patch).eq("id", r.id);
+      const { error } = await supabase.from("prospeccoes").update(patch as never).eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["prospeccoes"] }),
