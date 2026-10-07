@@ -21,6 +21,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPlanejamentoRouteImport } from './routes/_authenticated/planejamento'
 import { Route as AuthenticatedPosVendasRouteImport } from './routes/_authenticated/pos-vendas'
 import { Route as AuthenticatedProdutividadeRouteImport } from './routes/_authenticated/produtividade'
+import { Route as AuthenticatedProspeccoesRouteImport } from './routes/_authenticated/prospeccoes'
 import { Route as AuthenticatedRegrasComissionamentoRouteImport } from './routes/_authenticated/regras-comissionamento'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
@@ -90,6 +91,12 @@ const AuthenticatedProdutividadeRoute =
     path: '/produtividade',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProspeccoesRoute =
+  AuthenticatedProspeccoesRouteImport.update({
+    id: '/prospeccoes',
+    path: '/prospeccoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRegrasComissionamentoRoute =
   AuthenticatedRegrasComissionamentoRouteImport.update({
     id: '/regras-comissionamento',
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/pos-vendas': typeof AuthenticatedPosVendasRoute
   '/produtividade': typeof AuthenticatedProdutividadeRoute
+  '/prospeccoes': typeof AuthenticatedProspeccoesRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/pos-vendas': typeof AuthenticatedPosVendasRoute
   '/produtividade': typeof AuthenticatedProdutividadeRoute
+  '/prospeccoes': typeof AuthenticatedProspeccoesRoute
   '/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -175,6 +184,7 @@ export interface FileRoutesById {
   '/_authenticated/planejamento': typeof AuthenticatedPlanejamentoRoute
   '/_authenticated/pos-vendas': typeof AuthenticatedPosVendasRoute
   '/_authenticated/produtividade': typeof AuthenticatedProdutividadeRoute
+  '/_authenticated/prospeccoes': typeof AuthenticatedProspeccoesRoute
   '/_authenticated/regras-comissionamento': typeof AuthenticatedRegrasComissionamentoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/planejamento'
     | '/pos-vendas'
     | '/produtividade'
+    | '/prospeccoes'
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/planejamento'
     | '/pos-vendas'
     | '/produtividade'
+    | '/prospeccoes'
     | '/regras-comissionamento'
     | '/relatorios'
     | '/tarefas'
@@ -235,6 +247,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planejamento'
     | '/_authenticated/pos-vendas'
     | '/_authenticated/produtividade'
+    | '/_authenticated/prospeccoes'
     | '/_authenticated/regras-comissionamento'
     | '/_authenticated/relatorios'
     | '/_authenticated/tarefas'
@@ -335,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutividadeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/prospeccoes': {
+      id: '/_authenticated/prospeccoes'
+      path: '/prospeccoes'
+      fullPath: '/prospeccoes'
+      preLoaderRoute: typeof AuthenticatedProspeccoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/regras-comissionamento': {
       id: '/_authenticated/regras-comissionamento'
       path: '/regras-comissionamento'
@@ -390,6 +410,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanejamentoRoute: typeof AuthenticatedPlanejamentoRoute
   AuthenticatedPosVendasRoute: typeof AuthenticatedPosVendasRoute
   AuthenticatedProdutividadeRoute: typeof AuthenticatedProdutividadeRoute
+  AuthenticatedProspeccoesRoute: typeof AuthenticatedProspeccoesRoute
   AuthenticatedRegrasComissionamentoRoute: typeof AuthenticatedRegrasComissionamentoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
@@ -408,6 +429,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanejamentoRoute: AuthenticatedPlanejamentoRoute,
   AuthenticatedPosVendasRoute: AuthenticatedPosVendasRoute,
   AuthenticatedProdutividadeRoute: AuthenticatedProdutividadeRoute,
+  AuthenticatedProspeccoesRoute: AuthenticatedProspeccoesRoute,
   AuthenticatedRegrasComissionamentoRoute:
     AuthenticatedRegrasComissionamentoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
