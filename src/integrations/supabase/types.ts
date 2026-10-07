@@ -1188,6 +1188,102 @@ export type Database = {
           },
         ]
       }
+      prospeccoes: {
+        Row: {
+          categoria: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          data_contato: string | null
+          data_registro: string | null
+          gerente_id: string
+          id: string
+          item: string | null
+          nome_cliente: string
+          observacao: string | null
+          plano: string | null
+          status: string | null
+          telefone: string | null
+          unidade: string | null
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          categoria?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_contato?: string | null
+          data_registro?: string | null
+          gerente_id: string
+          id?: string
+          item?: string | null
+          nome_cliente: string
+          observacao?: string | null
+          plano?: string | null
+          status?: string | null
+          telefone?: string | null
+          unidade?: string | null
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          categoria?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          data_contato?: string | null
+          data_registro?: string | null
+          gerente_id?: string
+          id?: string
+          item?: string | null
+          nome_cliente?: string
+          observacao?: string | null
+          plano?: string | null
+          status?: string | null
+          telefone?: string | null
+          unidade?: string | null
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
+      prospeccoes_historico: {
+        Row: {
+          arquivado_em: string
+          cpf_cnpj: string | null
+          data_contato: string | null
+          gerente_id: string
+          id: string
+          nome_cliente: string
+          observacao: string | null
+          status: string | null
+          telefone: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          arquivado_em?: string
+          cpf_cnpj?: string | null
+          data_contato?: string | null
+          gerente_id: string
+          id?: string
+          nome_cliente: string
+          observacao?: string | null
+          status?: string | null
+          telefone?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          arquivado_em?: string
+          cpf_cnpj?: string | null
+          data_contato?: string | null
+          gerente_id?: string
+          id?: string
+          nome_cliente?: string
+          observacao?: string | null
+          status?: string | null
+          telefone?: string | null
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       tarefa_participantes: {
         Row: {
           created_at: string
@@ -1702,6 +1798,7 @@ export type Database = {
       }
       is_gestor_regras: { Args: { _uid: string }; Returns: boolean }
       limpar_base_renovacao: { Args: never; Returns: number }
+      limpar_prospeccoes: { Args: never; Returns: number }
       listar_destinatarios_venda: {
         Args: never
         Returns: {
