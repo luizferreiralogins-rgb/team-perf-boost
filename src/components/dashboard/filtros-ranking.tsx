@@ -31,7 +31,7 @@ export type Membro = {
 };
 
 export type Filtros = {
-  mes: string; // YYYY-MM
+  mes: string[]; // YYYY-MM, um ou mais meses
   pessoa: string; // 'all' | profile id
   unidades: string[]; // [] = todas | nomes de loja_unidade | 'pap'
 };
@@ -131,6 +131,62 @@ export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
   return list;
 }
 
+
+/** Seleção de um ou mais meses (checkboxes). Sempre mantém ao menos um mês selecionado. */
+export function MesMultiSelect({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (meses: string[]) => void;
+}) {
+  const opcoes = useMemo(() => mesesRecentes(), []);
+  const sel = new Set(value);
+  const toggle = (v: string) => {
+    const next = sel.has(v) ? value.filter((x) => x !== v) : [...value, v];
+    onChange(next.length ? next : [mesAtual()]);
+  };
+  const rotulo =
+    value.length === 0
+      ? "Mês atual"
+      : value.length === 1
+        ? (opcoes.find((o) => o.value === value[0])?.label ?? value[0])
+        : `${value.length} meses selecionados`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal">
+          <span className="truncate capitalize">{rotulo}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="max-h-80 w-[--radix-popover-trigger-width] overflow-y-auto p-2"
+        align="start"
+      >
+        <button
+          type="button"
+          className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+          onClick={() => onChange([mesAtual()])}
+        >
+          <Checkbox checked={value.length === 1 && sel.has(mesAtual())} />
+          Mês atual
+        </button>
+        {opcoes.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+            onClick={() => toggle(o.value)}
+          >
+            <Checkbox checked={sel.has(o.value)} />
+            <span className="capitalize">{o.label}</span>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function FiltrosBar({
   role,
@@ -250,18 +306,10 @@ export function FiltrosBar({
 
         <div className="space-y-1.5">
           <Label className="text-xs">Mês</Label>
-          <Select value={filtros.mes} onValueChange={(v) => onChange({ ...filtros, mes: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {mesesRecentes().map((m) => (
-                <SelectItem key={m.value} value={m.value} className="capitalize">
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MesMultiSelect
+            value={filtros.mes}
+            onChange={(mes) => onChange({ ...filtros, mes })}
+          />
         </div>
       </CardContent>
     </Card>
@@ -291,21 +339,19 @@ export function RankingEquipe({
   const isRegional = role !== "gerente" && role !== "lider_pap";
   const escopo = useMemo(() => aplicarFiltros(membros, filtros, role), [membros, filtros, role]);
   const ids = useMemo(() => escopo.map((m) => m.id), [escopo]);
-  const mesRef = `${filtros.mes}-01`;
-  const faixas = useFaixasEquipe(ids, mesRef);
+  const meses = useMemo(() => [...filtros.mes].sort(), [filtros.mes]);
+  const mesRefs = useMemo(() => meses.map((m) => `${m}-01`), [meses]);
+  const faixas = useFaixasEquipe(ids, meses.length === 1 ? mesRefs[0]! : `${mesAtual()}-01`);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ranking-equipe", role, isRegional, mesRef, ids.join(",")],
-    enabled: ids.length > 0,
+    queryKey: ["ranking-equipe", role, isRegional, meses.join(","), ids.join(",")],
+    enabled: ids.length > 0 && meses.length > 0,
     queryFn: async (): Promise<Linha[]> => {
-      const inicio = `${mesRef}T00:00:00`;
-      const fimDate = new Date(
-        Number(filtros.mes.slice(0, 4)),
-        Number(filtros.mes.slice(5, 7)),
-        1,
-      );
+      const inicio = `${meses[0]}-01T00:00:00`;
+      const [yFim, mFim] = meses[meses.length - 1]!.split("-").map(Number);
+      const fimDate = new Date(yFim!, mFim!, 1);
       const fim = `${fimDate.getFullYear()}-${String(fimDate.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
-      const ehMesAtual = filtros.mes === mesAtual();
+      const ehMesAtual = meses.includes(mesAtual());
 
       const lojaQ = supabase
         .from("vendas_loja")
@@ -316,12 +362,12 @@ export function RankingEquipe({
         .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status, data_ativacao")
         .in("vendedor_id", ids);
       if (ehMesAtual) {
-        // mês atual: vendas ativas + as já arquivadas com referência neste mês
-        lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
-        papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
+        // mês atual incluso: vendas ativas + as já arquivadas com referência nos meses escolhidos
+        lojaQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefs.join(",")})`);
+        papQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefs.join(",")})`);
       } else {
-        lojaQ.eq("mes_ref", mesRef);
-        papQ.eq("mes_ref", mesRef);
+        lojaQ.in("mes_ref", mesRefs);
+        papQ.in("mes_ref", mesRefs);
       }
 
       const [loja, pap, leads] = await Promise.all([
@@ -445,6 +491,7 @@ export function RankingEquipe({
             valorDe={(l) => l.comissaoRs}
             format={brl}
             faixaDe={(id) => {
+              if (meses.length !== 1) return null;
               const f = faixas.data?.get(id);
               return f ? `Faixa ${f.faixa}/${f.total}` : null;
             }}

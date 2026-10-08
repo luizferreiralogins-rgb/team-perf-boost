@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,28 +22,44 @@ type Linha = {
 
 
 /** Top 3 do time (consultores com o mesmo gerente) por indicador. */
-export function RankingTime({ uid, mes }: { uid?: string; mes: string }) {
-  const mesRef = `${mes}-01`;
+export function RankingTime({ uid, meses }: { uid?: string; meses: string[] }) {
+  const ordenados = useMemo(() => [...meses].sort(), [meses]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ranking-time", uid, mesRef],
-    enabled: !!uid,
+    queryKey: ["ranking-time", uid, ordenados.join(",")],
+    enabled: !!uid && ordenados.length > 0,
     staleTime: 30_000,
     queryFn: async (): Promise<Linha[]> => {
-      const { data, error } = await supabase.rpc("ranking_time", {
-        _mes_ref: mesRef,
-        _usar_ativas: mes === mesAtual(),
-      });
-      if (error) throw error;
-      return (data ?? []).map((r: any) => ({
-        id: r.id as string,
-        nome: (r.nome as string) || "—",
-        comissao: Number(r.comissao ?? 0),
-        blQtd: Number(r.bl_qtd ?? 0),
-        mvQtd: Number(r.mv_qtd ?? 0),
-        renovQtd: Number(r.renov_qtd ?? 0),
-        renovRs: Number(r.renov_rs ?? 0),
-      }));
+      const resultados = await Promise.all(
+        ordenados.map((m) =>
+          supabase.rpc("ranking_time", {
+            _mes_ref: `${m}-01`,
+            _usar_ativas: m === mesAtual(),
+          }),
+        ),
+      );
+      const porId = new Map<string, Linha>();
+      for (const res of resultados) {
+        if (res.error) throw res.error;
+        for (const r of (res.data ?? []) as any[]) {
+          const cur = porId.get(r.id) ?? {
+            id: r.id as string,
+            nome: (r.nome as string) || "—",
+            comissao: 0,
+            blQtd: 0,
+            mvQtd: 0,
+            renovQtd: 0,
+            renovRs: 0,
+          };
+          cur.comissao += Number(r.comissao ?? 0);
+          cur.blQtd += Number(r.bl_qtd ?? 0);
+          cur.mvQtd += Number(r.mv_qtd ?? 0);
+          cur.renovQtd += Number(r.renov_qtd ?? 0);
+          cur.renovRs += Number(r.renov_rs ?? 0);
+          porId.set(cur.id, cur);
+        }
+      }
+      return [...porId.values()];
     },
 
   });

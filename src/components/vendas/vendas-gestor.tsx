@@ -85,7 +85,8 @@ export function VendasGestor() {
     })();
   }, []);
 
-  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidades: [] });
+  const [filtros, setFiltros] = useState<Filtros>({ mes: [mesAtual()], pessoa: "all", unidades: [] });
+  const meses = useMemo(() => [...filtros.mes].sort(), [filtros.mes]);
   const equipe = useEquipe(uid, role);
   const membros = useMemo(
     () => aplicarFiltros(equipe.data ?? [], filtros, role ?? ""),
@@ -98,11 +99,11 @@ export function VendasGestor() {
   );
 
   const vendas = useQuery({
-    queryKey: ["vendas-gestor", filtros.mes, consultoresIds.join(",")],
-    enabled: consultoresIds.length > 0,
+    queryKey: ["vendas-gestor", meses.join(","), consultoresIds.join(",")],
+    enabled: consultoresIds.length > 0 && meses.length > 0,
     queryFn: async (): Promise<Linha[]> => {
-      const de = `${filtros.mes}-01`;
-      const ate = fimDoMes(filtros.mes);
+      const de = `${meses[0]}-01`;
+      const ate = fimDoMes(meses[meses.length - 1]!);
       const [{ data: loja }, { data: pap }] = await Promise.all([
         supabase
           .from("vendas_loja")

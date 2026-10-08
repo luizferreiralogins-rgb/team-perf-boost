@@ -18,9 +18,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   FiltrosBar,
+  MesMultiSelect,
   aplicarFiltros,
   mesAtual,
-  mesesRecentes,
   useEquipe,
   type Filtros,
   type Membro,
@@ -116,7 +116,7 @@ function rolePrincipal(roles: string[]) {
 function RelatoriosPage() {
   const [tipo, setTipo] = useState<TipoRelatorio | null>(null);
   const [filtros, setFiltros] = useState<Filtros>({
-    mes: mesAtual(),
+    mes: [mesAtual()],
     pessoa: "all",
     unidades: [],
   });
@@ -223,35 +223,24 @@ function RelatoriosPage() {
               <CardContent className="p-4">
                 <div className="max-w-xs space-y-1.5">
                   <Label className="text-xs">Mês</Label>
-                  <Select
+                  <MesMultiSelect
                     value={filtros.mes}
-                    onValueChange={(mes) => setFiltros((atual) => ({ ...atual, mes }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mesesRecentes().map((mes) => (
-                        <SelectItem key={mes.value} value={mes.value} className="capitalize">
-                          {mes.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(mes) => setFiltros((atual) => ({ ...atual, mes }))}
+                  />
                 </div>
               </CardContent>
             </Card>
           )}
           {tipo === "reagendamentos" ? (
             <RelatorioReagendamentos
-              mes={filtros.mes}
+              meses={filtros.mes}
               ids={ids}
               nomes={nomes}
               carregandoEscopo={carregandoEscopo}
             />
           ) : (
             <RelatorioCanais
-              mes={filtros.mes}
+              meses={filtros.mes}
               ids={ids}
               nomes={nomes}
               carregandoEscopo={carregandoEscopo}
@@ -308,13 +297,14 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
   );
 }
 
-function useVendasDoMes(mes: string, ids: string[]) {
+function useVendasDoMes(meses: string[], ids: string[]) {
+  const ordenados = [...meses].sort();
+  const inicio = `${ordenados[0]}-01`;
+  const fim = fimDoMes(ordenados[ordenados.length - 1] ?? ordenados[0]!);
   return useQuery({
-    queryKey: ["relatorio-vendas", mes, ids.join(",")],
-    enabled: ids.length > 0,
+    queryKey: ["relatorio-vendas", ordenados.join(","), ids.join(",")],
+    enabled: ids.length > 0 && ordenados.length > 0,
     queryFn: async (): Promise<VendaRelatorio[]> => {
-      const inicio = `${mes}-01`;
-      const fim = fimDoMes(mes);
       const [{ data: loja, error: lojaError }, { data: pap, error: papError }] = await Promise.all([
         supabase
           .from("vendas_loja")
@@ -367,20 +357,20 @@ function useVendasDoMes(mes: string, ids: string[]) {
 }
 
 function RelatorioReagendamentos({
-  mes,
+  meses,
   ids,
   nomes,
   carregandoEscopo,
 }: {
-  mes: string;
+  meses: string[];
   ids: string[];
   nomes: Map<string, string>;
   carregandoEscopo: boolean;
 }) {
-  const vendas = useVendasDoMes(mes, ids);
+  const vendas = useVendasDoMes(meses, ids);
   const vendaIds = useMemo(() => (vendas.data ?? []).map((venda) => venda.id), [vendas.data]);
   const historico = useQuery({
-    queryKey: ["relatorio-reagendamentos", mes, ids.join(","), vendaIds.join(",")],
+    queryKey: ["relatorio-reagendamentos", [...meses].sort().join(","), ids.join(","), vendaIds.join(",")],
     enabled: vendaIds.length > 0,
     queryFn: async (): Promise<Reagendamento[]> => {
       const { data, error } = await supabase
@@ -498,17 +488,17 @@ function RelatorioReagendamentos({
 }
 
 function RelatorioCanais({
-  mes,
+  meses,
   ids,
   nomes,
   carregandoEscopo,
 }: {
-  mes: string;
+  meses: string[];
   ids: string[];
   nomes: Map<string, string>;
   carregandoEscopo: boolean;
 }) {
-  const vendas = useVendasDoMes(mes, ids);
+  const vendas = useVendasDoMes(meses, ids);
   const grupos = useMemo(() => {
     const mapa = new Map<string, { nome: string; quantidade: number; receita: number; comissao: number }>();
     for (const venda of vendas.data ?? []) {
