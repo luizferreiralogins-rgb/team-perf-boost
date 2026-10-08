@@ -341,12 +341,19 @@ function AcoesGestor({ uid }: { uid: string }) {
   const [equipeImp, setEquipeImp] = useState<{ id: string; nome: string; canal: string }[]>([]);
   const [sel, setSel] = useState<Set<string>>(new Set());
 
-  const ler = async (file: File) => {
+  const [canalDist, setCanalDist] = useState<"loja" | "pap">("loja");
+  const [qtdArquivos, setQtdArquivos] = useState(0);
+
+  const ler = async (files: File[]) => {
     setEnviando(true);
     try {
       const XLSX = await import("xlsx");
-      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
-      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: null });
+      const linhas: Record<string, unknown>[] = [];
+      for (const file of files) {
+        const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
+        linhas.push(...XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: null }));
+      }
+      setQtdArquivos(files.length);
       const { data: equipe } = await supabase.from("profiles").select("id, nome, canal").eq("gerente_id", uid).eq("ativo", true).order("nome");
       const pega = (l: Record<string, unknown>, ...ks: string[]) => {
         for (const k of Object.keys(l)) if (ks.includes(norm(k))) return l[k];
@@ -376,6 +383,7 @@ function AcoesGestor({ uid }: { uid: string }) {
       if (!registros.length) throw new Error("Nenhum cliente encontrado na planilha.");
       const eq = (equipe ?? []) as { id: string; nome: string; canal: string }[];
       setEquipeImp(eq);
+      setCanalDist("loja");
       setSel(new Set(eq.filter((p) => p.canal === "loja").map((p) => p.id)));
       setPendentes(registros);
     } catch (e) {
@@ -425,12 +433,13 @@ function AcoesGestor({ uid }: { uid: string }) {
       <input
         ref={ref}
         type="file"
+        multiple
         accept=".xlsx,.xls,.csv"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && ler(e.target.files[0])}
+        onChange={(e) => e.target.files?.length && ler(Array.from(e.target.files))}
       />
       <Button onClick={() => ref.current?.click()} disabled={enviando}>
-        <Upload className="mr-2 h-4 w-4" /> {enviando ? "Enviando…" : "Anexar planilha"}
+        <Upload className="mr-2 h-4 w-4" /> {enviando ? "Enviando…" : "Anexar base(s)"}
       </Button>
       <Button
         variant="outline"
@@ -445,14 +454,35 @@ function AcoesGestor({ uid }: { uid: string }) {
       <Dialog open={!!pendentes} onOpenChange={(o) => !o && !enviando && setPendentes(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Distribuir {pendentes?.length ?? 0} clientes</DialogTitle>
+            <DialogTitle>
+              Distribuir {pendentes?.length ?? 0} clientes{qtdArquivos > 1 ? ` (${qtdArquivos} bases)` : ""}
+            </DialogTitle>
           </DialogHeader>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Distribuir para</p>
+            <Tabs
+              value={canalDist}
+              onValueChange={(v) => {
+                const c = v as "loja" | "pap";
+                setCanalDist(c);
+                setSel(new Set(equipeImp.filter((p) => p.canal === c).map((p) => p.id)));
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="loja">Consultores Loja</TabsTrigger>
+                <TabsTrigger value="pap">Consultores PAP</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Escolha os consultores. A base será dividida em quantidades iguais
+            A base será dividida em quantidades iguais
             {sel.size ? ` (≈${Math.ceil((pendentes?.length ?? 0) / sel.size)} para cada)` : ""}.
           </p>
           <div className="max-h-72 space-y-2 overflow-y-auto">
-            {equipeImp.map((p) => (
+            {equipeImp.filter((p) => p.canal === canalDist).length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhum consultor {canalDist === "loja" ? "Loja" : "PAP"} na sua equipe.</p>
+            )}
+            {equipeImp.filter((p) => p.canal === canalDist).map((p) => (
               <label key={p.id} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={sel.has(p.id)}
@@ -462,7 +492,7 @@ function AcoesGestor({ uid }: { uid: string }) {
                     setSel(n);
                   }}
                 />
-                {p.nome} <span className="text-xs text-muted-foreground">({p.canal === "loja" ? "Loja" : "PAP"})</span>
+                {p.nome}
               </label>
             ))}
           </div>
