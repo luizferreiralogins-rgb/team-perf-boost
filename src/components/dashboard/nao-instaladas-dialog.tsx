@@ -75,7 +75,7 @@ export function NaoInstaladasDialog({
 
       if (ativas) {
         lojaQ = lojaQ.or(`arquivada_em.is.null,mes_ref.in.(${mesesRefISO.join(",")})`);
-        papQ = papQ.or(`arquivada_em.is.null,mes_ref.in.(${mesesRefJSONplaceholder})`);
+        papQ = papQ.or(`arquivada_em.is.null,mes_ref.in.(${mesesRefISO.join(",")})`);
       } else {
         lojaQ = lojaQ.in("mes_ref", mesesRefISO);
         papQ = papQ.in("mes_ref", mesesRefISO);
