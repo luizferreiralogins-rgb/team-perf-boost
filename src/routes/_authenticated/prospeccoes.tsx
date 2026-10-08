@@ -183,6 +183,17 @@ function Page() {
             ))}
           </SelectContent>
         </Select>
+        {aba === "base" && (
+          <Select value={categoria} onValueChange={setCategoria}>
+            <SelectTrigger className="h-9 w-52"><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as categorias</SelectItem>
+              {(categorias.data ?? []).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {gestor && (
           <Select value={consultor} onValueChange={setConsultor}>
             <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
