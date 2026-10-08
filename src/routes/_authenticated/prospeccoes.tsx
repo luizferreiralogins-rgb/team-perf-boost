@@ -272,14 +272,17 @@ function Page() {
                 onClick={() => setStatus(status === "fechado" ? "todos" : "fechado")}
                 title="Conversão: clientes fechados ÷ clientes com status alterado"
               >
-                <Badge variant={status === "fechado" ? "default" : "outline"} className="cursor-pointer gap-1.5">
+                <Badge
+                  variant={status === "fechado" ? "default" : "outline"}
+                  className="cursor-pointer gap-1.5 whitespace-nowrap"
+                >
                   <TrendingUp className="h-3.5 w-3.5" />
                   Conversão:{" "}
                   {conversao === null
                     ? "—"
                     : conversao.toLocaleString("pt-BR", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + "%"}
                   <span className="font-normal opacity-75">
-                    ({ganhos} de {contatados})
+                    {ganhos}/{contatados}
                   </span>
                 </Badge>
               </button>
