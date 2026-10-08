@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronRight,
+  Gift,
   HeartHandshake,
   MessageSquare,
   Pencil,
   Search,
+  Smile,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -126,6 +128,16 @@ const dataBR = (v?: string | null) =>
 
 const dataHoraBR = (v: string) =>
   new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+function ultimaObservacao(item: Item) {
+  const eventos = [
+    ...item.contatos.map((c) => ({ at: c.created_at, obs: c.observacao })),
+    ...item.ajustes.map((a) => ({ at: a.created_at, obs: a.observacao })),
+  ]
+    .filter((e) => !!e.obs && e.obs.trim().length > 0)
+    .sort((x, y) => x.at.localeCompare(y.at));
+  return eventos.length ? (eventos[eventos.length - 1].obs as string) : null;
+}
 
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 
@@ -467,8 +479,10 @@ function PosVendasPage() {
                   <TableHead>Ativação</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Prazo</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead className="text-right">Obs. / Venda</TableHead>
+                  {isGestor && <TableHead>Ação</TableHead>}
+                  <TableHead className={isGestor ? "text-right" : "w-full min-w-[18rem]"}>
+                    {isGestor ? "Obs. / Venda" : "Observação"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -531,61 +545,90 @@ function PosVendasPage() {
                           }}
                         />
                       </TableCell>
-                      <TableCell>
-                        <Select
-                          value=""
-                          onValueChange={(v) => {
-                            const alvo: VendaAlvo = {
-                              id: i.id,
-                              tabela: i.tabela,
-                              vendedorId: i.vendedorId,
-                              cliente: i.cliente,
-                            };
-                            if (v === "satisfacao") setAlvoSatisfacao(alvo);
-                            else setAlvoProdutos(alvo);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 w-44 text-xs">
-                            <SelectValue placeholder="Registrar contato" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="satisfacao">Contato de satisfação</SelectItem>
-                            <SelectItem value="produtos">Oferta de novos produtos</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="relative h-8 w-8"
-                            title="Observação"
-                            aria-label="Observação"
-                            onClick={() => setAlvoObs(i)}
+                      {isGestor && (
+                        <TableCell>
+                          <Select
+                            value=""
+                            onValueChange={(v) => {
+                              const alvo: VendaAlvo = {
+                                id: i.id,
+                                tabela: i.tabela,
+                                vendedorId: i.vendedorId,
+                                cliente: i.cliente,
+                              };
+                              if (v === "satisfacao") setAlvoSatisfacao(alvo);
+                              else setAlvoProdutos(alvo);
+                            }}
                           >
-                            <MessageSquare className="h-4 w-4" />
-                            {i.ajustes.some((a) => a.observacao) && (
-                              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
-                            )}
-                          </Button>
-                          <Button
-                            asChild
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            title="Abrir cadastro da venda"
-                          >
-                            <Link to="/vendas/$id" params={{ id: i.id }} aria-label="Editar venda">
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
+                            <SelectTrigger className="h-8 w-44 text-xs">
+                              <SelectValue placeholder="Registrar contato" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="satisfacao">Contato de satisfação</SelectItem>
+                              <SelectItem value="produtos">Oferta de novos produtos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
+                      <TableCell className={isGestor ? "text-right" : "w-full min-w-[18rem]"}>
+                        {isGestor ? (
+                          <AcaoObsVenda
+                            item={i}
+                            onObs={() => setAlvoObs(i)}
+                            className="flex justify-end gap-1"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setAlvoObs(i)}
+                              title="Abrir observações"
+                              className="line-clamp-2 min-w-0 flex-1 text-left text-xs leading-snug text-muted-foreground hover:text-foreground"
+                            >
+                              {ultimaObservacao(i) ?? "Sem observação"}
+                            </button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              title="Registrar contato de satisfação"
+                              aria-label="Registrar contato de satisfação"
+                              onClick={() =>
+                                setAlvoSatisfacao({
+                                  id: i.id,
+                                  tabela: i.tabela,
+                                  vendedorId: i.vendedorId,
+                                  cliente: i.cliente,
+                                })
+                              }
+                            >
+                              <Smile className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              title="Registrar oferta de novos produtos"
+                              aria-label="Registrar oferta de novos produtos"
+                              onClick={() =>
+                                setAlvoProdutos({
+                                  id: i.id,
+                                  tabela: i.tabela,
+                                  vendedorId: i.vendedorId,
+                                  cliente: i.cliente,
+                                })
+                              }
+                            >
+                              <Gift className="h-4 w-4" />
+                            </Button>
+                            <AcaoObsVenda item={i} onObs={() => setAlvoObs(i)} />
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                     {expandido === i.id && (
                       <TableRow>
-                        <TableCell colSpan={11} className="bg-muted/40">
+                        <TableCell colSpan={isGestor ? 11 : 10} className="bg-muted/40">
                           <Historico item={i} />
                         </TableCell>
                       </TableRow>
@@ -616,6 +659,45 @@ function PosVendasPage() {
           alvoObs && ajustar.mutateAsync({ item: alvoObs, observacao: texto })
         }
       />
+    </div>
+  );
+}
+
+function AcaoObsVenda({
+  item,
+  onObs,
+  className = "flex items-center gap-1",
+}: {
+  item: Item;
+  onObs: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="relative h-8 w-8 shrink-0"
+        title="Observação"
+        aria-label="Observação"
+        onClick={onObs}
+      >
+        <MessageSquare className="h-4 w-4" />
+        {item.ajustes.some((a) => a.observacao) && (
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+        )}
+      </Button>
+      <Button
+        asChild
+        size="icon"
+        variant="ghost"
+        className="h-8 w-8 shrink-0"
+        title="Abrir cadastro da venda"
+      >
+        <Link to="/vendas/$id" params={{ id: item.id }} aria-label="Editar venda">
+          <Pencil className="h-4 w-4" />
+        </Link>
+      </Button>
     </div>
   );
 }
