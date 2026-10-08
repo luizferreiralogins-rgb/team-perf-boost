@@ -594,7 +594,7 @@ function Dashboard() {
             qtdInst={isLoading ? null : data?.rvInst ?? 0}
             valor={isLoading ? null : data?.rvRs ?? 0}
             icon={RefreshCw}
-            fator={fatorProj}
+            projecaoValor={somaProj((r) => r.rvRs)}
             projecaoEm="rs"
             meta={metasKpi.renovRs}
             metaEm="rs"
