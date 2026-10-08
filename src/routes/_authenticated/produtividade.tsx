@@ -9,6 +9,7 @@ import { WhatsAppLink } from "@/components/whatsapp-link";
 import { SelectCanal, useCanais, slugCanal } from "@/components/canais";
 import { useOrdenacao, cmpTexto, cmpDataDesc, type OpcaoOrdenacao } from "@/components/ordenacao";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
+import { ProdutividadeTime } from "@/components/dashboard/produtividade-time";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +104,27 @@ function Produtividade() {
     },
   });
   const isMaster = !!roles?.some((r) => r === "regional" || r === "admin");
+  const isGestorEquipe = !isMaster && !!roles?.some((r) => r === "gerente" || r === "lider_pap");
+
+  const { data: extras } = useQuery({
+    queryKey: ["produtividade-extras", inicioMes],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getUser();
+      const uid = sess.user!.id;
+      const desde = `${inicioMes}T00:00:00`;
+      const [c, a, p] = await Promise.all([
+        supabase.from("pos_venda_contatos").select("id", { count: "exact", head: true }).eq("criado_por", uid).gte("created_at", desde),
+        supabase.from("pos_venda_ajustes").select("id", { count: "exact", head: true }).eq("criado_por", uid).gte("created_at", desde),
+        supabase
+          .from("prospeccoes")
+          .select("id", { count: "exact", head: true })
+          .eq("vendedor_id", uid)
+          .gte("updated_at", desde)
+          .or("status.not.is.null,data_contato.not.is.null,observacao.not.is.null"),
+      ]);
+      return { posVendas: (c.count ?? 0) + (a.count ?? 0), prospeccoes: p.count ?? 0 };
+    },
+  });
 
   const { data: prod, isLoading } = useQuery({
     queryKey: ["produtividade", inicioMes, isMaster],
@@ -235,9 +257,11 @@ function Produtividade() {
       atend +
       (prod?.totais.vendas ?? 0) * (mapa.get("venda") ?? 0) +
       (prod?.totais.renovacoes ?? 0) * (mapa.get("renovacao") ?? mapa.get("venda") ?? 0) +
-      (prod?.totais.leads ?? 0) * (mapa.get("lead") ?? 0)
+      (prod?.totais.leads ?? 0) * (mapa.get("lead") ?? 0) +
+      (isMaster ? 0 : (extras?.posVendas ?? 0) * (mapa.get("pos_venda") ?? 5)) +
+      (isMaster ? 0 : (extras?.prospeccoes ?? 0) * (mapa.get("prospeccao") ?? 5))
     );
-  }, [prod, tempos.data]);
+  }, [prod, tempos.data, extras, isMaster]);
 
 
 
@@ -299,6 +323,8 @@ function Produtividade() {
             : "Registre os atendimentos realizados no dia e acompanhe o acumulado do mês."}
         </p>
       </div>
+
+      {isGestorEquipe && <ProdutividadeTime />}
 
       <div className="grid gap-4 md:grid-cols-5">
         <Stat

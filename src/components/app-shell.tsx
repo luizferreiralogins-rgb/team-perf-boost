@@ -140,7 +140,7 @@ function Sidebar({
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: true, badge: alertas?.vendas },
     { to: "/pos-vendas", label: "Pós vendas", icon: HeartHandshake, show: true },
     { to: "/prospeccoes", label: "Prospecções", icon: Target, show: true },
-    { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
+    { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente") || roles.includes("lider_pap") || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
     {
       to: "/planejamento",
       label: "Planejamento",
