@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidades } from "@/components/unidades-loja";
 import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
-import { ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +169,9 @@ export function MesMultiSelect({
           className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
           onClick={() => onChange([mesAtual()])}
         >
-          <Checkbox checked={value.length === 1 && sel.has(mesAtual())} />
+          <Check
+            className={`h-4 w-4 ${value.length === 1 && sel.has(mesAtual()) ? "opacity-100" : "opacity-0"}`}
+          />
           Mês atual
         </button>
         {opcoes.map((o) => (
@@ -179,7 +181,7 @@ export function MesMultiSelect({
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
             onClick={() => toggle(o.value)}
           >
-            <Checkbox checked={sel.has(o.value)} />
+            <Check className={`h-4 w-4 ${sel.has(o.value) ? "opacity-100" : "opacity-0"}`} />
             <span className="capitalize">{o.label}</span>
           </button>
         ))}
