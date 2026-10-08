@@ -36,6 +36,7 @@ import {
   type VendaAlvo,
 } from "@/components/pos-vendas/dialogs";
 import { WhatsAppLink } from "@/components/whatsapp-link";
+import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -360,6 +361,7 @@ function PosVendasPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
           <HeartHandshake className="h-7 w-7 text-primary" /> Pós-vendas
@@ -368,6 +370,8 @@ function PosVendasPage() {
           Contato de satisfação 10 dias após a ativação e oferta de novos produtos 20 dias depois,
           quando o cliente está satisfeito.
         </p>
+      </div>
+      <MeuScript />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -486,7 +490,10 @@ function PosVendasPage() {
                       </TableCell>
                       <TableCell>{i.protocolo || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}
+                        <span className="inline-flex items-center gap-1">
+                          {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}
+                          <CopiarScript cliente={i.cliente} />
+                        </span>
                       </TableCell>
                       <TableCell className="font-medium">{i.cliente}</TableCell>
                       <TableCell>{i.canal}</TableCell>

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
+import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -135,6 +136,7 @@ function Page() {
             {gestor ? "Base de clientes distribuída para a sua equipe." : "Seus clientes para contato."}
           </p>
         </div>
+        {!gestor && <MeuScript />}
         <div className="flex flex-wrap gap-2">
           {me.data?.master && <StatusConfig />}
           {gestor && me.data && <AcoesGestor uid={me.data.uid} />}
@@ -299,7 +301,8 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
           </div>
         </TableCell>
       )}
-      <TableCell>
+      <TableCell className="whitespace-nowrap">
+        <CopiarScript cliente={r.nome_cliente ?? ""} />
         <Button asChild size="icon" variant="ghost" className="h-7 w-7" title="Cadastrar venda para este cliente">
           <Link
             to="/vendas/nova"
