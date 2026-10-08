@@ -1188,6 +1188,27 @@ export type Database = {
           },
         ]
       }
+      prospeccao_status_opcoes: {
+        Row: {
+          chave: string
+          created_at: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       prospeccoes: {
         Row: {
           categoria: string | null

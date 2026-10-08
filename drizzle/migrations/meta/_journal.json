@@ -29,6 +29,13 @@
       "when": 1791378588524,
       "tag": "0003_prospeccoes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791461313022,
+      "tag": "0004_prospeccao_status_opcoes",
+      "breakpoints": true
     }
   ]
 }
