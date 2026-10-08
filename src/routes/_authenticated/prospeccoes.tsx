@@ -242,7 +242,7 @@ function Page() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <CardTitle className="text-base">{total} cliente(s)</CardTitle>
             {aba === "base" &&
               (
@@ -274,16 +274,14 @@ function Page() {
               >
                 <Badge
                   variant={status === "fechado" ? "default" : "outline"}
-                  className="cursor-pointer gap-1.5 whitespace-nowrap"
+                  className="cursor-pointer gap-1 whitespace-nowrap"
                 >
                   <TrendingUp className="h-3.5 w-3.5" />
                   Conversão:{" "}
                   {conversao === null
                     ? "—"
                     : conversao.toLocaleString("pt-BR", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + "%"}
-                  <span className="font-normal opacity-75">
-                    {ganhos}/{contatados}
-                  </span>
+                  <span className="font-normal opacity-75">· {ganhos}/{contatados}</span>
                 </Badge>
               </button>
             )}
