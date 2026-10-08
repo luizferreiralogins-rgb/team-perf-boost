@@ -169,7 +169,9 @@ export function MesMultiSelect({
           className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
           onClick={() => onChange([mesAtual()])}
         >
-          <Checkbox checked={value.length === 1 && sel.has(mesAtual())} />
+          <Check
+            className={`h-4 w-4 ${value.length === 1 && sel.has(mesAtual()) ? "opacity-100" : "opacity-0"}`}
+          />
           Mês atual
         </button>
         {opcoes.map((o) => (
@@ -179,7 +181,7 @@ export function MesMultiSelect({
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
             onClick={() => toggle(o.value)}
           >
-            <Checkbox checked={sel.has(o.value)} />
+            <Check className={`h-4 w-4 ${sel.has(o.value) ? "opacity-100" : "opacity-0"}`} />
             <span className="capitalize">{o.label}</span>
           </button>
         ))}
