@@ -371,7 +371,7 @@ function PosVendasPage() {
           quando o cliente está satisfeito.
         </p>
       </div>
-      <MeuScript contexto="pos-vendas" />
+      {!isGestor && <MeuScript contexto="pos-vendas" />}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
