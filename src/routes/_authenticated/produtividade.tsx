@@ -313,6 +313,13 @@ function Produtividade() {
     onError: (e: any) => toast.error(e?.message ?? "Falha ao remover."),
   });
 
+  if (isGestorEquipe)
+    return (
+      <div className="mx-auto max-w-6xl">
+        <ProdutividadeTime />
+      </div>
+    );
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
@@ -324,7 +331,7 @@ function Produtividade() {
         </p>
       </div>
 
-      {isGestorEquipe && <ProdutividadeTime />}
+
 
       <div className="grid gap-4 md:grid-cols-5">
         <Stat
