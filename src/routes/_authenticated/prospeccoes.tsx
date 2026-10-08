@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
+import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,14 +35,19 @@ export const Route = createFileRoute("/_authenticated/prospeccoes")({
   component: Page,
 });
 
-const STATUS: Record<string, string> = {
-  contato_feito: "Contato feito",
-  negociando: "Negociando",
-  fechado: "Fechado",
-  declinou: "Declinou",
-  nao_perturbar: "Não perturbar",
-  sem_whatsapp: "Sem WhatsApp",
-};
+let STATUS: Record<string, string> = {};
+function useStatusOpcoes() {
+  const q = useQuery({
+    queryKey: ["prosp-status-opcoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("prospeccao_status_opcoes").select("chave, nome, ordem").order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  STATUS = Object.fromEntries((q.data ?? []).map((o) => [o.chave, o.nome]));
+  return q;
+}
 const POR_PAGINA = 50;
 const GESTOR = ["gerente", "lider_pap", "gerente_regional", "regional", "admin"];
 const norm = (s: unknown) =>
@@ -55,13 +60,18 @@ function useMe() {
       const { data } = await supabase.auth.getUser();
       const uid = data.user!.id;
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-      return { uid, gestor: (roles ?? []).some((r) => GESTOR.includes(r.role)) };
+      return {
+        uid,
+        gestor: (roles ?? []).some((r) => GESTOR.includes(r.role)),
+        master: (roles ?? []).some((r) => r.role === "admin" || r.role === "regional"),
+      };
     },
   });
 }
 
 function Page() {
   const me = useMe();
+  useStatusOpcoes();
   const [aba, setAba] = useState<"base" | "hist">("base");
   const [busca, setBusca] = useState("");
   const [buscaDeb, setBuscaDeb] = useState("");
@@ -125,7 +135,10 @@ function Page() {
             {gestor ? "Base de clientes distribuída para a sua equipe." : "Seus clientes para contato."}
           </p>
         </div>
-        {gestor && me.data && <AcoesGestor uid={me.data.uid} />}
+        <div className="flex flex-wrap gap-2">
+          {me.data?.master && <StatusConfig />}
+          {gestor && me.data && <AcoesGestor uid={me.data.uid} />}
+        </div>
       </div>
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as never)}>
@@ -519,5 +532,64 @@ function AcoesGestor({ uid }: { uid: string }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatusConfig() {
+  const qc = useQueryClient();
+  const opcoes = useStatusOpcoes();
+  const [aberto, setAberto] = useState(false);
+  const [novo, setNovo] = useState("");
+  const refresh = () => qc.invalidateQueries({ queryKey: ["prosp-status-opcoes"] });
+  const run = async (p: PromiseLike<{ error: { message: string } | null }>) => {
+    const { error } = await p;
+    if (error) toast.error(error.message);
+    else refresh();
+  };
+  const adicionar = () => {
+    const nome = novo.trim();
+    if (!nome) return;
+    const chave = norm(nome).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") + "_" + Date.now().toString(36);
+    const ordem = Math.max(0, ...(opcoes.data ?? []).map((o) => o.ordem)) + 1;
+    run(supabase.from("prospeccao_status_opcoes").insert({ chave, nome, ordem }));
+    setNovo("");
+  };
+  return (
+    <>
+      <Button variant="outline" onClick={() => setAberto(true)}>
+        <Settings2 className="mr-2 h-4 w-4" /> Opções de status
+      </Button>
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Opções de status</DialogTitle></DialogHeader>
+          <div className="max-h-80 space-y-2 overflow-y-auto">
+            {(opcoes.data ?? []).map((o) => (
+              <div key={o.chave} className="flex items-center gap-2">
+                <Input
+                  defaultValue={o.nome}
+                  className="h-9"
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== o.nome) run(supabase.from("prospeccao_status_opcoes").update({ nome: v }).eq("chave", o.chave));
+                  }}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Excluir"
+                  onClick={() => confirm(`Excluir a opção "${o.nome}"?`) && run(supabase.from("prospeccao_status_opcoes").delete().eq("chave", o.chave))}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Nova opção" value={novo} onChange={(e) => setNovo(e.target.value)} onKeyDown={(e) => e.key === "Enter" && adicionar()} className="h-9" />
+            <Button onClick={adicionar}><Plus className="mr-1 h-4 w-4" /> Incluir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
