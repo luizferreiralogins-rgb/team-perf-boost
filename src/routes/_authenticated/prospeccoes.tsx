@@ -140,9 +140,36 @@ function Page() {
     },
   });
 
+  const contagens = useQuery({
+    queryKey: ["prosp-contagens", buscaDeb, categoria, consultor, aba],
+    enabled: !!me.data && aba === "base",
+    queryFn: async () => {
+      const escopo = () => {
+        let q = supabase.from("prospeccoes").select("id", { count: "exact", head: true });
+        if (!gestor) q = q.eq("vendedor_id", me.data!.uid);
+        else if (consultor !== "todos") q = q.eq("vendedor_id", consultor);
+        if (categoria !== "todas") q = q.eq("categoria" as never, categoria);
+        if (buscaDeb.trim()) q = q.ilike("nome_cliente", `%${buscaDeb.trim()}%`);
+        return q;
+      };
+      const chaves = ["contato_feito", "negociando", "fechado", "sem"] as const;
+      const respostas = await Promise.all(
+        chaves.map((k) => {
+          let q = escopo();
+          q = k === "sem" ? q.is("status", null) : q.eq("status", k);
+          return q;
+        }),
+      );
+      const pares = chaves.map((k, i) => [k, respostas[i]!.count ?? 0] as const);
+      return Object.fromEntries(pares) as Record<(typeof chaves)[number], number>;
+    },
+  });
+
   const nomePorId = Object.fromEntries((equipe.data ?? []).map((p) => [p.id, p.nome]));
   const total = lista.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const contagem = (k: "contato_feito" | "negociando" | "fechado" | "sem") =>
+    contagens.data?.[k] ?? null;
 
   return (
     <div className="space-y-6">
