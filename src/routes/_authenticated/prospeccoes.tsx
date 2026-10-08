@@ -236,8 +236,33 @@ function Page() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{total} cliente(s)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base">{total} cliente(s)</CardTitle>
+            {aba === "base" &&
+              (
+                [
+                  ["contato_feito", "Contato Feito"],
+                  ["negociando", "Negociando"],
+                  ["fechado", "Fechado"],
+                  ["sem", "Falta contactar"],
+                ] as const
+              ).map(([k, label]) => {
+                const valor = contagem(k);
+                const ativo = status === (k === "sem" ? "sem" : k);
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setStatus(ativo && k !== "sem" ? "todos" : k)}
+                    title={`Filtrar por ${label}`}
+                  >
+                    <Badge variant={ativo ? "default" : "outline"} className="cursor-pointer">
+                      {label}: {valor ?? "…"}
+                    </Badge>
+                  </button>
+                );
+              })}
+          </div>
           <div className="flex items-center gap-2 text-sm">
             <Button size="icon" variant="outline" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
               <ChevronLeft className="h-4 w-4" />
