@@ -4,3 +4,4 @@
 - [x] Dashboard e Relatórios: seleção de um ou mais meses (todos os usuários)
 - [x] Prospecções: indicador de conversão (fechados ÷ contatados) ao lado dos contadores
 - [x] Meu script: apenas para consultores Loja e PAP (fora de Gerentes e Líder PAP)
+- [x] Pós vendas: remover coluna Ação para consultores e estender a coluna Observação
