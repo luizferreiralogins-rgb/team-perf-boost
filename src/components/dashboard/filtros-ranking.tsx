@@ -31,7 +31,7 @@ export type Membro = {
 };
 
 export type Filtros = {
-  mes: string; // YYYY-MM
+  mes: string[]; // YYYY-MM, um ou mais meses
   pessoa: string; // 'all' | profile id
   unidades: string[]; // [] = todas | nomes de loja_unidade | 'pap'
 };
@@ -250,18 +250,54 @@ export function FiltrosBar({
 
         <div className="space-y-1.5">
           <Label className="text-xs">Mês</Label>
-          <Select value={filtros.mes} onValueChange={(v) => onChange({ ...filtros, mes: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {mesesRecentes().map((m) => (
-                <SelectItem key={m.value} value={m.value} className="capitalize">
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(() => {
+            const opcoes = mesesRecentes();
+            const sel = new Set(filtros.mes);
+            const toggle = (v: string) => {
+              const next = sel.has(v) ? filtros.mes.filter((x) => x !== v) : [...filtros.mes, v];
+              onChange({ ...filtros, mes: next.length ? next : [mesAtual()] });
+            };
+            const rotulo =
+              filtros.mes.length === 0
+                ? "Mês atual"
+                : filtros.mes.length === 1
+                  ? (opcoes.find((o) => o.value === filtros.mes[0])?.label ?? filtros.mes[0])
+                  : `${filtros.mes.length} meses selecionados`;
+            return (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between font-normal">
+                    <span className="truncate capitalize">{rotulo}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="max-h-80 w-[--radix-popover-trigger-width] overflow-y-auto p-2"
+                  align="start"
+                >
+                  <button
+                    type="button"
+                    className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                    onClick={() => onChange({ ...filtros, mes: [mesAtual()] })}
+                  >
+                    <Checkbox checked={filtros.mes.length === 1 && sel.has(mesAtual())} />
+                    Mês atual
+                  </button>
+                  {opcoes.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                      onClick={() => toggle(o.value)}
+                    >
+                      <Checkbox checked={sel.has(o.value)} />
+                      <span className="capitalize">{o.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            );
+          })()}
         </div>
       </CardContent>
     </Card>
@@ -291,21 +327,19 @@ export function RankingEquipe({
   const isRegional = role !== "gerente" && role !== "lider_pap";
   const escopo = useMemo(() => aplicarFiltros(membros, filtros, role), [membros, filtros, role]);
   const ids = useMemo(() => escopo.map((m) => m.id), [escopo]);
-  const mesRef = `${filtros.mes}-01`;
-  const faixas = useFaixasEquipe(ids, mesRef);
+  const meses = useMemo(() => [...filtros.mes].sort(), [filtros.mes]);
+  const mesRefs = useMemo(() => meses.map((m) => `${m}-01`), [meses]);
+  const faixas = useFaixasEquipe(ids, meses.length === 1 ? mesRefs[0]! : `${mesAtual()}-01`);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ranking-equipe", role, isRegional, mesRef, ids.join(",")],
-    enabled: ids.length > 0,
+    queryKey: ["ranking-equipe", role, isRegional, meses.join(","), ids.join(",")],
+    enabled: ids.length > 0 && meses.length > 0,
     queryFn: async (): Promise<Linha[]> => {
-      const inicio = `${mesRef}T00:00:00`;
-      const fimDate = new Date(
-        Number(filtros.mes.slice(0, 4)),
-        Number(filtros.mes.slice(5, 7)),
-        1,
-      );
+      const inicio = `${meses[0]}-01T00:00:00`;
+      const [yFim, mFim] = meses[meses.length - 1]!.split("-").map(Number);
+      const fimDate = new Date(yFim!, mFim!, 1);
       const fim = `${fimDate.getFullYear()}-${String(fimDate.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
-      const ehMesAtual = filtros.mes === mesAtual();
+      const ehMesAtual = meses.includes(mesAtual());
 
       const lojaQ = supabase
         .from("vendas_loja")
@@ -316,12 +350,12 @@ export function RankingEquipe({
         .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status, data_ativacao")
         .in("vendedor_id", ids);
       if (ehMesAtual) {
-        // mês atual: vendas ativas + as já arquivadas com referência neste mês
-        lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
-        papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRef}`);
+        // mês atual incluso: vendas ativas + as já arquivadas com referência nos meses escolhidos
+        lojaQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefs.join(",")})`);
+        papQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefs.join(",")})`);
       } else {
-        lojaQ.eq("mes_ref", mesRef);
-        papQ.eq("mes_ref", mesRef);
+        lojaQ.in("mes_ref", mesRefs);
+        papQ.in("mes_ref", mesRefs);
       }
 
       const [loja, pap, leads] = await Promise.all([
@@ -445,6 +479,7 @@ export function RankingEquipe({
             valorDe={(l) => l.comissaoRs}
             format={brl}
             faixaDe={(id) => {
+              if (meses.length !== 1) return null;
               const f = faixas.data?.get(id);
               return f ? `Faixa ${f.faixa}/${f.total}` : null;
             }}
