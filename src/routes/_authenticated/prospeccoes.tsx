@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -140,9 +141,36 @@ function Page() {
     },
   });
 
+  const contagens = useQuery({
+    queryKey: ["prosp-contagens", buscaDeb, categoria, consultor, aba],
+    enabled: !!me.data && aba === "base",
+    queryFn: async () => {
+      const escopo = () => {
+        let q = supabase.from("prospeccoes").select("id", { count: "exact", head: true });
+        if (!gestor) q = q.eq("vendedor_id", me.data!.uid);
+        else if (consultor !== "todos") q = q.eq("vendedor_id", consultor);
+        if (categoria !== "todas") q = q.eq("categoria" as never, categoria);
+        if (buscaDeb.trim()) q = q.ilike("nome_cliente", `%${buscaDeb.trim()}%`);
+        return q;
+      };
+      const chaves = ["contato_feito", "negociando", "fechado", "sem"] as const;
+      const respostas = await Promise.all(
+        chaves.map((k) => {
+          let q = escopo();
+          q = k === "sem" ? q.is("status", null) : q.eq("status", k);
+          return q;
+        }),
+      );
+      const pares = chaves.map((k, i) => [k, respostas[i]!.count ?? 0] as const);
+      return Object.fromEntries(pares) as Record<(typeof chaves)[number], number>;
+    },
+  });
+
   const nomePorId = Object.fromEntries((equipe.data ?? []).map((p) => [p.id, p.nome]));
   const total = lista.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const contagem = (k: "contato_feito" | "negociando" | "fechado" | "sem") =>
+    contagens.data?.[k] ?? null;
 
   return (
     <div className="space-y-6">
@@ -209,8 +237,33 @@ function Page() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{total} cliente(s)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base">{total} cliente(s)</CardTitle>
+            {aba === "base" &&
+              (
+                [
+                  ["contato_feito", "Contato Feito"],
+                  ["negociando", "Negociando"],
+                  ["fechado", "Fechado"],
+                  ["sem", "Falta contactar"],
+                ] as const
+              ).map(([k, label]) => {
+                const valor = contagem(k);
+                const ativo = status === (k === "sem" ? "sem" : k);
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setStatus(ativo ? "todos" : k)}
+                    title={`Filtrar por ${label}`}
+                  >
+                    <Badge variant={ativo ? "default" : "outline"} className="cursor-pointer">
+                      {label}: {valor ?? "…"}
+                    </Badge>
+                  </button>
+                );
+              })}
+          </div>
           <div className="flex items-center gap-2 text-sm">
             <Button size="icon" variant="outline" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
               <ChevronLeft className="h-4 w-4" />
