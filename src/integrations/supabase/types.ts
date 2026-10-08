@@ -1767,7 +1767,12 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      prospeccoes_categorias: {
+        Row: {
+          categoria: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aceitar_transferencia_lead: {

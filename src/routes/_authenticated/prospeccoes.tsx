@@ -49,6 +49,19 @@ function useStatusOpcoes() {
   STATUS = Object.fromEntries((q.data ?? []).map((o) => [o.chave, o.nome]));
   return q;
 }
+function useCategorias() {
+  return useQuery({
+    queryKey: ["prosp-categorias"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospeccoes_categorias")
+        .select("categoria")
+        .order("categoria");
+      if (error) throw error;
+      return (data ?? []).map((r) => r.categoria).filter((c): c is string => !!c);
+    },
+  });
+}
 const POR_PAGINA = 50;
 const GESTOR = ["gerente", "lider_pap", "gerente_regional", "regional", "admin"];
 const norm = (s: unknown) =>
