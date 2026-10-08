@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
