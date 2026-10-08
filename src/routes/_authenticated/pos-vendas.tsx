@@ -479,10 +479,7 @@ function PosVendasPage() {
                   <TableHead>Ativação</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Prazo</TableHead>
-                  {isGestor && <TableHead>Ação</TableHead>}
-                  <TableHead className={isGestor ? "text-right" : "w-full min-w-[24rem]"}>
-                    {isGestor ? "Obs. / Venda" : "Observação"}
-                  </TableHead>
+                  <TableHead className="w-full min-w-[24rem]">Observação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -545,39 +542,7 @@ function PosVendasPage() {
                           }}
                         />
                       </TableCell>
-                      {isGestor && (
-                        <TableCell>
-                          <Select
-                            value=""
-                            onValueChange={(v) => {
-                              const alvo: VendaAlvo = {
-                                id: i.id,
-                                tabela: i.tabela,
-                                vendedorId: i.vendedorId,
-                                cliente: i.cliente,
-                              };
-                              if (v === "satisfacao") setAlvoSatisfacao(alvo);
-                              else setAlvoProdutos(alvo);
-                            }}
-                          >
-                            <SelectTrigger className="h-8 w-44 text-xs">
-                              <SelectValue placeholder="Registrar contato" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="satisfacao">Contato de satisfação</SelectItem>
-                              <SelectItem value="produtos">Oferta de novos produtos</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                      )}
-                      <TableCell className={isGestor ? "text-right" : "w-full min-w-[24rem]"}>
-                        {isGestor ? (
-                          <AcaoObsVenda
-                            item={i}
-                            onObs={() => setAlvoObs(i)}
-                            className="flex justify-end gap-1"
-                          />
-                        ) : (
+                      <TableCell className="w-full min-w-[24rem]">
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -623,12 +588,11 @@ function PosVendasPage() {
                             </Button>
                             <AcaoObsVenda item={i} onObs={() => setAlvoObs(i)} />
                           </div>
-                        )}
                       </TableCell>
                     </TableRow>
                     {expandido === i.id && (
                       <TableRow>
-                        <TableCell colSpan={isGestor ? 11 : 10} className="bg-muted/40">
+                        <TableCell colSpan={10} className="bg-muted/40">
                           <Historico item={i} />
                         </TableCell>
                       </TableRow>
