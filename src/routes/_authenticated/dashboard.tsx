@@ -715,6 +715,7 @@ function KpiCard({
   valor,
   icon: Icon,
   fator = 1,
+  projecaoValor,
   projecaoEm = "qtd",
   meta,
   metaEm = "qtd",
@@ -727,6 +728,8 @@ function KpiCard({
   valor: number | null;
   icon: React.ComponentType<{ className?: string }>;
   fator?: number;
+  /** Projeção já calculada (por mês); quando definida, substitui o cálculo por fator. */
+  projecaoValor?: number;
   projecaoEm?: "qtd" | "rs";
   meta?: number | null;
   metaEm?: "qtd" | "rs";
@@ -761,9 +764,13 @@ function KpiCard({
           <div className="flex items-end justify-between gap-2 pt-1">
             <p className="text-xs font-medium text-muted-foreground">
               Projeção:{" "}
-              {projecaoEm === "qtd"
-                ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
-                : brl(valor * fator)}
+              {projecaoValor !== undefined
+                ? projecaoEm === "qtd"
+                  ? `${Math.round(projecaoValor)} vendas`
+                  : brl(projecaoValor)
+                : projecaoEm === "qtd"
+                  ? `${Math.round((qtdInst ?? qtd) * fator)} vendas`
+                  : brl(valor * fator)}
             </p>
             {meta != null && meta > 0 && (
               <p className="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2 py-1 text-xs font-semibold">
