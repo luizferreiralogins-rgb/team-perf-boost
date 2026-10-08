@@ -18,9 +18,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import {
   FiltrosBar,
+  MesMultiSelect,
   aplicarFiltros,
   mesAtual,
-  mesesRecentes,
   useEquipe,
   type Filtros,
   type Membro,
