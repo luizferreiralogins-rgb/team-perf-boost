@@ -242,7 +242,7 @@ function Page() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <CardTitle className="text-base">{total} cliente(s)</CardTitle>
             {aba === "base" &&
               (
