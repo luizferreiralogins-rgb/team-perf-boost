@@ -305,8 +305,6 @@ function useVendasDoMes(meses: string[], ids: string[]) {
     queryKey: ["relatorio-vendas", ordenados.join(","), ids.join(",")],
     enabled: ids.length > 0 && ordenados.length > 0,
     queryFn: async (): Promise<VendaRelatorio[]> => {
-      const inicio = `${mes}-01`;
-      const fim = fimDoMes(mes);
       const [{ data: loja, error: lojaError }, { data: pap, error: papError }] = await Promise.all([
         supabase
           .from("vendas_loja")
@@ -359,20 +357,20 @@ function useVendasDoMes(meses: string[], ids: string[]) {
 }
 
 function RelatorioReagendamentos({
-  mes,
+  meses,
   ids,
   nomes,
   carregandoEscopo,
 }: {
-  mes: string;
+  meses: string[];
   ids: string[];
   nomes: Map<string, string>;
   carregandoEscopo: boolean;
 }) {
-  const vendas = useVendasDoMes(mes, ids);
+  const vendas = useVendasDoMes(meses, ids);
   const vendaIds = useMemo(() => (vendas.data ?? []).map((venda) => venda.id), [vendas.data]);
   const historico = useQuery({
-    queryKey: ["relatorio-reagendamentos", mes, ids.join(","), vendaIds.join(",")],
+    queryKey: ["relatorio-reagendamentos", [...meses].sort().join(","), ids.join(","), vendaIds.join(",")],
     enabled: vendaIds.length > 0,
     queryFn: async (): Promise<Reagendamento[]> => {
       const { data, error } = await supabase
@@ -490,17 +488,17 @@ function RelatorioReagendamentos({
 }
 
 function RelatorioCanais({
-  mes,
+  meses,
   ids,
   nomes,
   carregandoEscopo,
 }: {
-  mes: string;
+  meses: string[];
   ids: string[];
   nomes: Map<string, string>;
   carregandoEscopo: boolean;
 }) {
-  const vendas = useVendasDoMes(mes, ids);
+  const vendas = useVendasDoMes(meses, ids);
   const grupos = useMemo(() => {
     const mapa = new Map<string, { nome: string; quantidade: number; receita: number; comissao: number }>();
     for (const venda of vendas.data ?? []) {
