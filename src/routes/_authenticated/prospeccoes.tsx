@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, ChevronLeft, ChevronRight, Trash2, Upload } from "lucide-react";
+import { ArrowRightLeft, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -184,6 +184,7 @@ function Page() {
               <TableHeader>
                 <TableRow>
                   {gestor && <TableHead>Consultor</TableHead>}
+                  <TableHead className="w-10">Venda</TableHead>
                   <TableHead>Data contato</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Nome afetado</TableHead>
@@ -285,6 +286,21 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
           </div>
         </TableCell>
       )}
+      <TableCell>
+        <Button asChild size="icon" variant="ghost" className="h-7 w-7" title="Cadastrar venda para este cliente">
+          <Link
+            to="/vendas/nova"
+            search={{
+              lead_nome: r.nome_cliente ?? undefined,
+              lead_produto: r.plano ?? undefined,
+              lead_whatsapp: r.telefone ?? undefined,
+              lead_cidade: r.unidade ?? undefined,
+            }}
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </Link>
+        </Button>
+      </TableCell>
       <TableCell>
         <Input
           type="date"
