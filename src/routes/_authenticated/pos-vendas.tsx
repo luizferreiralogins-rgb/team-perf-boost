@@ -480,7 +480,7 @@ function PosVendasPage() {
                   <TableHead>Fase</TableHead>
                   <TableHead>Prazo</TableHead>
                   {isGestor && <TableHead>Ação</TableHead>}
-                  <TableHead className={isGestor ? "text-right" : "w-full min-w-[18rem]"}>
+                  <TableHead className={isGestor ? "text-right" : "w-full min-w-[24rem]"}>
                     {isGestor ? "Obs. / Venda" : "Observação"}
                   </TableHead>
                 </TableRow>
@@ -518,7 +518,7 @@ function PosVendasPage() {
                           value={i.fase}
                           onValueChange={(v) => v !== i.fase && ajustar.mutate({ item: i, fase: v })}
                         >
-                          <SelectTrigger className="h-8 w-40 text-xs">
+                          <SelectTrigger className="h-8 w-32 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -538,7 +538,7 @@ function PosVendasPage() {
                           type="date"
                           defaultValue={i.prazo ?? ""}
                           key={`${i.id}-${i.prazo}`}
-                          className={`h-8 w-36 text-xs ${i.atrasado ? "font-medium text-destructive" : ""}`}
+                          className={`h-8 w-32 text-xs ${i.atrasado ? "font-medium text-destructive" : ""}`}
                           onBlur={(e) => {
                             const v = e.target.value;
                             if (v && v !== i.prazo) ajustar.mutate({ item: i, prazo: v });
@@ -570,7 +570,7 @@ function PosVendasPage() {
                           </Select>
                         </TableCell>
                       )}
-                      <TableCell className={isGestor ? "text-right" : "w-full min-w-[18rem]"}>
+                      <TableCell className={isGestor ? "text-right" : "w-full min-w-[24rem]"}>
                         {isGestor ? (
                           <AcaoObsVenda
                             item={i}
