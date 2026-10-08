@@ -144,7 +144,7 @@ function rolePrincipal(roles: string[]) {
 }
 
 function PosVendasPage() {
-  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidades: [] });
+  const [filtros, setFiltros] = useState<Filtros>({ mes: [mesAtual()], pessoa: "all", unidades: [] });
   const [fase, setFase] = useState<"todas" | Fase>("todas");
   const [situacao, setSituacao] = useState<"todas" | "em_dia" | "atrasado">("todas");
   const [busca, setBusca] = useState("");
