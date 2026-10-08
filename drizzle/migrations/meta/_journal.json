@@ -36,6 +36,13 @@
       "when": 1791461313022,
       "tag": "0004_prospeccao_status_opcoes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791485275908,
+      "tag": "0005_prospeccoes_categorias_view",
+      "breakpoints": true
     }
   ]
 }

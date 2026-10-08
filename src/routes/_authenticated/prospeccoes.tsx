@@ -49,6 +49,19 @@ function useStatusOpcoes() {
   STATUS = Object.fromEntries((q.data ?? []).map((o) => [o.chave, o.nome]));
   return q;
 }
+function useCategorias() {
+  return useQuery({
+    queryKey: ["prosp-categorias"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospeccoes_categorias")
+        .select("categoria")
+        .order("categoria");
+      if (error) throw error;
+      return (data ?? []).map((r) => r.categoria).filter((c): c is string => !!c);
+    },
+  });
+}
 const POR_PAGINA = 50;
 const GESTOR = ["gerente", "lider_pap", "gerente_regional", "regional", "admin"];
 const norm = (s: unknown) =>
@@ -73,17 +86,19 @@ function useMe() {
 function Page() {
   const me = useMe();
   useStatusOpcoes();
+  const categorias = useCategorias();
   const [aba, setAba] = useState<"base" | "hist">("base");
   const [busca, setBusca] = useState("");
   const [buscaDeb, setBuscaDeb] = useState("");
   const [status, setStatus] = useState("todos");
+  const [categoria, setCategoria] = useState("todas");
   const [consultor, setConsultor] = useState("todos");
   const [pagina, setPagina] = useState(0);
   useEffect(() => {
     const t = setTimeout(() => setBuscaDeb(busca), 350);
     return () => clearTimeout(t);
   }, [busca]);
-  useEffect(() => setPagina(0), [buscaDeb, status, consultor, aba]);
+  useEffect(() => setPagina(0), [buscaDeb, status, categoria, consultor, aba]);
 
   const gestor = !!me.data?.gestor;
 
@@ -102,7 +117,7 @@ function Page() {
   });
 
   const lista = useQuery({
-    queryKey: ["prospeccoes", aba, buscaDeb, status, consultor, pagina],
+    queryKey: ["prospeccoes", aba, buscaDeb, status, categoria, consultor, pagina],
     enabled: !!me.data,
     placeholderData: keepPreviousData,
     queryFn: async () => {
@@ -116,6 +131,8 @@ function Page() {
       else if (consultor !== "todos") q = q.eq("vendedor_id", consultor);
       if (status === "sem") q = q.is("status", null);
       else if (status !== "todos") q = q.eq("status", status);
+      // "categoria" só existe na tabela base (o histórico não tem essa coluna)
+      if (aba === "base" && categoria !== "todas") q = q.eq("categoria" as never, categoria);
       if (buscaDeb.trim()) q = q.ilike("nome_cliente", `%${buscaDeb.trim()}%`);
       const { data, error, count } = await q;
       if (error) throw error;
@@ -167,6 +184,17 @@ function Page() {
             ))}
           </SelectContent>
         </Select>
+        {aba === "base" && (
+          <Select value={categoria} onValueChange={setCategoria}>
+            <SelectTrigger className="h-9 w-52"><SelectValue placeholder="Todas as categorias" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as categorias</SelectItem>
+              {(categorias.data ?? []).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {gestor && (
           <Select value={consultor} onValueChange={setConsultor}>
             <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
