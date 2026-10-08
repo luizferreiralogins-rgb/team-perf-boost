@@ -274,7 +274,7 @@ function Page() {
               >
                 <Badge
                   variant={status === "fechado" ? "default" : "outline"}
-                  className="cursor-pointer gap-1 whitespace-nowrap"
+                  className="cursor-pointer gap-1 whitespace-nowrap px-2"
                 >
                   <TrendingUp className="h-3.5 w-3.5" />
                   Conversão:{" "}
