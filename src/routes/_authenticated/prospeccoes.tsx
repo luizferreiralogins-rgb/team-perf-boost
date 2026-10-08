@@ -153,7 +153,7 @@ function Page() {
             {gestor ? "Base de clientes distribuída para a sua equipe." : "Seus clientes para contato."}
           </p>
         </div>
-        {!gestor && <MeuScript />}
+        {!gestor && <MeuScript contexto="prospeccoes" />}
         <div className="flex flex-wrap gap-2">
           {me.data?.master && <StatusConfig />}
           {gestor && me.data && <AcoesGestor uid={me.data.uid} />}
@@ -330,7 +330,7 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
         </TableCell>
       )}
       <TableCell className="whitespace-nowrap">
-        <CopiarScript cliente={r.nome_cliente ?? ""} />
+        <CopiarScript cliente={r.nome_cliente ?? ""} contexto="prospeccoes" />
         <Button asChild size="icon" variant="ghost" className="h-7 w-7" title="Cadastrar venda para este cliente">
           <Link
             to="/vendas/nova"

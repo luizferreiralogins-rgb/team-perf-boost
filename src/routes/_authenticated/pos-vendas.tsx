@@ -371,7 +371,7 @@ function PosVendasPage() {
           quando o cliente está satisfeito.
         </p>
       </div>
-      <MeuScript />
+      <MeuScript contexto="pos-vendas" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -492,7 +492,7 @@ function PosVendasPage() {
                       <TableCell className="whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
                           {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}
-                          <CopiarScript cliente={i.cliente} />
+                          <CopiarScript cliente={i.cliente} contexto="pos-vendas" />
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">{i.cliente}</TableCell>

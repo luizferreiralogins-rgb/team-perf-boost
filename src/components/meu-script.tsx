@@ -35,9 +35,11 @@ function useEu() {
   });
 }
 
-function useScriptSalvo() {
+export type ScriptContexto = "pos-vendas" | "prospeccoes";
+
+function useScriptSalvo(contexto: ScriptContexto) {
   const eu = useEu();
-  const key = eu.data ? `meu-script:${eu.data.uid}` : null;
+  const key = eu.data ? `meu-script:${contexto}:${eu.data.uid}` : null;
   const [texto, setTexto] = useState("");
   useEffect(() => {
     if (!key) return;
@@ -60,8 +62,8 @@ function montar(cliente: string, consultor: string, script: string) {
   return `${saudacao()}${c ? ` ${c}` : ""}. Tudo bem? ${consultor} da Unifique aqui. ${script}`.trim();
 }
 
-export function MeuScript() {
-  const { texto, salvar, consultor } = useScriptSalvo();
+export function MeuScript({ contexto }: { contexto: ScriptContexto }) {
+  const { texto, salvar, consultor } = useScriptSalvo(contexto);
   const [rascunho, setRascunho] = useState("");
   useEffect(() => setRascunho(texto), [texto]);
 
@@ -91,8 +93,8 @@ export function MeuScript() {
   );
 }
 
-export function CopiarScript({ cliente }: { cliente: string }) {
-  const { texto, consultor } = useScriptSalvo();
+export function CopiarScript({ cliente, contexto }: { cliente: string; contexto: ScriptContexto }) {
+  const { texto, consultor } = useScriptSalvo(contexto);
   return (
     <Button
       size="icon"
