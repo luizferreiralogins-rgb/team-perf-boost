@@ -132,6 +132,62 @@ export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
 }
 
 
+/** Seleção de um ou mais meses (checkboxes). Sempre mantém ao menos um mês selecionado. */
+export function MesMultiSelect({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (meses: string[]) => void;
+}) {
+  const opcoes = useMemo(() => mesesRecentes(), []);
+  const sel = new Set(value);
+  const toggle = (v: string) => {
+    const next = sel.has(v) ? value.filter((x) => x !== v) : [...value, v];
+    onChange(next.length ? next : [mesAtual()]);
+  };
+  const rotulo =
+    value.length === 0
+      ? "Mês atual"
+      : value.length === 1
+        ? (opcoes.find((o) => o.value === value[0])?.label ?? value[0])
+        : `${value.length} meses selecionados`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal">
+          <span className="truncate capitalize">{rotulo}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="max-h-80 w-[--radix-popover-trigger-width] overflow-y-auto p-2"
+        align="start"
+      >
+        <button
+          type="button"
+          className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+          onClick={() => onChange([mesAtual()])}
+        >
+          <Checkbox checked={value.length === 1 && sel.has(mesAtual())} />
+          Mês atual
+        </button>
+        {opcoes.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+            onClick={() => toggle(o.value)}
+          >
+            <Checkbox checked={sel.has(o.value)} />
+            <span className="capitalize">{o.label}</span>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function FiltrosBar({
   role,
   membros,
@@ -250,54 +306,10 @@ export function FiltrosBar({
 
         <div className="space-y-1.5">
           <Label className="text-xs">Mês</Label>
-          {(() => {
-            const opcoes = mesesRecentes();
-            const sel = new Set(filtros.mes);
-            const toggle = (v: string) => {
-              const next = sel.has(v) ? filtros.mes.filter((x) => x !== v) : [...filtros.mes, v];
-              onChange({ ...filtros, mes: next.length ? next : [mesAtual()] });
-            };
-            const rotulo =
-              filtros.mes.length === 0
-                ? "Mês atual"
-                : filtros.mes.length === 1
-                  ? (opcoes.find((o) => o.value === filtros.mes[0])?.label ?? filtros.mes[0])
-                  : `${filtros.mes.length} meses selecionados`;
-            return (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between font-normal">
-                    <span className="truncate capitalize">{rotulo}</span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="max-h-80 w-[--radix-popover-trigger-width] overflow-y-auto p-2"
-                  align="start"
-                >
-                  <button
-                    type="button"
-                    className="mb-1 flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                    onClick={() => onChange({ ...filtros, mes: [mesAtual()] })}
-                  >
-                    <Checkbox checked={filtros.mes.length === 1 && sel.has(mesAtual())} />
-                    Mês atual
-                  </button>
-                  {opcoes.map((o) => (
-                    <button
-                      key={o.value}
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                      onClick={() => toggle(o.value)}
-                    >
-                      <Checkbox checked={sel.has(o.value)} />
-                      <span className="capitalize">{o.label}</span>
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-            );
-          })()}
+          <MesMultiSelect
+            value={filtros.mes}
+            onChange={(mes) => onChange({ ...filtros, mes })}
+          />
         </div>
       </CardContent>
     </Card>
