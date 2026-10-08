@@ -254,7 +254,7 @@ function Page() {
                 return (
                   <button
                     key={k}
-                    onClick={() => setStatus(ativo && k !== "sem" ? "todos" : k)}
+                    onClick={() => setStatus(ativo ? "todos" : k)}
                     title={`Filtrar por ${label}`}
                   >
                     <Badge variant={ativo ? "default" : "outline"} className="cursor-pointer">
