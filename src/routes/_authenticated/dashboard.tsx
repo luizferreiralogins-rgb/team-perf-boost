@@ -22,18 +22,11 @@ import { metasConsultor, metasEquipe } from "@/lib/metas-kpi";
 
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   FiltrosBar,
+  MesMultiSelect,
   RankingEquipe,
   aplicarFiltros,
   mesAtual,
-  mesesRecentes,
   useEquipe,
   type Filtros,
 } from "@/components/dashboard/filtros-ranking";
@@ -562,11 +555,11 @@ function Dashboard() {
           title="Comissão estimada"
           value={isLoading ? null : brl(data?.comissao ?? 0)}
           icon={Target}
-          projecao={isLoading ? null : `Projeção: ${brl((data?.comissao ?? 0) * fatorProj)}`}
+          projecao={isLoading ? null : `Projeção: ${brl(somaProj((r) => r.comissao))}`}
         />
       </div>
 
-      {!isGestor && <RankingTime uid={roleInfo?.uid} mes={filtros.mes} />}
+      {!isGestor && <RankingTime uid={roleInfo?.uid} meses={filtros.mes} />}
 
 
 
@@ -582,7 +575,7 @@ function Dashboard() {
             qtdInst={isLoading ? null : data?.blInst ?? 0}
             valor={isLoading ? null : data?.blRs ?? 0}
             icon={Wifi}
-            fator={fatorProj}
+            projecaoValor={somaProj((r) => r.blInst)}
             meta={metasKpi.bl}
           />
           <KpiCard
@@ -591,7 +584,7 @@ function Dashboard() {
             qtdInst={isLoading ? null : data?.mvLinhasInst ?? 0}
             valor={isLoading ? null : data?.mvRs ?? 0}
             icon={Smartphone}
-            fator={fatorProj}
+            projecaoValor={somaProj((r) => r.mvLinhasInst)}
             meta={metasKpi.movel}
           />
 
@@ -629,7 +622,7 @@ function Dashboard() {
         canalConsultor={data?.canal}
         escopoIds={escopoIds}
         ativas={usarAtivas}
-        mesRefISO={`${filtros.mes}-01`}
+        mesesRefISO={mesRefISOs}
       />
 
       <VendasMesDialog
@@ -640,7 +633,7 @@ function Dashboard() {
         canalConsultor={data?.canal}
         escopoIds={escopoIds}
         ativas={usarAtivas}
-        mesRefISO={`${filtros.mes}-01`}
+        mesesRefISO={mesRefISOs}
       />
 
 
