@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, Upload } from "lucide-react";
+import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -153,11 +153,11 @@ function Page() {
         if (buscaDeb.trim()) q = q.ilike("nome_cliente", `%${buscaDeb.trim()}%`);
         return q;
       };
-      const chaves = ["contato_feito", "negociando", "fechado", "sem"] as const;
+      const chaves = ["contato_feito", "negociando", "fechado", "sem", "com_status"] as const;
       const respostas = await Promise.all(
         chaves.map((k) => {
           let q = escopo();
-          q = k === "sem" ? q.is("status", null) : q.eq("status", k);
+          q = k === "sem" ? q.is("status", null) : k === "com_status" ? q.not("status", "is", null) : q.eq("status", k);
           return q;
         }),
       );
@@ -169,8 +169,12 @@ function Page() {
   const nomePorId = Object.fromEntries((equipe.data ?? []).map((p) => [p.id, p.nome]));
   const total = lista.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
-  const contagem = (k: "contato_feito" | "negociando" | "fechado" | "sem") =>
-    contagens.data?.[k] ?? null;
+  const contagem = (
+    k: "contato_feito" | "negociando" | "fechado" | "sem" | "com_status",
+  ) => contagens.data?.[k] ?? null;
+  const contatados = contagem("com_status") ?? 0;
+  const ganhos = contagem("fechado") ?? 0;
+  const conversao = contatados > 0 ? (ganhos / contatados) * 100 : null;
 
   return (
     <div className="space-y-6">
@@ -263,6 +267,23 @@ function Page() {
                   </button>
                 );
               })}
+            {aba === "base" && (
+              <button
+                onClick={() => setStatus(status === "fechado" ? "todos" : "fechado")}
+                title="Conversão: clientes fechados ÷ clientes com status alterado"
+              >
+                <Badge variant={status === "fechado" ? "default" : "outline"} className="cursor-pointer gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Conversão:{" "}
+                  {conversao === null
+                    ? "—"
+                    : conversao.toLocaleString("pt-BR", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + "%"}
+                  <span className="font-normal opacity-75">
+                    ({ganhos} de {contatados})
+                  </span>
+                </Badge>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Button size="icon" variant="outline" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
