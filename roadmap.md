@@ -5,3 +5,5 @@
 - [x] Prospecções: indicador de conversão (fechados ÷ contatados) ao lado dos contadores
 - [x] Meu script: apenas para consultores Loja e PAP (fora de Gerentes e Líder PAP)
 - [x] Pós vendas: remover coluna Ação para consultores e estender a coluna Observação
+- [x] Pós vendas: remover coluna Ação também para Gerentes e Líder PAP (mesmo layout dos consultores)
+- [x] Site publicado: selo "Edit with Lovable" ocultado
