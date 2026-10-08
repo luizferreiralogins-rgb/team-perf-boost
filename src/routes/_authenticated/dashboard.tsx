@@ -180,16 +180,17 @@ function Dashboard() {
   const [verVendasMes, setVerVendasMes] = useState(false);
   const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
   const comercial = !isGestor || aba === "comercial";
-  const [filtros, setFiltros] = useState<Filtros>({ mes: mesAtual(), pessoa: "all", unidades: [] });
+  const [filtros, setFiltros] = useState<Filtros>({ mes: [mesAtual()], pessoa: "all", unidades: [] });
   const { data: membros } = useEquipe(roleInfo?.uid, isGestor ? role : undefined);
   const escopoIds = useMemo(
     () => (membros ? aplicarFiltros(membros, filtros, role).map((m) => m.id) : []),
     [membros, filtros, role],
   );
-  const fatorProj = useMemo(() => fatorProjecao(filtros.mes), [filtros.mes]);
 
+  const meses = useMemo(() => [...filtros.mes].sort(), [filtros.mes]);
+  const mesRefISOs = useMemo(() => meses.map((m) => `${m}-01`), [meses]);
 
-  const ehMesAtual = filtros.mes === mesAtual();
+  const ehMesAtual = meses.includes(mesAtual());
   /** Mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
   const usarAtivas = ehMesAtual;
   const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
@@ -198,26 +199,25 @@ function Dashboard() {
 
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-mes", isGestor, filtros.mes, escopoIds.join(","), usarAtivas],
+    queryKey: ["dashboard-mes", isGestor, meses.join(","), escopoIds.join(","), usarAtivas],
     enabled: !isGestor || !!membros,
     queryFn: async () => {
       const { data: sess } = await supabase.auth.getUser();
       const uid = sess.user!.id;
-      const mesRefISO = `${filtros.mes}-01`;
 
       const lojaQ = supabase
         .from("vendas_loja")
-        .select("valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, classe_protocolo, contem_movel, qtd_linhas");
+        .select("valor_novo, valor_antigo, status, mes_ref, arquivada_em, comissao, tecnologia, classe_protocolo, contem_movel, qtd_linhas");
       const papQ = supabase
         .from("vendas_pap")
-        .select("valor, valor_novo, valor_antigo, status, mes_ref, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas");
+        .select("valor, valor_novo, valor_antigo, status, mes_ref, arquivada_em, comissao, tecnologia, produto, tipo_protocolo, qtd_linhas");
       if (usarAtivas) {
-        // mês atual: vendas ativas + as já arquivadas com referência neste mês
-        lojaQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
-        papQ.or(`arquivada_em.is.null,mes_ref.eq.${mesRefISO}`);
+        // mês atual incluso: vendas ativas + as já arquivadas com referência nos meses escolhidos
+        lojaQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefISOs.join(",")})`);
+        papQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefISOs.join(",")})`);
       } else {
-        lojaQ.eq("mes_ref", mesRefISO);
-        papQ.eq("mes_ref", mesRefISO);
+        lojaQ.in("mes_ref", mesRefISOs);
+        papQ.in("mes_ref", mesRefISOs);
       }
       if (!isGestor) {
         lojaQ.eq("vendedor_id", uid);
@@ -296,30 +296,50 @@ function Dashboard() {
       let mvLinhas = 0, mvLinhasInst = 0;
       let rvQtd = 0, rvInst = 0, rvRs = 0;
 
+      // Acumulado por mês — base das projeções quando há mais de um mês selecionado
+      const porMes = new Map<
+        string,
+        { blInst: number; blRs: number; mvLinhasInst: number; mvRs: number; rvInst: number; rvRs: number; comissao: number }
+      >();
+      const mesDe = (v: { arquivada_em: string | null; mes_ref: string | null }) =>
+        (usarAtivas && !v.arquivada_em ? mesAtual() : (v.mes_ref ?? `${mesAtual()}-01`)).slice(0, 7);
+      const pm = (mes: string) => {
+        let cur = porMes.get(mes);
+        if (!cur) {
+          cur = { blInst: 0, blRs: 0, mvLinhasInst: 0, mvRs: 0, rvInst: 0, rvRs: 0, comissao: 0 };
+          porMes.set(mes, cur);
+        }
+        return cur;
+      };
+
       for (const v of scopeLoja) {
         const inst = v.status === "instalado";
         const val = inst ? receitaLoja(v) : 0;
         const linhas = linhasMovel(v);
+        const b = pm(mesDe(v));
+        if (inst) b.comissao += Number(v.comissao ?? 0);
         const renovLoja = (v.classe_protocolo ?? "").startsWith("Renovação");
-        if (isBlLoja(v)) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (isBlLoja(v)) { blQtd++; if (inst) { blInst++; b.blInst++; } blRs += val; b.blRs += val; }
         if (isMovelTec(v.tecnologia) || v.contem_movel || linhas > 0) {
-          mvQtd++; if (inst) mvInst++; mvRs += val;
+          mvQtd++; if (inst) mvInst++; mvRs += val; b.mvRs += val;
         }
-        mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
-        if (renovLoja) { rvQtd++; if (inst) rvInst++; rvRs += val; }
+        mvLinhas += linhas; if (inst) { mvLinhasInst += linhas; b.mvLinhasInst += linhas; }
+        if (renovLoja) { rvQtd++; if (inst) rvInst++; rvRs += val; b.rvRs += val; }
       }
       for (const v of scopePap) {
         const inst = v.status === "instalado";
         const val = inst ? receitaPap(v) : 0;
         const desc = `${v.produto ?? ""} ${v.tecnologia ?? ""}`;
         const linhas = linhasMovel(v);
+        const b = pm(mesDe(v));
+        if (inst) b.comissao += Number(v.comissao ?? 0);
         const renovPap = (v.tipo_protocolo ?? "").startsWith("Renovação");
-        if (isBlPap(v)) { blQtd++; if (inst) blInst++; blRs += val; }
+        if (isBlPap(v)) { blQtd++; if (inst) { blInst++; b.blInst++; } blRs += val; b.blRs += val; }
         if (isMovelTec(desc) || linhas > 0) {
-          mvQtd++; if (inst) mvInst++; mvRs += val;
+          mvQtd++; if (inst) mvInst++; mvRs += val; b.mvRs += val;
         }
-        mvLinhas += linhas; if (inst) mvLinhasInst += linhas;
-        if (renovPap) { rvQtd++; if (inst) rvInst++; rvRs += val; }
+        mvLinhas += linhas; if (inst) { mvLinhasInst += linhas; b.mvLinhasInst += linhas; }
+        if (renovPap) { rvQtd++; if (inst) rvInst++; rvRs += val; b.rvRs += val; }
       }
 
 
@@ -330,10 +350,16 @@ function Dashboard() {
         blQtd, blInst, blRs,
         mvQtd, mvInst, mvRs, mvLinhas, mvLinhasInst,
         rvQtd, rvInst, rvRs,
+        porMes: [...porMes.entries()].map(([mes, v]) => ({ mes, ...v })),
       };
 
     },
   });
+
+  type PorMesRow = NonNullable<typeof data>["porMes"][number];
+  /** Projeção somando cada mês com o seu próprio fator (meses fechados valem 1). */
+  const somaProj = (pegar: (r: PorMesRow) => number) =>
+    (data?.porMes ?? []).reduce((s, r) => s + pegar(r) * fatorProjecao(r.mes), 0);
 
   const metasKpi = isGestor
     ? metasEquipe(membros ? aplicarFiltros(membros, filtros, role) : [])
@@ -365,7 +391,7 @@ function Dashboard() {
           </p>
         </div>
         <RitmoDiario
-          mes={filtros.mes}
+          mes={meses.length === 1 ? meses[0]! : ""}
           metas={metasKpi}
           semRenovacao={(roleInfo?.isLiderPap ?? false) || (!isGestor && data?.canal === "pap")}
           bl={data?.blInst ?? 0}
@@ -460,21 +486,10 @@ function Dashboard() {
         <Card>
           <CardContent className="flex flex-wrap items-center gap-3 py-4">
             <Label className="text-sm text-muted-foreground">Mês</Label>
-            <Select
+            <MesMultiSelect
               value={filtros.mes}
-              onValueChange={(mes) => setFiltros((f) => ({ ...f, mes }))}
-            >
-              <SelectTrigger className="w-[220px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {mesesRecentes(12).map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(mes) => setFiltros((f) => ({ ...f, mes }))}
+            />
             {ehMesAtual && (
               <span className="text-xs text-muted-foreground">
                 Mês atual: considera todas as vendas da aba Vendas.
