@@ -131,7 +131,8 @@ function Page() {
       else if (consultor !== "todos") q = q.eq("vendedor_id", consultor);
       if (status === "sem") q = q.is("status", null);
       else if (status !== "todos") q = q.eq("status", status);
-      if (aba === "base" && categoria !== "todas") q = q.eq("categoria", categoria);
+      // "categoria" só existe na tabela base (o histórico não tem essa coluna)
+      if (aba === "base" && categoria !== "todas") q = q.eq("categoria" as never, categoria);
       if (buscaDeb.trim()) q = q.ilike("nome_cliente", `%${buscaDeb.trim()}%`);
       const { data, error, count } = await q;
       if (error) throw error;
