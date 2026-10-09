@@ -43,7 +43,7 @@ import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Unifique Comercial" },
+      { title: "Dashboard — Uni4Consult" },
       { name: "description", content: "Acompanhe suas vendas, comissões e metas do mês." },
     ],
   }),

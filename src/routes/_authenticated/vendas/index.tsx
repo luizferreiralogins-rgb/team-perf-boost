@@ -47,7 +47,7 @@ import {
 export const Route = createFileRoute("/_authenticated/vendas/")({
   head: () => ({
     meta: [
-      { title: "Vendas — Unifique Comercial" },
+      { title: "Vendas — Uni4Consult" },
       { name: "description", content: "Histórico e gestão das suas vendas Unifique." },
     ],
   }),

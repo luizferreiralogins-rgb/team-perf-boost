@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Unifique — Gestão Comercial" },
+      { title: "Uni4Consult — Gestão Comercial" },
       {
         name: "description",
         content:
           "Plataforma de gestão comercial da Unifique. Registre vendas, acompanhe comissões e resultados em tempo real.",
       },
-      { property: "og:title", content: "Unifique — Gestão Comercial" },
+      { property: "og:title", content: "Uni4Consult — Gestão Comercial" },
       {
         property: "og:description",
         content: "Vendas, comissões e resultados da equipe comercial em um só lugar.",
@@ -30,7 +30,7 @@ function Landing() {
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-[image:var(--gradient-hero)] text-primary-foreground font-bold shadow-[var(--shadow-elegant)]">
               U
             </div>
-            <span className="text-lg font-semibold tracking-tight">Unifique · Comercial</span>
+            <span className="text-lg font-semibold tracking-tight">Uni4Consult · Comercial</span>
           </div>
           <div className="flex items-center gap-2">
             <Button asChild>
@@ -96,7 +96,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border/60 py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Unifique — Gestão Comercial
+        © {new Date().getFullYear()} Uni4Consult — Gestão Comercial
       </footer>
     </div>
   );

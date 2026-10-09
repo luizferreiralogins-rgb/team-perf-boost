@@ -42,13 +42,13 @@ import {
 export const Route = createFileRoute("/_authenticated/contestacoes")({
   head: () => ({
     meta: [
-      { title: "Contestações — Unifique Comercial" },
+      { title: "Contestações — Uni4Consult" },
       {
         name: "description",
         content:
           "Consulte o relatório matriz importado pelo Gerente Regional e verifique divergências com as suas vendas do mês.",
       },
-      { property: "og:title", content: "Contestações — Unifique Comercial" },
+      { property: "og:title", content: "Contestações — Uni4Consult" },
       {
         property: "og:description",
         content: "Relatório matriz x vendas do consultor: protocolos, valores, faixa e comissão.",

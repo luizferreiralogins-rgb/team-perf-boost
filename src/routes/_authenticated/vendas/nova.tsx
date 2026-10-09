@@ -47,7 +47,7 @@ import { SelectCanal } from "@/components/canais";
 export const Route = createFileRoute("/_authenticated/vendas/nova")({
   head: () => ({
     meta: [
-      { title: "Nova venda — Unifique Comercial" },
+      { title: "Nova venda — Uni4Consult" },
       { name: "description", content: "Registre uma nova venda Unifique (Loja ou PAP)." },
     ],
   }),

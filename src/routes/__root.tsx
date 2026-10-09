@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Gestão Comercial Unifique" },
+      { title: "Gestão Comercial Uni4Consult" },
       {
         name: "description",
         content:
           "Sistema de gestão comercial Unifique para consultores de Loja e PAP: vendas, comissões, equipe e resultados.",
       },
-      { property: "og:title", content: "Gestão Comercial Unifique" },
+      { property: "og:title", content: "Gestão Comercial Uni4Consult" },
       {
         property: "og:description",
         content:

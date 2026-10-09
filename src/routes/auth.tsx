@@ -16,7 +16,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s) => authSearch.parse(s),
   head: () => ({
     meta: [
-      { title: "Entrar — Unifique Comercial" },
+      { title: "Entrar — Uni4Consult" },
       { name: "description", content: "Acesse o sistema comercial da Unifique." },
     ],
   }),
@@ -39,7 +39,7 @@ function AuthPage() {
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-white/15 backdrop-blur font-bold">
             U
           </div>
-          <span className="font-semibold">Unifique · Comercial</span>
+          <span className="font-semibold">Uni4Consult · Comercial</span>
         </Link>
         <div className="max-w-md">
           <h1 className="text-4xl font-bold leading-tight">

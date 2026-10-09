@@ -45,13 +45,13 @@ export const Route = createFileRoute("/_authenticated/tarefas")({
   }),
   head: () => ({
     meta: [
-      { title: "Agenda e Tarefas — Unifique Comercial" },
+      { title: "Agenda e Tarefas — Uni4Consult" },
       {
         name: "description",
         content:
           "Crie tarefas para você, para outros usuários ou para clientes, acompanhe a agenda e receba avisos de vencimento no dia seguinte.",
       },
-      { property: "og:title", content: "Agenda e Tarefas — Unifique Comercial" },
+      { property: "og:title", content: "Agenda e Tarefas — Uni4Consult" },
       {
         property: "og:description",
         content: "Agenda comercial com tarefas próprias, de equipe e de clientes.",
