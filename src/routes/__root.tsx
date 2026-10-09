@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Sistema de gestão comercial Unifique para consultores de Loja e PAP: vendas, comissões, equipe e resultados.",
+          "Sistema de gestão comercial Uni4Consult para consultores de Loja e PAP: vendas, comissões, equipe e resultados.",
       },
       { property: "og:title", content: "Gestão Comercial Uni4Consult" },
       {

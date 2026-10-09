@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Plataforma de gestão comercial da Unifique. Registre vendas, acompanhe comissões e resultados em tempo real.",
+          "Plataforma de gestão comercial Uni4Consult. Registre vendas, acompanhe comissões e resultados em tempo real.",
       },
       { property: "og:title", content: "Uni4Consult — Gestão Comercial" },
       {

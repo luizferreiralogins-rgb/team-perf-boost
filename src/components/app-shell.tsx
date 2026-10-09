@@ -181,7 +181,7 @@ function Sidebar({
             <div className="grid h-8 w-8 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground font-bold text-sm">
               U
             </div>
-            <span className="font-semibold">Unifique</span>
+            <span className="font-semibold">Uni4Consult</span>
           </Link>
           <button
             onClick={onClose}

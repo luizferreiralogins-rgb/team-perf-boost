@@ -17,7 +17,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Entrar — Uni4Consult" },
-      { name: "description", content: "Acesse o sistema comercial da Unifique." },
+      { name: "description", content: "Acesse o sistema comercial Uni4Consult." },
     ],
   }),
   component: AuthPage,
@@ -50,7 +50,7 @@ function AuthPage() {
           </p>
         </div>
         <p className="text-sm text-primary-foreground/70">
-          © {new Date().getFullYear()} Unifique
+          © {new Date().getFullYear()} Uni4Consult
         </p>
       </div>
 
