@@ -89,7 +89,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute("/_authenticated/equipe")({
   head: () => ({
     meta: [
-      { title: "Equipe — Unifique Comercial" },
+      { title: "Equipe — Uni4Consult" },
       { name: "description", content: "Gerencie acessos de gerentes e consultores." },
     ],
   }),

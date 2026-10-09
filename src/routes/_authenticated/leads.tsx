@@ -43,7 +43,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const Route = createFileRoute("/_authenticated/leads")({
   head: () => ({
     meta: [
-      { title: "Leads — Unifique Comercial" },
+      { title: "Leads — Uni4Consult" },
       { name: "description", content: "CRM de leads em modelo Kanban com transferências entre consultores." },
     ],
   }),

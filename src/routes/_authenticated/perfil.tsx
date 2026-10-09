@@ -17,7 +17,7 @@ import { CanaisConfig } from "@/components/canais";
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
-      { title: "Perfil — Unifique Comercial" },
+      { title: "Perfil — Uni4Consult" },
       { name: "description", content: "Suas informações de acesso e canal na Unifique." },
     ],
   }),

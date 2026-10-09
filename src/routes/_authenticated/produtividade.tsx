@@ -28,12 +28,12 @@ import {
 export const Route = createFileRoute("/_authenticated/produtividade")({
   head: () => ({
     meta: [
-      { title: "Produtividade — Unifique Comercial" },
+      { title: "Produtividade — Uni4Consult" },
       {
         name: "description",
         content: "Registre os atendimentos do dia e acompanhe sua produtividade diária no mês.",
       },
-      { property: "og:title", content: "Produtividade — Unifique Comercial" },
+      { property: "og:title", content: "Produtividade — Uni4Consult" },
       {
         property: "og:description",
         content: "Atendimentos, vendas e leads consolidados por dia.",

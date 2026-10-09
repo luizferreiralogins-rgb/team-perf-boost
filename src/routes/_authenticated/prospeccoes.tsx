@@ -26,9 +26,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_authenticated/prospeccoes")({
   head: () => ({
     meta: [
-      { title: "Prospecções · Unifique" },
+      { title: "Prospecções · Uni4Consult" },
       { name: "description", content: "Base de clientes para prospecção e renovação de cada consultor." },
-      { property: "og:title", content: "Prospecções · Unifique" },
+      { property: "og:title", content: "Prospecções · Uni4Consult" },
       { property: "og:description", content: "Base de clientes para prospecção e renovação." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

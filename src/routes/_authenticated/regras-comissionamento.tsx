@@ -18,13 +18,13 @@ export const Route = createFileRoute("/_authenticated/regras-comissionamento")({
   component: RegrasPage,
   head: () => ({
     meta: [
-      { title: "Regras de Comissionamento | Unifique" },
+      { title: "Regras de Comissionamento | Uni4Consult" },
       {
         name: "description",
         content:
           "Consulte e edite as tabelas de comissionamento de Loja e PAP diretamente pelos campos.",
       },
-      { property: "og:title", content: "Regras de Comissionamento | Unifique" },
+      { property: "og:title", content: "Regras de Comissionamento | Uni4Consult" },
       {
         property: "og:description",
         content: "Tabelas editáveis de faixas, metas e novos produtos para Loja e PAP.",

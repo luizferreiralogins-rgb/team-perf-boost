@@ -44,12 +44,12 @@ import {
 export const Route = createFileRoute("/_authenticated/relatorios")({
   head: () => ({
     meta: [
-      { title: "Relatórios comerciais — Unifique" },
+      { title: "Relatórios comerciais — Uni4Consult" },
       {
         name: "description",
         content: "Crie relatórios de vendas, canais e reagendamentos conforme sua equipe.",
       },
-      { property: "og:title", content: "Relatórios comerciais — Unifique" },
+      { property: "og:title", content: "Relatórios comerciais — Uni4Consult" },
       {
         property: "og:description",
         content: "Relatórios de vendas, canais e reagendamentos com acesso por hierarquia.",

@@ -38,13 +38,13 @@ export const Route = createFileRoute("/_authenticated/planejamento")({
   component: PlanejamentoPage,
   head: () => ({
     meta: [
-      { title: "Planejamento PAP | Unifique" },
+      { title: "Planejamento PAP | Uni4Consult" },
       {
         name: "description",
         content:
           "Planejamento de ações do time PAP: tipo de ação, cidade, local, consultores, leads e fechamentos.",
       },
-      { property: "og:title", content: "Planejamento PAP | Unifique" },
+      { property: "og:title", content: "Planejamento PAP | Uni4Consult" },
       {
         property: "og:description",
         content: "Registro e acompanhamento das ações planejadas pelo Líder PAP.",

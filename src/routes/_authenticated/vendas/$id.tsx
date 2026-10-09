@@ -15,7 +15,7 @@ import { HistoricoReagendamentos } from "@/components/vendas/reagendamento";
 export const Route = createFileRoute("/_authenticated/vendas/$id")({
   head: () => ({
     meta: [
-      { title: "Editar venda — Unifique Comercial" },
+      { title: "Editar venda — Uni4Consult" },
       { name: "description", content: "Edite uma venda registrada." },
     ],
   }),

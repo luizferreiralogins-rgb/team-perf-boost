@@ -65,13 +65,13 @@ import {
 export const Route = createFileRoute("/_authenticated/historico")({
   head: () => ({
     meta: [
-      { title: "Histórico de vendas — Unifique Comercial" },
+      { title: "Histórico de vendas — Uni4Consult" },
       {
         name: "description",
         content:
           "Consulte, filtre e analise todas as vendas instaladas por data de instalação para contestações.",
       },
-      { property: "og:title", content: "Histórico de vendas — Unifique Comercial" },
+      { property: "og:title", content: "Histórico de vendas — Uni4Consult" },
       {
         property: "og:description",
         content: "Vendas instaladas organizadas pela data de instalação, com filtros e análises.",

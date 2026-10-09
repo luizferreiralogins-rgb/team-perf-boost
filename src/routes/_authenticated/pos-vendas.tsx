@@ -58,13 +58,13 @@ import {
 export const Route = createFileRoute("/_authenticated/pos-vendas")({
   head: () => ({
     meta: [
-      { title: "Pós-vendas — Unifique Comercial" },
+      { title: "Pós-vendas — Uni4Consult" },
       {
         name: "description",
         content:
           "Acompanhe contatos de satisfação e ofertas de novos produtos das vendas ativadas.",
       },
-      { property: "og:title", content: "Pós-vendas — Unifique Comercial" },
+      { property: "og:title", content: "Pós-vendas — Uni4Consult" },
       {
         property: "og:description",
         content: "Régua de pós-venda: satisfação em 10 dias e oferta de novos produtos em 20 dias.",
