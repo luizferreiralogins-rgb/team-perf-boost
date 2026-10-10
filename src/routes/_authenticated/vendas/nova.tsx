@@ -58,7 +58,11 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
     lead_produto?: string;
     lead_whatsapp?: string;
     lead_cidade?: string;
+    lead_canal?: string;
+    lead_obs?: string;
   } => ({
+    lead_canal: typeof search.lead_canal === "string" ? search.lead_canal : undefined,
+    lead_obs: typeof search.lead_obs === "string" ? search.lead_obs : undefined,
     lead_nome: typeof search.lead_nome === "string" ? search.lead_nome : undefined,
     lead_produto: typeof search.lead_produto === "string" ? search.lead_produto : undefined,
     lead_whatsapp: typeof search.lead_whatsapp === "string" ? search.lead_whatsapp : undefined,
@@ -129,7 +133,7 @@ const TECNOLOGIAS = [
 
 const commonBase = {
   nome_cliente: z.string().trim().min(2, "Informe o nome do cliente").max(120),
-  observacoes: z.string().max(500).optional().or(z.literal("")),
+  observacoes: z.string().max(3000).optional().or(z.literal("")),
 };
 
 const lojaSchema = z.object({
@@ -204,12 +208,12 @@ function NovaVenda() {
         protocolo: "",
         nome_cliente: search.lead_nome ?? "",
         telefone: search.lead_whatsapp ?? "",
-        observacoes: obsLead ? `Origem: Lead. ${obsLead}` : "",
+        observacoes: search.lead_obs ?? (obsLead ? `Origem: Lead. ${obsLead}` : ""),
         data_abertura: today(),
         data_ativacao: "",
         data_agendamento: "",
         classe_protocolo: "Novo Acesso",
-        canal_origem: "",
+        canal_origem: search.lead_canal ?? "",
         tecnologia: "01.04 - Internet - Banda Larga - Fibra",
         contem_movel: false,
         qtd_linhas: "0",
@@ -227,7 +231,7 @@ function NovaVenda() {
     ? {
         protocolo: "",
         tipo_protocolo: "Novo Acesso",
-        canal_origem: "",
+        canal_origem: search.lead_canal ?? "",
         nome_cliente: search.lead_nome ?? "",
         telefone: search.lead_whatsapp ?? "",
         produto: produtoPap ?? "Banda Larga",
