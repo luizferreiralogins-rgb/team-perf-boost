@@ -407,6 +407,48 @@ export type Database = {
           },
         ]
       }
+      indicacoes: {
+        Row: {
+          cliente_cpf: string
+          cliente_nome: string
+          created_at: string
+          historico: Json
+          id: string
+          indicado_celular: string
+          indicado_email: string | null
+          indicado_nome: string
+          status: string
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          cliente_cpf: string
+          cliente_nome: string
+          created_at?: string
+          historico?: Json
+          id?: string
+          indicado_celular: string
+          indicado_email?: string | null
+          indicado_nome: string
+          status?: string
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Update: {
+          cliente_cpf?: string
+          cliente_nome?: string
+          created_at?: string
+          historico?: Json
+          id?: string
+          indicado_celular?: string
+          indicado_email?: string | null
+          indicado_nome?: string
+          status?: string
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       lead_contatos: {
         Row: {
           created_at: string

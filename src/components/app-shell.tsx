@@ -20,6 +20,7 @@ import {
   ChartNoAxesCombined,
   HeartHandshake,
   Target,
+  Gift,
 
 } from "lucide-react";
 
@@ -139,6 +140,7 @@ function Sidebar({
     { to: "/leads", label: "Leads", icon: KanbanSquare, show: true, badge: alertas?.leads },
     { to: "/vendas", label: "Vendas", icon: ShoppingBag, show: true, badge: alertas?.vendas },
     { to: "/pos-vendas", label: "Pós vendas", icon: HeartHandshake, show: true },
+    { to: "/indique-ganhe", label: "Gestão Indique Ganhe", icon: Gift, show: isGestor || (isConsultor && profile?.canal === "loja") },
     { to: "/prospeccoes", label: "Prospecções", icon: Target, show: true },
     { to: "/produtividade", label: "Produtividade", icon: Activity, show: isConsultor || roles.includes("gerente") || roles.includes("lider_pap") || roles.includes("gerente_regional") || roles.includes("regional") || roles.includes("admin") },
     {
