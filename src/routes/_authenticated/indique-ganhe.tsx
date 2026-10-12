@@ -39,6 +39,7 @@ type Indicacao = {
   vendedor_id: string;
   cliente_nome: string;
   cliente_cpf: string;
+  cliente_telefone: string | null;
   indicado_nome: string;
   indicado_celular: string;
   indicado_email: string | null;
@@ -241,6 +242,9 @@ function IndiqueGanhe() {
                                 lead_whatsapp: i.indicado_celular,
                                 lead_canal: ctx.canal,
                                 lead_obs: resumo(i),
+                                ind_nome: i.cliente_nome,
+                                ind_cpf: i.cliente_cpf,
+                                ind_tel: i.cliente_telefone ?? "",
                               }}
                             >
                               <ShoppingCart className="h-4 w-4" />

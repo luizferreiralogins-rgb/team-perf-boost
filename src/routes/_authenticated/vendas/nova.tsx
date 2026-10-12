@@ -41,6 +41,7 @@ import {
 } from "@/lib/comissao";
 import { recalcularLojaMes, recalcularPapMes } from "@/lib/recalculo";
 import { SelectCanal } from "@/components/canais";
+import { CamposIndicador, indicadorVazio, isIndiqueGanhe, sincronizarIndicacao, validarIndicador, type Indicador } from "@/components/vendas/indicador";
 
 
 
@@ -60,7 +61,13 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
     lead_cidade?: string;
     lead_canal?: string;
     lead_obs?: string;
+    ind_nome?: string;
+    ind_cpf?: string;
+    ind_tel?: string;
   } => ({
+    ind_nome: typeof search.ind_nome === "string" ? search.ind_nome : undefined,
+    ind_cpf: typeof search.ind_cpf === "string" ? search.ind_cpf : undefined,
+    ind_tel: typeof search.ind_tel === "string" ? search.ind_tel : undefined,
     lead_canal: typeof search.lead_canal === "string" ? search.lead_canal : undefined,
     lead_obs: typeof search.lead_obs === "string" ? search.lead_obs : undefined,
     lead_nome: typeof search.lead_nome === "string" ? search.lead_nome : undefined,
@@ -195,6 +202,9 @@ function NovaVenda() {
   const search = Route.useSearch();
 
   const veioDeLead = !!(search.lead_nome || search.lead_produto || search.lead_whatsapp);
+  const indInicial: Indicador | undefined = search.ind_nome
+    ? { nome: search.ind_nome, cpf: search.ind_cpf ?? "", telefone: search.ind_tel ?? "" }
+    : undefined;
   const obsLead = [
     search.lead_whatsapp ? `WhatsApp: ${search.lead_whatsapp}` : "",
     search.lead_cidade ? `Cidade: ${search.lead_cidade}` : "",
@@ -265,9 +275,9 @@ function NovaVenda() {
           <CardContent className="p-8 text-sm text-muted-foreground">Carregando...</CardContent>
         </Card>
       ) : canalQ.data === "pap" ? (
-        <FormPap initial={initialPap} />
+        <FormPap initial={initialPap} indicadorInicial={indInicial} />
       ) : (
-        <FormLoja initial={initialLoja} />
+        <FormLoja initial={initialLoja} indicadorInicial={indInicial} />
       )}
     </div>
   );
@@ -296,14 +306,17 @@ export function FormLoja({
   editingId,
   initial,
   ownerId,
+  indicadorInicial,
 }: {
   editingId?: string;
   initial?: FormLojaState;
   ownerId?: string;
+  indicadorInicial?: Indicador;
 } = {}) {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
+  const [ind, setInd] = useState<Indicador>(indicadorInicial ?? indicadorVazio);
   const [form, setForm] = useState<FormLojaState>(
     initial ?? {
       protocolo: "",
@@ -343,6 +356,10 @@ export function FormLoja({
         `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
       );
       return;
+    }
+    if (isIndiqueGanhe(parsed.data.canal_origem)) {
+      const erro = validarIndicador(ind);
+      if (erro) return void toast.error(erro);
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
@@ -461,6 +478,8 @@ export function FormLoja({
         motivo: motivoReagendamento,
       });
     }
+    if (!error && isIndiqueGanhe(parsed.data.canal_origem))
+      await sincronizarIndicacao(ind, { vendedorId: uid, nome: parsed.data.nome_cliente, telefone: form.telefone, instalado: parsed.data.instalado });
     if (!error) await recalcularLojaMes(uid, mesRef);
     setLoading(false);
     if (error) {
@@ -514,6 +533,7 @@ export function FormLoja({
                 placeholder="De onde veio a venda"
               />
             </Field>
+            {isIndiqueGanhe(form.canal_origem) && <CamposIndicador value={ind} onChange={setInd} />}
             <Field label="Classe de protocolo" required>
               <Select
                 value={form.classe_protocolo}
@@ -701,10 +721,12 @@ export function FormPap({
   editingId,
   initial,
   ownerId,
+  indicadorInicial,
 }: {
   editingId?: string;
   initial?: FormPapState;
   ownerId?: string;
+  indicadorInicial?: Indicador;
 } = {}) {
 
   const navigate = useNavigate();
@@ -725,6 +747,7 @@ export function FormPap({
       instalado: false,
     },
   );
+  const [ind, setInd] = useState<Indicador>(indicadorInicial ?? indicadorVazio);
   const [agendamentoOriginal] = useState(initial?.data_agendamento ?? "");
   const [motivoReagendamento, setMotivoReagendamento] = useState("");
   const precisaJustificar =
@@ -751,6 +774,10 @@ export function FormPap({
         `Informe a justificativa do reagendamento (mínimo ${MOTIVO_MIN} caracteres).`,
       );
       return;
+    }
+    if (isIndiqueGanhe(parsed.data.canal_origem)) {
+      const erro = validarIndicador(ind);
+      if (erro) return void toast.error(erro);
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
@@ -829,6 +856,8 @@ export function FormPap({
         motivo: motivoReagendamento,
       });
     }
+    if (!error && isIndiqueGanhe(parsed.data.canal_origem))
+      await sincronizarIndicacao(ind, { vendedorId: uid, nome: parsed.data.nome_cliente, telefone: form.telefone, instalado: parsed.data.instalado });
     if (!error) await recalcularPapMes(uid, mesRefPap);
     setLoading(false);
 
@@ -897,6 +926,7 @@ export function FormPap({
                 placeholder="De onde veio a venda"
               />
             </Field>
+            {isIndiqueGanhe(form.canal_origem) && <CamposIndicador value={ind} onChange={setInd} />}
             <Field label="Produto" required>
               <Select
                 value={form.produto}

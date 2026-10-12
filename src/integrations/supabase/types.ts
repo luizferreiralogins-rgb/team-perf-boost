@@ -411,6 +411,7 @@ export type Database = {
         Row: {
           cliente_cpf: string
           cliente_nome: string
+          cliente_telefone: string | null
           created_at: string
           historico: Json
           id: string
@@ -424,6 +425,7 @@ export type Database = {
         Insert: {
           cliente_cpf: string
           cliente_nome: string
+          cliente_telefone?: string | null
           created_at?: string
           historico?: Json
           id?: string
@@ -437,6 +439,7 @@ export type Database = {
         Update: {
           cliente_cpf?: string
           cliente_nome?: string
+          cliente_telefone?: string | null
           created_at?: string
           historico?: Json
           id?: string
