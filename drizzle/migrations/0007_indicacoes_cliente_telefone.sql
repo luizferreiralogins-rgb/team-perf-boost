@@ -1,0 +1,1 @@
+ALTER TABLE public.indicacoes ADD COLUMN IF NOT EXISTS cliente_telefone text;
