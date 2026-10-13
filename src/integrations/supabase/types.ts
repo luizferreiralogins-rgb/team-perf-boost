@@ -1350,6 +1350,35 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_leituras: {
+        Row: {
+          agendado_em: string
+          lido_em: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          agendado_em: string
+          lido_em?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          agendado_em?: string
+          lido_em?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefa_leituras_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefa_participantes: {
         Row: {
           created_at: string
@@ -1394,6 +1423,7 @@ export type Database = {
           criador_id: string
           data_venc: string
           descricao: string | null
+          exige_leitura: boolean
           hora_venc: string | null
           id: string
           prioridade: Database["public"]["Enums"]["tarefa_prioridade"]
@@ -1411,6 +1441,7 @@ export type Database = {
           criador_id: string
           data_venc?: string
           descricao?: string | null
+          exige_leitura?: boolean
           hora_venc?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
@@ -1428,6 +1459,7 @@ export type Database = {
           criador_id?: string
           data_venc?: string
           descricao?: string | null
+          exige_leitura?: boolean
           hora_venc?: string | null
           id?: string
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
@@ -1847,6 +1879,10 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      confirmar_leitura_tarefa: {
+        Args: { _agendado_em: string; _tarefa_id: string }
+        Returns: undefined
+      }
       consultor_ve_nativa: {
         Args: { _consultor_nome: string }
         Returns: boolean
@@ -1870,6 +1906,18 @@ export type Database = {
       is_gestor_regras: { Args: { _uid: string }; Returns: boolean }
       limpar_base_renovacao: { Args: never; Returns: number }
       limpar_prospeccoes: { Args: never; Returns: number }
+      listar_avisos_tarefas: {
+        Args: never
+        Returns: {
+          agendado_em: string
+          agora: string
+          cliente_nome: string
+          descricao: string
+          id: string
+          prioridade: string
+          titulo: string
+        }[]
+      }
       listar_destinatarios_venda: {
         Args: never
         Returns: {
