@@ -18,6 +18,10 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Entrar — Uni4Consult" },
       { name: "description", content: "Acesse o sistema comercial Uni4Consult." },
+      { property: "og:title", content: "Entrar — Uni4Consult" },
+      { property: "og:description", content: "Acesse o sistema comercial Uni4Consult." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,

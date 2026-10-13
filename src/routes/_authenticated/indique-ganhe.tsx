@@ -20,6 +20,8 @@ export const Route = createFileRoute("/_authenticated/indique-ganhe")({
       { name: "description", content: "Cadastre e acompanhe as indicações do Indique Ganhe." },
       { property: "og:title", content: "Gestão Indique Ganhe — Uni4Consult" },
       { property: "og:description", content: "Cadastre e acompanhe as indicações do Indique Ganhe." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: IndiqueGanhe,

@@ -45,6 +45,10 @@ export const Route = createFileRoute("/_authenticated/leads")({
     meta: [
       { title: "Leads — Uni4Consult" },
       { name: "description", content: "CRM de leads em modelo Kanban com transferências entre consultores." },
+      { property: "og:title", content: "Leads — Uni4Consult" },
+      { property: "og:description", content: "CRM de leads em modelo Kanban com transferências entre consultores." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LeadsPage,
