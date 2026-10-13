@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/tarefas")({
       {
         name: "description",
         content:
-          "Crie tarefas para você, para outros usuários ou para clientes, acompanhe a agenda e receba avisos de vencimento no dia seguinte.",
+          "Crie tarefas para você, para outros usuários ou para clientes e receba avisos com confirmação de leitura no horário agendado.",
       },
       { property: "og:title", content: "Agenda e Tarefas — Uni4Consult" },
       {

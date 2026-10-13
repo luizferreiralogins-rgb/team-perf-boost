@@ -31,6 +31,7 @@ import { AtalhosExternos } from "@/components/atalhos-externos";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAlertas } from "@/hooks/use-alertas";
 import { MiniCalendario } from "@/components/mini-calendario";
+import { AvisoAgenda } from "@/components/aviso-agenda";
 
 
 type Profile = { nome: string; canal: "loja" | "pap"; email: string | null };
@@ -75,6 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <TopBar onMenu={() => setMobileOpen(true)} nome={me.data?.profile.nome ?? ""} />
         <main className="p-4 md:p-8">{children}</main>
       </div>
+      <AvisoAgenda uid={me.data?.userId} />
     </div>
   );
 }
