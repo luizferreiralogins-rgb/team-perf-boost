@@ -57,6 +57,13 @@
       "when": 1791811815401,
       "tag": "0007_indicacoes_cliente_telefone",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791888364957,
+      "tag": "0008_avisos_obrigatorios_agenda",
+      "breakpoints": true
     }
   ]
 }

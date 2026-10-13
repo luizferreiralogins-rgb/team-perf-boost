@@ -12,6 +12,8 @@ export const Route = createFileRoute("/")({
           "Plataforma de gestão comercial Uni4Consult. Registre vendas, acompanhe comissões e resultados em tempo real.",
       },
       { property: "og:title", content: "Uni4Consult — Gestão Comercial" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Vendas, comissões e resultados da equipe comercial em um só lugar.",
