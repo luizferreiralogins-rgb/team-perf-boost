@@ -49,6 +49,10 @@ export const Route = createFileRoute("/_authenticated/vendas/")({
     meta: [
       { title: "Vendas — Uni4Consult" },
       { name: "description", content: "Histórico e gestão das suas vendas Unifique." },
+      { property: "og:title", content: "Vendas — Uni4Consult" },
+      { property: "og:description", content: "Histórico e gestão das suas vendas Unifique." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: VendasPage,

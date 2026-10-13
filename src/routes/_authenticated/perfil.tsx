@@ -19,6 +19,10 @@ export const Route = createFileRoute("/_authenticated/perfil")({
     meta: [
       { title: "Perfil — Uni4Consult" },
       { name: "description", content: "Suas informações de acesso e canal na Unifique." },
+      { property: "og:title", content: "Perfil — Uni4Consult" },
+      { property: "og:description", content: "Suas informações de acesso e canal na Unifique." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Perfil,

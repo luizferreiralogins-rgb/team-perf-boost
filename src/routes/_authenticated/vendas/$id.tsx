@@ -17,6 +17,10 @@ export const Route = createFileRoute("/_authenticated/vendas/$id")({
     meta: [
       { title: "Editar venda — Uni4Consult" },
       { name: "description", content: "Edite uma venda registrada." },
+      { property: "og:title", content: "Editar venda — Uni4Consult" },
+      { property: "og:description", content: "Edite uma venda registrada." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: EditarVenda,

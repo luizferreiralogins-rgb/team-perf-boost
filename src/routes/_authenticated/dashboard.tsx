@@ -45,6 +45,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     meta: [
       { title: "Dashboard — Uni4Consult" },
       { name: "description", content: "Acompanhe suas vendas, comissões e metas do mês." },
+      { property: "og:title", content: "Dashboard — Uni4Consult" },
+      { property: "og:description", content: "Acompanhe suas vendas, comissões e metas do mês." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,

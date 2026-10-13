@@ -50,6 +50,10 @@ export const Route = createFileRoute("/_authenticated/vendas/nova")({
     meta: [
       { title: "Nova venda — Uni4Consult" },
       { name: "description", content: "Registre uma nova venda Uni4Consult (Loja ou PAP)." },
+      { property: "og:title", content: "Nova venda — Uni4Consult" },
+      { property: "og:description", content: "Registre uma nova venda Uni4Consult (Loja ou PAP)." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   validateSearch: (

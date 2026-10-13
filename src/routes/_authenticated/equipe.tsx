@@ -91,6 +91,10 @@ export const Route = createFileRoute("/_authenticated/equipe")({
     meta: [
       { title: "Equipe — Uni4Consult" },
       { name: "description", content: "Gerencie acessos de gerentes e consultores." },
+      { property: "og:title", content: "Equipe — Uni4Consult" },
+      { property: "og:description", content: "Gerencie acessos de gerentes e consultores." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: EquipePage,
