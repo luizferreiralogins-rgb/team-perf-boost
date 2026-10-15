@@ -90,6 +90,8 @@ type Cidade = {
   ano: number;
   portas_total: number;
   portas_ocupadas: number;
+  ranking_anatel: string | null;
+  ranking_anatel_movel: string | null;
   owner_id: string;
 };
 
@@ -195,7 +197,7 @@ export function Estrategico() {
     queryFn: async () => {
       const { data: cidades, error } = await supabase
         .from("estrategico_cidades")
-        .select("id, cidade, unidade, regional, ano, portas_total, portas_ocupadas, owner_id")
+        .select("id, cidade, unidade, regional, ano, portas_total, portas_ocupadas, ranking_anatel, ranking_anatel_movel, owner_id")
         .eq("ano", ano)
         .order("cidade");
       if (error) throw error;
@@ -560,6 +562,7 @@ export function Estrategico() {
             <thead>
               <tr className="border-b text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2">Cidade</th>
+                <th className="py-2">Ranking Anatel</th>
                 <th className="py-2">Total</th>
                 <th className="py-2">Ocupadas</th>
                 <th className="py-2">Livres</th>
@@ -573,6 +576,14 @@ export function Estrategico() {
                 return (
                   <tr key={c.id} className="border-b last:border-0">
                     <td className="py-1 pr-2 font-medium">{c.cidade}</td>
+                    <td className="py-1 pr-2 text-xs">
+                      {c.ranking_anatel || c.ranking_anatel_movel ? (
+                        <span className="whitespace-nowrap">
+                          {c.ranking_anatel && <span className="mr-2 rounded bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">BL {c.ranking_anatel}</span>}
+                          {c.ranking_anatel_movel && <span className="rounded bg-muted px-1.5 py-0.5 font-semibold">Móvel {c.ranking_anatel_movel}</span>}
+                        </span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="py-1 pr-2">
                       <CampoNum valor={Number(c.portas_total)} onSalvar={(v) => salvarCidade.mutate({ id: c.id, campo: "portas_total", valor: v })} />
                     </td>
@@ -599,7 +610,7 @@ export function Estrategico() {
                 );
               })}
               {!cidades.length && (
-                <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">
+                <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">
                   Nenhuma cidade cadastrada para {ano}. Use “Nova cidade”.
                 </td></tr>
               )}
