@@ -64,6 +64,13 @@
       "when": 1791888364957,
       "tag": "0008_avisos_obrigatorios_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792070133879,
+      "tag": "0009_estrategico_ranking_anatel",
+      "breakpoints": true
     }
   ]
 }
