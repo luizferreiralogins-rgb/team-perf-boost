@@ -273,6 +273,8 @@ export type Database = {
           owner_id: string
           portas_ocupadas: number
           portas_total: number
+          ranking_anatel: string | null
+          ranking_anatel_movel: string | null
           regional: string
           unidade: string
           updated_at: string
@@ -285,6 +287,8 @@ export type Database = {
           owner_id?: string
           portas_ocupadas?: number
           portas_total?: number
+          ranking_anatel?: string | null
+          ranking_anatel_movel?: string | null
           regional?: string
           unidade?: string
           updated_at?: string
@@ -297,6 +301,8 @@ export type Database = {
           owner_id?: string
           portas_ocupadas?: number
           portas_total?: number
+          ranking_anatel?: string | null
+          ranking_anatel_movel?: string | null
           regional?: string
           unidade?: string
           updated_at?: string
