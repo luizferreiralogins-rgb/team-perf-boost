@@ -190,7 +190,8 @@ export function ImportarEstrategico({ onPronto }: { ano?: number; onPronto: () =
             if (e) throw e;
           } else {
             const [cidade_id, mes] = k.split("|");
-            inserir.push({ cidade_id, mes: Number(mes), ...campos });
+            const zeros = Object.fromEntries([...BL_2026, ...MOVEL].filter(Boolean).map((c) => [c as string, 0]));
+            inserir.push({ cidade_id, mes: Number(mes), ...zeros, ...campos });
           }
           registros++;
         }
