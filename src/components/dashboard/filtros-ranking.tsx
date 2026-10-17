@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidades } from "@/components/unidades-loja";
 import { isBlLoja, isBlPap, linhasMovel } from "@/lib/kpi-qtd";
+import { selecionarEquipe } from "@/lib/selecionar-equipe";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,13 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export type Membro = {
   id: string;
@@ -32,7 +26,7 @@ export type Membro = {
 
 export type Filtros = {
   mes: string[]; // YYYY-MM, um ou mais meses
-  pessoa: string; // 'all' | profile id
+  pessoa: string | string[]; // legado 'all' | profile id; [] = todos
   unidades: string[]; // [] = todas | nomes de loja_unidade | 'pap'
 };
 
@@ -123,12 +117,8 @@ export function aplicarFiltros(membros: Membro[], f: Filtros, role: string) {
       m.canal === "pap" ? sel.has("pap") : sel.has(m.loja_unidade ?? ""),
     );
   }
-  if (f.pessoa !== "all") {
-    // pessoa = gestor selecionado → ele + toda a sua cadeia
-    const cadeia = new Set([f.pessoa, ...descendentesDe(membros, f.pessoa).map((m) => m.id)]);
-    list = list.filter((m) => cadeia.has(m.id));
-  }
-  return list;
+  const equipeSelecionada = new Set(selecionarEquipe(membros, f.pessoa).map((m) => m.id));
+  return list.filter((m) => equipeSelecionada.has(m.id));
 }
 
 
@@ -202,20 +192,21 @@ export function FiltrosBar({
   onChange: (f: Filtros) => void;
 }) {
   const gerentes = useMemo(
-    () => membros.filter((m) => (m.role === "gerente" || m.role === "lider_pap")).sort((a, b) => a.nome.localeCompare(b.nome)),
+    () => membros.filter((m) => (m.role === "gerente" || m.role === "lider_pap" || m.role === "gerente_regional")).sort((a, b) => a.nome.localeCompare(b.nome)),
     [membros],
   );
   const consultores = useMemo(
     () => membros.filter((m) => m.role === "consultor").sort((a, b) => a.nome.localeCompare(b.nome)),
     [membros],
   );
-  const isRegional = role !== "gerente" && role !== "lider_pap";
-  // Gerente que tem gerentes na equipe pode filtrar por esses gerentes também
-  const pessoas = useMemo(
-    () => (isRegional ? gerentes : [...gerentes, ...consultores]),
-    [isRegional, gerentes, consultores],
-  );
-  const labelPessoa = isRegional ? "Gerente" : gerentes.length ? "Gerente / Consultor" : "Consultor";
+  const pessoas = useMemo(() => [...gerentes, ...consultores], [gerentes, consultores]);
+  const labelPessoa = gerentes.length ? "Gerente / Consultor" : "Consultor";
+  const selecionadas = typeof filtros.pessoa === "string"
+    ? (filtros.pessoa === "all" ? [] : [filtros.pessoa])
+    : filtros.pessoa;
+  const rotuloPessoa = selecionadas.length === 0 ? "Todos"
+    : selecionadas.length === 1 ? (pessoas.find((p) => p.id === selecionadas[0])?.nome ?? "1 selecionado")
+    : `${selecionadas.length} selecionados`;
   const { data: unidadesLoja } = useUnidades();
 
   return (
@@ -223,19 +214,30 @@ export function FiltrosBar({
       <CardContent className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-1.5">
           <Label className="text-xs">{labelPessoa}</Label>
-          <Select value={filtros.pessoa} onValueChange={(v) => onChange({ ...filtros, pessoa: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" aria-label={labelPessoa} className="w-full justify-between font-normal">
+                <span className="truncate">{rotuloPessoa}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="max-h-80 w-[--radix-popover-trigger-width] min-w-64 overflow-y-auto p-2" align="start">
+              <Button variant="ghost" className="mb-1 w-full justify-start font-normal" onClick={() => onChange({ ...filtros, pessoa: [] })}>
+                <Check className={`h-4 w-4 ${selecionadas.length === 0 ? "opacity-100" : "opacity-0"}`} />
+                Todos
+              </Button>
               {pessoas.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
+                <label key={p.id} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent">
+                  <Checkbox checked={selecionadas.includes(p.id)} onCheckedChange={(checked) => onChange({
+                    ...filtros,
+                    pessoa: checked === true ? [...selecionadas, p.id] : selecionadas.filter((id) => id !== p.id),
+                  })} />
+                  <span className="min-w-0 break-words">{p.nome}</span>
+                  {p.role !== "consultor" && <span className="ml-auto text-xs text-muted-foreground">{p.role === "lider_pap" ? "Líder PAP" : "Gerente"}</span>}
+                </label>
               ))}
-            </SelectContent>
-          </Select>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="space-y-1.5">
