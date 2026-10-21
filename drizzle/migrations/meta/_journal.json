@@ -78,6 +78,13 @@
       "when": 1792588792347,
       "tag": "0010_whatsapp_bloqueios",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792591883110,
+      "tag": "0011_prospeccoes_limpeza_por_status",
+      "breakpoints": true
     }
   ]
 }
