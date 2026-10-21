@@ -20,6 +20,7 @@ import { useFaixaAtual, useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
 import { metasConsultor, metasEquipe } from "@/lib/metas-kpi";
 
 
+import { PerguntaWhatsappBloqueado } from "@/components/whatsapp-bloqueio";
 import { Label } from "@/components/ui/label";
 import {
   FiltrosBar,
@@ -367,6 +368,7 @@ function Dashboard() {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
+          {!isGestor && roleInfo && <PerguntaWhatsappBloqueado uid={roleInfo.uid} />}
           <p className="text-sm text-muted-foreground">
             {isGestor ? "Painel de gestão" : "Painel do consultor"}
           </p>
