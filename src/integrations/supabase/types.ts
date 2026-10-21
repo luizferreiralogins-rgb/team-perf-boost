@@ -1936,6 +1936,10 @@ export type Database = {
       is_gestor_regras: { Args: { _uid: string }; Returns: boolean }
       limpar_base_renovacao: { Args: never; Returns: number }
       limpar_prospeccoes: { Args: never; Returns: number }
+      limpar_prospeccoes_por_status: {
+        Args: { _sem_status?: boolean; _status: string[] }
+        Returns: number
+      }
       listar_avisos_tarefas: {
         Args: never
         Returns: {
