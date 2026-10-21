@@ -1699,6 +1699,30 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_bloqueios: {
+        Row: {
+          created_at: string
+          fim: string | null
+          id: string
+          inicio: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fim?: string | null
+          id?: string
+          inicio?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          fim?: string | null
+          id?: string
+          inicio?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_contas: {
         Row: {
           access_token_enc: string

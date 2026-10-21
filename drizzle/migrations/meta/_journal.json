@@ -71,6 +71,13 @@
       "when": 1792070133879,
       "tag": "0009_estrategico_ranking_anatel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792588792347,
+      "tag": "0010_whatsapp_bloqueios",
+      "breakpoints": true
     }
   ]
 }
