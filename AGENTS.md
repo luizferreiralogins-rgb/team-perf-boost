@@ -12,3 +12,4 @@
 - Mandatory task notices are mounted once in AppShell; database RPCs scope recipients and persist acknowledgement per scheduled occurrence independently of completion, so navigation and recurrence cannot lose read state.
 - Task notice eligibility is assigned by a database trigger for new manager/PAP leader tasks; scheduling uses America/Sao_Paulo and the database clock, so client role flags and device time cannot decide access or due time.
 - Dashboard person selections expand and deduplicate managers' descendants only within the already-authorized team through selecionarEquipe, keeping totals and rankings on the same scope.
+- Selective prospect cleanup uses an authenticated role-checked database RPC that atomically archives only selected statuses within the existing authorized scope, preserving all other rows.

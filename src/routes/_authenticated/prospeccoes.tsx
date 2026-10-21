@@ -469,6 +469,28 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
 
 function AcoesGestor({ uid }: { uid: string }) {
   const qc = useQueryClient();
+  const opcoesStatus = useStatusOpcoes();
+  const [limpezaAberta, setLimpezaAberta] = useState(false);
+  const [statusRemover, setStatusRemover] = useState<string[]>([]);
+  const [semStatusRemover, setSemStatusRemover] = useState(false);
+  const statusExistentes = useQuery({
+    queryKey: ["prosp-status-limpeza", uid],
+    enabled: limpezaAberta,
+    queryFn: async () => {
+      const chaves = new Set<string>();
+      for (let inicio = 0; ; inicio += 1000) {
+        const { data, error } = await supabase.from("prospeccoes").select("status").order("id").range(inicio, inicio + 999);
+        if (error) throw error;
+        for (const r of data ?? []) if (r.status !== null) chaves.add(r.status);
+        if (!data || data.length < 1000) break;
+      }
+      return [...chaves];
+    },
+  });
+  const statusLimpeza = new Map((opcoesStatus.data ?? []).map((o) => [o.chave, o.nome]));
+  for (const chave of statusExistentes.data ?? []) {
+    if (!statusLimpeza.has(chave)) statusLimpeza.set(chave, `${chave} (opção antiga)`);
+  }
   const ref = useRef<HTMLInputElement>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -543,6 +565,9 @@ function AcoesGestor({ uid }: { uid: string }) {
       toast.success(`${regs.length} clientes distribuídos entre ${ids.length} consultor(es) (≈${Math.ceil(regs.length / ids.length)} cada).`);
       setPendentes(null);
       qc.invalidateQueries({ queryKey: ["prospeccoes"] });
+      qc.invalidateQueries({ queryKey: ["prosp-contagens"] });
+      qc.invalidateQueries({ queryKey: ["prosp-categorias"] });
+      qc.invalidateQueries({ queryKey: ["prosp-status-limpeza"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -552,13 +577,20 @@ function AcoesGestor({ uid }: { uid: string }) {
 
   const limpar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("limpar_prospeccoes");
+      const { data, error } = await supabase.rpc("limpar_prospeccoes_por_status", {
+        _status: statusRemover,
+        _sem_status: semStatusRemover,
+      });
       if (error) throw error;
       return data as number;
     },
     onSuccess: (n) => {
       toast.success(`${n} clientes movidos para o histórico.`);
+      setLimpezaAberta(false);
       qc.invalidateQueries({ queryKey: ["prospeccoes"] });
+      qc.invalidateQueries({ queryKey: ["prosp-contagens"] });
+      qc.invalidateQueries({ queryKey: ["prosp-categorias"] });
+      qc.invalidateQueries({ queryKey: ["prosp-status-limpeza"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -580,12 +612,45 @@ function AcoesGestor({ uid }: { uid: string }) {
         variant="outline"
         disabled={limpar.isPending}
         onClick={() => {
-          if (confirm("Limpar a base da sua equipe? Os dados da última abordagem ficam salvos no Histórico."))
-            limpar.mutate();
+          setStatusRemover([]);
+          setSemStatusRemover(false);
+          setLimpezaAberta(true);
         }}
       >
         <Trash2 className="mr-2 h-4 w-4" /> Limpar base
       </Button>
+      <Dialog open={limpezaAberta} onOpenChange={(aberta) => !limpar.isPending && setLimpezaAberta(aberta)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Limpar base por status</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Quais status deseja remover da base da sua equipe? Os clientes removidos ficam no Histórico.
+            Os demais permanecem junto com as novas bases distribuídas.
+          </p>
+          <div className="max-h-72 space-y-3 overflow-y-auto">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={semStatusRemover} disabled={limpar.isPending} onCheckedChange={(c) => setSemStatusRemover(c === true)} />
+              Sem status / Falta contactar
+            </label>
+            {[...statusLimpeza].map(([chave, nome]) => (
+              <label key={chave} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={statusRemover.includes(chave)}
+                  disabled={limpar.isPending}
+                  onCheckedChange={(c) => setStatusRemover((atual) => c === true ? [...atual, chave] : atual.filter((s) => s !== chave))}
+                />
+                {nome}
+              </label>
+            ))}
+          </div>
+          {statusExistentes.isError && <p className="text-sm text-destructive">Não foi possível carregar os status da base. Feche e tente novamente.</p>}
+          <DialogFooter>
+            <Button variant="outline" disabled={limpar.isPending} onClick={() => setLimpezaAberta(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={limpar.isPending || statusExistentes.isPending || statusExistentes.isError || (!statusRemover.length && !semStatusRemover)} onClick={() => limpar.mutate()}>
+              <Trash2 className="mr-2 h-4 w-4" />{limpar.isPending ? "Removendo…" : "Remover selecionados"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!pendentes} onOpenChange={(o) => !o && !enviando && setPendentes(null)}>
         <DialogContent>
           <DialogHeader>
