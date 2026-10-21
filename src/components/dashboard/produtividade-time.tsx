@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useFaixasEquipe, rotuloFaixa } from "@/lib/faixa-atual";
+import { WhatsappEquipe } from "@/components/dashboard/whatsapp-equipe";
 
 const LEGADOS: Record<string, string> = {
   pagamento: "Pagamento",
@@ -284,6 +285,8 @@ export function ProdutividadeTime() {
           </CardContent>
         </Card>
       </div>
+
+      <WhatsappEquipe inicioMes={inicioMes} proxMes={proxMes} />
     </div>
   );
 }
