@@ -695,12 +695,13 @@ export function Estrategico() {
   );
 }
 
-function CampoNum({ valor, onSalvar }: { valor: number; onSalvar: (v: number) => void }) {
+function CampoNum({ valor, onSalvar, id }: { valor: number; onSalvar: (v: number) => void; id?: string }) {
   const [txt, setTxt] = useState<string | null>(null);
   const mostrado = txt ?? String(valor ?? 0);
   return (
     <Input
-      className="h-8 w-24 text-sm"
+      id={id}
+      className={id ? "h-9 w-40 text-sm" : "h-8 w-24 text-sm"}
       inputMode="decimal"
       value={mostrado}
       onChange={(e) => setTxt(e.target.value)}
