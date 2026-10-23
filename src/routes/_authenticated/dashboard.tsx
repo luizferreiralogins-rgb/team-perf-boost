@@ -34,6 +34,7 @@ import {
 import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
+import { KpiCategoriaDialog, type KpiCategoria } from "@/components/dashboard/kpi-categoria-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { AgendaHoje } from "@/components/dashboard/agenda-hoje";
 import { Estrategico } from "@/components/dashboard/estrategico";
@@ -176,6 +177,7 @@ function Dashboard() {
 
   const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
   const [verVendasMes, setVerVendasMes] = useState(false);
+  const [kpiAberto, setKpiAberto] = useState<KpiCategoria | null>(null);
   const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
   const comercial = !isGestor || aba === "comercial";
   const [filtros, setFiltros] = useState<Filtros>({ mes: [mesAtual()], pessoa: "all", unidades: [] });
