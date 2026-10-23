@@ -585,6 +585,7 @@ function Dashboard() {
             icon={Wifi}
             projecaoValor={somaProj((r) => r.blInst)}
             meta={metasKpi.bl}
+            onClick={() => setKpiAberto("bl")}
           />
           <KpiCard
             title="Móvel"
@@ -594,6 +595,7 @@ function Dashboard() {
             icon={Smartphone}
             projecaoValor={somaProj((r) => r.mvLinhasInst)}
             meta={metasKpi.movel}
+            onClick={() => setKpiAberto("movel")}
           />
 
           <KpiCard
@@ -606,6 +608,7 @@ function Dashboard() {
             projecaoEm="rs"
             meta={metasKpi.renovRs}
             metaEm="rs"
+            onClick={() => setKpiAberto("renovacao")}
           />
 
 
@@ -727,6 +730,7 @@ function KpiCard({
   projecaoEm = "qtd",
   meta,
   metaEm = "qtd",
+  onClick,
 }: {
   title: string;
   qtd: number | null;
@@ -741,10 +745,17 @@ function KpiCard({
   projecaoEm?: "qtd" | "rs";
   meta?: number | null;
   metaEm?: "qtd" | "rs";
+  onClick?: () => void;
 }) {
 
   return (
-    <Card>
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className={onClick ? "cursor-pointer transition-shadow hover:shadow-md" : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-primary" />
