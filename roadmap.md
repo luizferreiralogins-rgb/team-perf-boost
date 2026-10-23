@@ -9,3 +9,8 @@
 - [x] Pós vendas: remover coluna Ação também para Gerentes e Líder PAP (mesmo layout dos consultores)
 - [x] Site publicado: selo "Edit with Lovable" ocultado
 - [x] Restabelecer serviço após recarga — Lovable Cloud com autenticação e banco respondendo; tela inicial conferida, entrada na conta depende do usuário
+- [ ] Revisar e corrigir acesso administrativo aos contatos de pós-vendas
+- [ ] Revisar sessão expirada e erros ocultos nos indicadores
+- [ ] Revisar filtro Todos em Pós-vendas para incluir vendas próprias
+- [ ] Revisar edição de vendas Indique Ganhe sem duplicar indicações
+- [ ] Revisar seleção de meses não consecutivos em Vendas e Relatórios
