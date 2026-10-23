@@ -195,26 +195,29 @@ export function Estrategico() {
   const [novaCidade, setNovaCidade] = useState("");
   const [abrirNova, setAbrirNova] = useState(false);
 
-  const { data: ticketMedio = 0 } = useQuery({
+  const { data: tickets } = useQuery({
     queryKey: ["ticket-medio-estrategico"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parametros_gerais")
-        .select("valor_num")
-        .eq("chave", "ticket_medio_estrategico")
-        .maybeSingle();
+        .select("chave, valor_num")
+        .in("chave", ["ticket_medio_estrategico", "ticket_medio_movel_estrategico"]);
       if (error) throw error;
-      return Number(data?.valor_num ?? 0);
+      const m = Object.fromEntries((data ?? []).map((r) => [r.chave, Number(r.valor_num ?? 0)]));
+      return { bl: m.ticket_medio_estrategico ?? 0, mv: m.ticket_medio_movel_estrategico ?? 0 };
     },
   });
+  const ticketMedio = tickets?.bl ?? 0;
+  const ticketMovel = tickets?.mv ?? 0;
   const salvarTicket = useMutation({
-    mutationFn: async (v: number) => {
+    mutationFn: async ({ chave, v }: { chave: string; v: number }) => {
+      const movel = chave === "ticket_medio_movel_estrategico";
       const { error } = await supabase.from("parametros_gerais").upsert({
-        chave: "ticket_medio_estrategico",
-        label: "Ticket médio atual (Estratégico)",
+        chave,
+        label: movel ? "Ticket médio Móvel (Estratégico)" : "Ticket médio Banda Larga (Estratégico)",
         descricao: "Usado no gráfico de receita mensal: ticket médio x acessos Anatel.",
         valor_num: v,
-        ordem: 999,
+        ordem: movel ? 1000 : 999,
       });
       if (error) throw error;
     },
@@ -353,9 +356,12 @@ export function Estrategico() {
     );
   const ocupacao = portas.total ? portas.ocupadas / portas.total : 0;
 
+  const r2 = (n: number) => Math.round(n * 100) / 100;
   const dadosReceita = serie.map((s) => ({
     mes: s.mes,
-    receita: Math.round(ticketMedio * Number(s.anatel || 0) * 100) / 100,
+    receitaBl: r2(ticketMedio * Number(s.anatel || 0)),
+    receitaMv: r2(ticketMovel * Number(s.mvAnatel || 0)),
+    receita: r2(ticketMedio * Number(s.anatel || 0) + ticketMovel * Number(s.mvAnatel || 0)),
   }));
 
   const dadosChurn = serie.map((s) => ({
@@ -494,8 +500,12 @@ export function Estrategico() {
           </div>
 
           <div className="w-full space-y-1 sm:w-auto">
-            <Label htmlFor="ticket-medio" className="text-xs text-muted-foreground">Ticket médio atual (R$)</Label>
-            <CampoNum valor={ticketMedio} onSalvar={(v) => salvarTicket.mutate(v)} id="ticket-medio" />
+            <Label htmlFor="ticket-medio" className="text-xs text-muted-foreground">Ticket médio Banda Larga (R$)</Label>
+            <CampoNum valor={ticketMedio} onSalvar={(v) => salvarTicket.mutate({ chave: "ticket_medio_estrategico", v })} id="ticket-medio" />
+          </div>
+          <div className="w-full space-y-1 sm:w-auto">
+            <Label htmlFor="ticket-medio-movel" className="text-xs text-muted-foreground">Ticket médio Móvel (R$)</Label>
+            <CampoNum valor={ticketMovel} onSalvar={(v) => salvarTicket.mutate({ chave: "ticket_medio_movel_estrategico", v })} id="ticket-medio-movel" />
           </div>
 
           <Dialog open={abrirNova} onOpenChange={setAbrirNova}>
@@ -578,8 +588,8 @@ export function Estrategico() {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="lg:col-span-2">
           <Grafico
-            titulo="Receita mensal (Ticket médio x Acessos Anatel)"
-            descricao={ticketMedio > 0 ? `Ticket médio ${brl(ticketMedio)} · Total ${brl(dadosReceita.reduce((s, r) => s + r.receita, 0))}` : "Informe o ticket médio atual no filtro acima."}
+            titulo="Receita mensal (Ticket médio x Acessos Anatel · Banda Larga + Móvel)"
+            descricao={ticketMedio > 0 || ticketMovel > 0 ? `Ticket BL ${brl(ticketMedio)} · Ticket Móvel ${brl(ticketMovel)} · Total ${brl(dadosReceita.reduce((s, r) => s + r.receita, 0))}` : "Informe os tickets médios no filtro acima."}
           >
             {tipoGrafico === "linha" ? (
               <LineChart data={dadosReceita}>
@@ -588,7 +598,9 @@ export function Estrategico() {
                 <YAxis fontSize={12} width={90} tickFormatter={(v) => brlCurto(Number(v))} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Legend />
-                <Line type="monotone" dataKey="receita" name="Receita" stroke={AZUL} strokeWidth={2} dot />
+                <Line type="monotone" dataKey="receitaBl" name="Banda Larga" stroke={AZUL} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="receitaMv" name="Móvel" stroke={ROXO} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="receita" name="Receita total" stroke="hsl(142 70% 40%)" strokeWidth={3} dot />
               </LineChart>
             ) : (
               <BarChart data={dadosReceita}>
@@ -597,7 +609,8 @@ export function Estrategico() {
                 <YAxis fontSize={12} width={90} tickFormatter={(v) => brlCurto(Number(v))} />
                 <Tooltip formatter={(v) => brl(Number(v))} />
                 <Legend />
-                <Bar dataKey="receita" name="Receita" fill={AZUL} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="receitaBl" name="Banda Larga" stackId="r" fill={AZUL} />
+                <Bar dataKey="receitaMv" name="Móvel" stackId="r" fill={ROXO} radius={[4, 4, 0, 0]} />
               </BarChart>
             )}
           </Grafico>
