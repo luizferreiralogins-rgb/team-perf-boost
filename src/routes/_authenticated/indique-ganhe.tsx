@@ -83,7 +83,7 @@ function IndiqueGanhe() {
         supabase.from("opcoes_canais").select("nome").eq("tipo", "venda"),
       ]);
       const r = (roles ?? []).map((x) => x.role as string);
-      const canal = (canais ?? []).find((c) => /indique/i.test(c.nome))?.nome ?? "Indique Ganhe";
+      const canal = (canais ?? []).find((c) => /indique/i.test(c.nome))?.nome ?? "Programa Indique Ganhe";
       return { uid, gestor: r.some((x) => x !== "consultor"), canal };
     },
   });
