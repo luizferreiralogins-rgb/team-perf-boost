@@ -21,6 +21,7 @@ import { metasConsultor, metasEquipe } from "@/lib/metas-kpi";
 
 
 import { PerguntaWhatsappBloqueado } from "@/components/whatsapp-bloqueio";
+import { WhatsappBloqueadosAlerta } from "@/components/dashboard/whatsapp-bloqueados-alerta";
 import { Label } from "@/components/ui/label";
 import {
   FiltrosBar,
@@ -458,6 +459,7 @@ function Dashboard() {
 
 
       {isGestor && (
+        <div className="flex flex-wrap items-center gap-4">
         <div className="inline-flex rounded-lg border bg-muted/40 p-1">
           {(["comercial", "estrategico"] as const).map((a) => (
             <button
@@ -473,6 +475,10 @@ function Dashboard() {
               {a === "comercial" ? "Comercial" : "Estratégico"}
             </button>
           ))}
+        </div>
+        {role === "gerente" && roleInfo?.uid && (
+          <WhatsappBloqueadosAlerta uid={roleInfo.uid} membros={membros} />
+        )}
         </div>
       )}
 
