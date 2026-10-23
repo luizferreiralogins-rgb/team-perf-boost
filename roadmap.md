@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, com lista da equipe e testes
 - [x] Agenda/Tarefas: aviso obrigatório no horário programado, confirmação individual e verificação em tela
 - [x] Criação de acessos: senha fraca bloqueada → botão "Gerar" e mensagem em português
 - [x] Pós vendas: WhatsApp clicável ao lado do protocolo
