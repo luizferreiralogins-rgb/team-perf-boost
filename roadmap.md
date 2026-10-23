@@ -8,4 +8,4 @@
 - [x] Pós vendas: remover coluna Ação para consultores e estender a coluna Observação
 - [x] Pós vendas: remover coluna Ação também para Gerentes e Líder PAP (mesmo layout dos consultores)
 - [x] Site publicado: selo "Edit with Lovable" ocultado
-- [ ] Restabelecer acesso ao sistema: verificar indisponibilidade e reativar Lovable Cloud
+- [ ] Restabelecer acesso ao sistema — bloqueado: Lovable Cloud permanece iniciando após tentativa de reativação; login ainda não validado
