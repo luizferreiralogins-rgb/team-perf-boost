@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { filtroMesesData } from "@/lib/filtros-vendas";
 import {
   FiltrosBar,
   MesMultiSelect,
@@ -98,12 +99,6 @@ const dataBR = (valor?: string | null) =>
 
 const dataHoraBR = (valor: string) =>
   new Date(valor).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-
-function fimDoMes(mes: string) {
-  const [ano, numeroMes] = mes.split("-").map(Number);
-  const ultimoDia = new Date(ano, numeroMes, 0).getDate();
-  return `${mes}-${String(ultimoDia).padStart(2, "0")}`;
-}
 
 function rolePrincipal(roles: string[]) {
   return (
@@ -299,8 +294,6 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
 
 function useVendasDoMes(meses: string[], ids: string[]) {
   const ordenados = [...meses].sort();
-  const inicio = `${ordenados[0]}-01`;
-  const fim = fimDoMes(ordenados[ordenados.length - 1] ?? ordenados[0]!);
   return useQuery({
     queryKey: ["relatorio-vendas", ordenados.join(","), ids.join(",")],
     enabled: ids.length > 0 && ordenados.length > 0,
@@ -310,14 +303,12 @@ function useVendasDoMes(meses: string[], ids: string[]) {
           .from("vendas_loja")
           .select("id, vendedor_id, protocolo, nome_cliente, data_abertura, canal_origem, valor_novo, comissao, status")
           .in("vendedor_id", ids)
-          .gte("data_abertura", inicio)
-          .lte("data_abertura", fim),
+          .or(filtroMesesData("data_abertura", ordenados)),
         supabase
           .from("vendas_pap")
           .select("id, vendedor_id, protocolo, nome_cliente, data_venda, canal_origem, valor, valor_novo, comissao, status")
           .in("vendedor_id", ids)
-          .gte("data_venda", inicio)
-          .lte("data_venda", fim),
+          .or(filtroMesesData("data_venda", ordenados)),
       ]);
       if (lojaError) throw lojaError;
       if (papError) throw papError;

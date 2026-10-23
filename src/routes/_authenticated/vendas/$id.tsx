@@ -11,6 +11,7 @@ import {
   type FormPapState,
 } from "./nova";
 import { HistoricoReagendamentos } from "@/components/vendas/reagendamento";
+import { isIndiqueGanhe, type Indicador } from "@/components/vendas/indicador";
 
 export const Route = createFileRoute("/_authenticated/vendas/$id")({
   head: () => ({
@@ -27,9 +28,21 @@ export const Route = createFileRoute("/_authenticated/vendas/$id")({
 });
 
 type Loaded =
-  | { canal: "loja"; ownerId: string; state: FormLojaState }
-  | { canal: "pap"; ownerId: string; state: FormPapState }
+  | { canal: "loja"; ownerId: string; state: FormLojaState; indicador?: Indicador }
+  | { canal: "pap"; ownerId: string; state: FormPapState; indicador?: Indicador }
   | null;
+
+async function carregarIndicador(vendedorId: string, nome: string, canal: string | null) {
+  if (!isIndiqueGanhe(canal ?? "")) return undefined;
+  const { data, error } = await supabase.from("indicacoes")
+    .select("cliente_nome, cliente_cpf, cliente_telefone, indicado_nome")
+    .eq("vendedor_id", vendedorId);
+  if (error) throw error;
+  const matches = (data ?? []).filter((r) => r.indicado_nome.trim().toLowerCase() === nome.trim().toLowerCase());
+  if (matches.length !== 1) return undefined;
+  const row = matches[0];
+  return { nome: row.cliente_nome, cpf: row.cliente_cpf, telefone: row.cliente_telefone ?? "" };
+}
 
 function EditarVenda() {
   const { id } = Route.useParams();
@@ -49,6 +62,7 @@ function EditarVenda() {
         return {
           canal: "loja",
           ownerId: loja.vendedor_id,
+          indicador: await carregarIndicador(loja.vendedor_id, loja.nome_cliente, loja.canal_origem),
           state: {
             protocolo: loja.protocolo ?? "",
             nome_cliente: loja.nome_cliente,
@@ -81,6 +95,7 @@ function EditarVenda() {
       return {
         canal: "pap",
         ownerId: pap.vendedor_id,
+        indicador: await carregarIndicador(pap.vendedor_id, pap.nome_cliente, pap.canal_origem),
         state: {
           protocolo: pap.protocolo ?? "",
           tipo_protocolo: (pap.tipo_protocolo ?? "Novo Acesso") as FormPapState["tipo_protocolo"],
@@ -130,9 +145,9 @@ function EditarVenda() {
       ) : (
         <>
           {venda.canal === "pap" ? (
-            <FormPap editingId={id} ownerId={venda.ownerId} initial={venda.state} />
+            <FormPap key={id} editingId={id} ownerId={venda.ownerId} initial={venda.state} indicadorInicial={venda.indicador} />
           ) : (
-            <FormLoja editingId={id} ownerId={venda.ownerId} initial={venda.state} />
+            <FormLoja key={id} editingId={id} ownerId={venda.ownerId} initial={venda.state} indicadorInicial={venda.indicador} />
           )}
           <HistoricoReagendamentos
             tabela={venda.canal === "pap" ? "vendas_pap" : "vendas_loja"}

@@ -72,6 +72,9 @@ async function carregarFaixas(ids: string[] | null, mesRefISO: string) {
     supabase.from("parametros_pap_novos_produtos").select("codigo, nome, percentual, limitado, limite"),
     supabase.from("parametros_pap2_faixas_bl").select("faixa, ativ_de").order("ativ_de"),
   ]);
+  for (const result of [loja, pap, profs, metas, novosLoja, faixasPap, produtosPap, faixasBl]) {
+    if (result.error) throw result.error;
+  }
   const ordBl = (faixasBl.data ?? []).map((f) => ({ faixa: Number(f.faixa), de: Number(f.ativ_de) }));
   const blPorVend = new Map<string, number>();
   for (const v of pap.data ?? []) if (isBlPap(v)) blPorVend.set(v.vendedor_id, (blPorVend.get(v.vendedor_id) ?? 0) + 1);
@@ -229,7 +232,10 @@ export function useFaixaAtual(uid?: string, mesRefISO = mesRefAtual()) {
     queryKey: ["faixa-atual", uid, mesRefISO],
     enabled: !!uid,
     staleTime: 60_000,
-    queryFn: async () => (await carregarFaixas([uid!], mesRefISO)).get(uid!) ?? null,
+    queryFn: async () => {
+      if (!uid) throw new Error("Sua sessão expirou. Entre novamente.");
+      return (await carregarFaixas([uid], mesRefISO)).get(uid) ?? null;
+    },
   });
 }
 

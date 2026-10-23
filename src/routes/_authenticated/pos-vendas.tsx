@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { supabase } from "@/integrations/supabase/client";
+import { todasPessoas } from "@/lib/filtros-vendas";
 import {
   FiltrosBar,
   aplicarFiltros,
@@ -179,6 +180,7 @@ function PosVendasPage() {
       observacao?: string | null;
     }) => {
       const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Sua sessão expirou. Entre novamente.");
       const { error } = await supabase.from("pos_venda_ajustes" as never).insert({
         tabela: item.tabela,
         venda_id: item.id,
@@ -186,7 +188,7 @@ function PosVendasPage() {
         fase: fase ?? null,
         prazo: prazo ?? null,
         observacao: observacao ?? null,
-        criado_por: auth.user!.id,
+        criado_por: auth.user.id,
       } as never);
       if (error) throw error;
     },
@@ -219,7 +221,7 @@ function PosVendasPage() {
     if (!isGestor) return [uid];
     const membros = aplicarFiltros(equipe.data ?? [], filtros, role);
     const ids = membros.map((m) => m.id);
-    return filtros.pessoa === "all" && filtros.unidades.length === 0 ? [uid, ...ids] : ids;
+    return todasPessoas(filtros.pessoa) && filtros.unidades.length === 0 ? [...new Set([uid, ...ids])] : ids;
   }, [uid, isGestor, equipe.data, filtros, role]);
 
   const dados = useQuery({
@@ -253,6 +255,9 @@ function PosVendasPage() {
           .in("vendedor_id", idsVisiveis)
           .order("created_at", { ascending: true }),
       ]);
+      for (const result of [loja, pap, contatos, profs, ajustesQ]) {
+        if (result.error) throw result.error;
+      }
       // Vendas de Loja não guardam telefone: busca o WhatsApp no lead de mesmo nome do consultor
       const { data: leadsTel } = await supabase
         .from("leads")
@@ -371,6 +376,7 @@ function PosVendasPage() {
     });
   }, [itens, fase, situacao, busca]);
 
+  if (dados.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar os contatos de pós-vendas. Tente novamente.</p>;
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
