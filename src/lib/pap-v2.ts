@@ -32,6 +32,9 @@ export async function carregarParamsPapV2(): Promise<ParamsPapV2> {
     supabase.from("parametros_pap2_acel_razao").select("faixa,razao_de,razao_ate,bonus").order("razao_de"),
     supabase.from("parametros_gerais").select("chave,valor_num"),
   ]);
+  for (const result of [bl, dm, pr, ch, rz, ger]) {
+    if (result.error) throw result.error;
+  }
   const num = (k: string, d: number) => {
     const v = (ger.data ?? []).find((g) => g.chave === k)?.valor_num;
     return v === null || v === undefined ? d : Number(v);

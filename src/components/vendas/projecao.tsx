@@ -22,13 +22,15 @@ export function useParametrosLoja() {
     queryKey: ["parametros-loja-faixas"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [{ data: faixas }, { data: novos }] = await Promise.all([
+      const [{ data: faixas, error: faixasError }, { data: novos, error: novosError }] = await Promise.all([
         supabase
           .from("parametros_loja_faixas_ticket")
           .select("diff_de,diff_ate,faixa_1,faixa_2,faixa_3")
           .order("diff_de"),
         supabase.from("parametros_loja_novos_produtos").select("codigo,nome,percentual,limitado,limite"),
       ]);
+      if (faixasError) throw faixasError;
+      if (novosError) throw novosError;
       return {
         faixas: (faixas ?? []) as LojaFaixaTicket[],
         novos: (novos ?? []) as LojaNovoProduto[],
@@ -42,7 +44,7 @@ export function useParametrosPap() {
     queryKey: ["parametros-pap-faixas"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [{ data: faixas }, { data: produtos }] = await Promise.all([
+      const [{ data: faixas, error: faixasError }, { data: produtos, error: produtosError }] = await Promise.all([
         supabase
           .from("parametros_pap_faixas")
           .select(
@@ -53,6 +55,8 @@ export function useParametrosPap() {
           .from("parametros_pap_novos_produtos")
           .select("codigo,nome,percentual,limitado,limite"),
       ]);
+      if (faixasError) throw faixasError;
+      if (produtosError) throw produtosError;
       return {
         faixas: (faixas ?? []) as PapFaixa[],
         produtos: (produtos ?? []) as PapNovoProduto[],
@@ -154,12 +158,13 @@ function ProjecaoComissaoPapAntiga({
     queryFn: async () => {
       const uid = vendedorId ?? (await supabase.auth.getUser()).data.user?.id;
       if (!uid) return [] as { id: string; valor: number; produto: string | null; tipo_protocolo: string | null }[];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("vendas_pap")
         .select("id, valor, produto, tipo_protocolo")
         .eq("vendedor_id", uid)
         .eq("mes_ref", mesRef)
         .eq("status", "instalado");
+      if (error) throw error;
       return (data ?? []) as {
         id: string;
         valor: number;
@@ -255,7 +260,7 @@ function ProjecaoComissaoPapV2({ valor, instalado, tipoProtocolo, produto, mesRe
     queryFn: async () => {
       const uid = vendedorId ?? (await supabase.auth.getUser()).data.user?.id;
       if (!uid) return { rows: [], indice: null as number | null };
-      const [{ data }, { data: cond }] = await Promise.all([
+      const [{ data, error }, { data: cond, error: condError }] = await Promise.all([
         supabase
           .from("vendas_pap")
           .select("id, valor, produto, tecnologia, tipo_protocolo, qtd_linhas, status")
@@ -269,6 +274,8 @@ function ProjecaoComissaoPapV2({ valor, instalado, tipoProtocolo, produto, mesRe
           .eq("mes_ref", mesRef)
           .maybeSingle(),
       ]);
+      if (error) throw error;
+      if (condError) throw condError;
       return { rows: data ?? [], indice: cond?.indice_cancelamento ?? null };
     },
   });

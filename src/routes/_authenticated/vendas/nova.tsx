@@ -42,6 +42,7 @@ import {
 import { recalcularLojaMes, recalcularPapMes } from "@/lib/recalculo";
 import { SelectCanal } from "@/components/canais";
 import { CamposIndicador, indicadorVazio, isIndiqueGanhe, sincronizarIndicacao, validarIndicador, type Indicador } from "@/components/vendas/indicador";
+import { precisaRegistrarIndicador } from "@/lib/indicacao-edicao";
 
 
 
@@ -361,13 +362,14 @@ export function FormLoja({
       );
       return;
     }
-    if (isIndiqueGanhe(parsed.data.canal_origem)) {
+    if (precisaRegistrarIndicador(editingId, initial?.canal_origem, parsed.data.canal_origem)) {
       const erro = validarIndicador(ind);
       if (erro) return void toast.error(erro);
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = ownerId ?? sess.user!.id;
+    if (!sess.user) { setLoading(false); toast.error("Sua sessão expirou. Entre novamente."); return; }
+    const uid = ownerId ?? sess.user.id;
 
     const dataRef = parsed.data.data_ativacao || parsed.data.data_abertura;
     const valorAntigoNum =
@@ -482,7 +484,7 @@ export function FormLoja({
         motivo: motivoReagendamento,
       });
     }
-    if (!error && isIndiqueGanhe(parsed.data.canal_origem))
+    if (!error && precisaRegistrarIndicador(editingId, initial?.canal_origem, parsed.data.canal_origem))
       await sincronizarIndicacao(ind, { vendedorId: uid, nome: parsed.data.nome_cliente, telefone: form.telefone, instalado: parsed.data.instalado });
     if (!error) await recalcularLojaMes(uid, mesRef);
     setLoading(false);
@@ -779,13 +781,14 @@ export function FormPap({
       );
       return;
     }
-    if (isIndiqueGanhe(parsed.data.canal_origem)) {
+    if (precisaRegistrarIndicador(editingId, initial?.canal_origem, parsed.data.canal_origem)) {
       const erro = validarIndicador(ind);
       if (erro) return void toast.error(erro);
     }
     setLoading(true);
     const { data: sess } = await supabase.auth.getUser();
-    const uid = ownerId ?? sess.user!.id;
+    if (!sess.user) { setLoading(false); toast.error("Sua sessão expirou. Entre novamente."); return; }
+    const uid = ownerId ?? sess.user.id;
 
 
     const mesRefPap = mesRefFromDate(parsed.data.data_instalacao || parsed.data.data);
@@ -860,7 +863,7 @@ export function FormPap({
         motivo: motivoReagendamento,
       });
     }
-    if (!error && isIndiqueGanhe(parsed.data.canal_origem))
+    if (!error && precisaRegistrarIndicador(editingId, initial?.canal_origem, parsed.data.canal_origem))
       await sincronizarIndicacao(ind, { vendedorId: uid, nome: parsed.data.nome_cliente, telefone: form.telefone, instalado: parsed.data.instalado });
     if (!error) await recalcularPapMes(uid, mesRefPap);
     setLoading(false);
