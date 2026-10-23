@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, com lista da equipe e testes
+- [x] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, lista da equipe e cinco testes aprovados
 - [x] Agenda/Tarefas: aviso obrigatório no horário programado, confirmação individual e verificação em tela
 - [x] Criação de acessos: senha fraca bloqueada → botão "Gerar" e mensagem em português
 - [x] Pós vendas: WhatsApp clicável ao lado do protocolo
@@ -15,4 +15,4 @@
 - [x] Filtro Todos em Pós-vendas inclui vendas próprias para seleção vazia e legado; teste aprovado
 - [x] Edição Indique Ganhe carrega indicador quando inequívoco e não recria indicação; testes aprovados
 - [x] Meses não consecutivos em Vendas e Relatórios usam intervalos separados; testes aprovados
-- [ ] Validar fluxos completos com usuário autenticado — bloqueado: autorização de sessão de teste recusada
+- [ ] Validar fluxos completos com usuário autenticado, incluindo o novo aviso de WhatsApp — bloqueado: não há sessão disponível nem conta vinculada ao solicitante para entrar automaticamente; requer login na prévia
