@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { erroDeAcesso } from "@/lib/erros-acesso";
 
 function NotFoundComponent() {
   return (
@@ -152,6 +153,24 @@ function RootComponent() {
       queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
+  }, [queryClient, router]);
+
+  useEffect(() => {
+    let verificando = false;
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (event.type !== "updated" || event.action.type !== "error") return;
+      toast.error("Não foi possível carregar os dados. Tente novamente.", { id: "erro-carregar-dados" });
+      if (!erroDeAcesso(event.query.state.error) || verificando) return;
+      verificando = true;
+      void supabase.auth.getUser().then(({ data, error }) => {
+        if ((!data.user && !error) || erroDeAcesso(error)) {
+          void queryClient.cancelQueries();
+          queryClient.clear();
+          toast.info("Sua sessão terminou. Entre novamente.");
+          void router.navigate({ to: "/auth", replace: true });
+        }
+      }).finally(() => { verificando = false; });
+    });
   }, [queryClient, router]);
 
   return (

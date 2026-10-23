@@ -96,6 +96,7 @@ export function ProjecaoComissaoLoja({
     [q.data, valorNovo, valorAntigo, instalado, classe, tecnologia, contemMovel],
   );
 
+  if (q.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar a projeção de comissão.</p>;
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -190,6 +191,7 @@ function ProjecaoComissaoPapAntiga({
     });
   }, [q.data, acumuladoQ.data, valor, instalado, tipoProtocolo, produto, editingId]);
 
+  if (q.isError || acumuladoQ.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar a projeção de comissão.</p>;
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -294,6 +296,7 @@ function ProjecaoComissaoPapV2({ valor, instalado, tipoProtocolo, produto, mesRe
   }, [params.data, mes.data, valor, instalado, tipoProtocolo, produto, editingId]);
 
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  if (params.isError || mes.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar a projeção de comissão.</p>;
   const titulo =
     calc?.r.grupo === "bl_movel"
       ? "Tabela 8.1 — Banda Larga e Móvel (faixa pela quantidade de BL ativadas no mês)."

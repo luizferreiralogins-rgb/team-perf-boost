@@ -25,7 +25,7 @@ type Linha = {
 export function RankingTime({ uid, meses }: { uid?: string; meses: string[] }) {
   const ordenados = useMemo(() => [...meses].sort(), [meses]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["ranking-time", uid, ordenados.join(",")],
     enabled: !!uid && ordenados.length > 0,
     staleTime: 30_000,
@@ -65,6 +65,7 @@ export function RankingTime({ uid, meses }: { uid?: string; meses: string[] }) {
   });
 
   if (!uid) return null;
+  if (isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar o ranking.</p>;
 
   return (
     <div className="space-y-3">
