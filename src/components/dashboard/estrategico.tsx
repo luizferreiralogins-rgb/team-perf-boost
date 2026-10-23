@@ -100,6 +100,9 @@ type Cidade = {
 
 const num = (n: number) => (n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const pct = (n: number) => `${((n || 0) * 100).toFixed(1).replace(".", ",")}%`;
+const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brlCurto = (n: number) =>
+  "R$ " + (n || 0).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 const anosDisponiveis = () => {
   const y = new Date().getFullYear();
   return [y + 1, y, y - 1, y - 2];
@@ -191,6 +194,36 @@ export function Estrategico() {
   
   const [novaCidade, setNovaCidade] = useState("");
   const [abrirNova, setAbrirNova] = useState(false);
+
+  const { data: ticketMedio = 0 } = useQuery({
+    queryKey: ["ticket-medio-estrategico"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parametros_gerais")
+        .select("valor_num")
+        .eq("chave", "ticket_medio_estrategico")
+        .maybeSingle();
+      if (error) throw error;
+      return Number(data?.valor_num ?? 0);
+    },
+  });
+  const salvarTicket = useMutation({
+    mutationFn: async (v: number) => {
+      const { error } = await supabase.from("parametros_gerais").upsert({
+        chave: "ticket_medio_estrategico",
+        label: "Ticket médio atual (Estratégico)",
+        descricao: "Usado no gráfico de receita mensal: ticket médio x acessos Anatel.",
+        valor_num: v,
+        ordem: 999,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ticket médio atualizado.");
+      qc.invalidateQueries({ queryKey: ["ticket-medio-estrategico"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["estrategico", ano],
@@ -319,6 +352,11 @@ export function Estrategico() {
       { total: 0, ocupadas: 0 },
     );
   const ocupacao = portas.total ? portas.ocupadas / portas.total : 0;
+
+  const dadosReceita = serie.map((s) => ({
+    mes: s.mes,
+    receita: Math.round(ticketMedio * Number(s.anatel || 0) * 100) / 100,
+  }));
 
   const dadosChurn = serie.map((s) => ({
     mes: s.mes,
@@ -455,6 +493,11 @@ export function Estrategico() {
             </div>
           </div>
 
+          <div className="w-full space-y-1 sm:w-auto">
+            <Label htmlFor="ticket-medio" className="text-xs text-muted-foreground">Ticket médio atual (R$)</Label>
+            <CampoNum valor={ticketMedio} onSalvar={(v) => salvarTicket.mutate(v)} id="ticket-medio" />
+          </div>
+
           <Dialog open={abrirNova} onOpenChange={setAbrirNova}>
             <DialogTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -533,6 +576,33 @@ export function Estrategico() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <Grafico
+            titulo="Receita mensal (Ticket médio x Acessos Anatel)"
+            descricao={ticketMedio > 0 ? `Ticket médio ${brl(ticketMedio)} · Total ${brl(dadosReceita.reduce((s, r) => s + r.receita, 0))}` : "Informe o ticket médio atual no filtro acima."}
+          >
+            {tipoGrafico === "linha" ? (
+              <LineChart data={dadosReceita}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" fontSize={12} />
+                <YAxis fontSize={12} width={90} tickFormatter={(v) => brlCurto(Number(v))} />
+                <Tooltip formatter={(v) => brl(Number(v))} />
+                <Legend />
+                <Line type="monotone" dataKey="receita" name="Receita" stroke={AZUL} strokeWidth={2} dot />
+              </LineChart>
+            ) : (
+              <BarChart data={dadosReceita}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" fontSize={12} />
+                <YAxis fontSize={12} width={90} tickFormatter={(v) => brlCurto(Number(v))} />
+                <Tooltip formatter={(v) => brl(Number(v))} />
+                <Legend />
+                <Bar dataKey="receita" name="Receita" fill={AZUL} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </Grafico>
+        </div>
+
         <G titulo="Banda Larga · Vendas x Meta" dados={serie} series={[{ key: "metaVendas", nome: "Meta", cor: ROXO }, { key: "vendas", nome: "Vendas", cor: AZUL }]} />
         <G titulo="Móvel · Linhas vendidas x Meta" dados={serie} series={[{ key: "mvMetaVendidas", nome: "Meta", cor: ROXO }, { key: "mvVendidas", nome: "Linhas vendidas", cor: AZUL }]} />
 
@@ -625,12 +695,13 @@ export function Estrategico() {
   );
 }
 
-function CampoNum({ valor, onSalvar }: { valor: number; onSalvar: (v: number) => void }) {
+function CampoNum({ valor, onSalvar, id }: { valor: number; onSalvar: (v: number) => void; id?: string }) {
   const [txt, setTxt] = useState<string | null>(null);
   const mostrado = txt ?? String(valor ?? 0);
   return (
     <Input
-      className="h-8 w-24 text-sm"
+      id={id}
+      className={id ? "h-9 w-40 text-sm" : "h-8 w-24 text-sm"}
       inputMode="decimal"
       value={mostrado}
       onChange={(e) => setTxt(e.target.value)}
