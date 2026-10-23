@@ -16,3 +16,4 @@
 - Sales and report month filters use shared disjoint date intervals, so unselected months never enter totals.
 - Existing referral sales preload unambiguous referrer records and synchronize referrals only on creation or a change into the referral channel, preventing routine edits from creating duplicates.
 - Global auth sign-out cancels and clears protected queries before navigating to login; failed data reads must throw rather than masquerade as empty results.
+- Dashboard WhatsApp alerts query only open block periods for consultants in the existing authorized team, independently of sales filters, and refresh periodically so current blocks are not tied to historical months.
