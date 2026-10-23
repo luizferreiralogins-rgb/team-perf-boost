@@ -85,6 +85,13 @@
       "when": 1792591883110,
       "tag": "0011_prospeccoes_limpeza_por_status",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792759064091,
+      "tag": "0012_pos_venda_contatos_acesso_gestores",
+      "breakpoints": true
     }
   ]
 }

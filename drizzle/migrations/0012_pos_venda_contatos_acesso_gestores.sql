@@ -1,0 +1,2 @@
+ALTER POLICY pos_venda_select ON public.pos_venda_contatos TO authenticated USING (vendedor_id = auth.uid() OR public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'regional') OR public.is_gestor_de(auth.uid(), vendedor_id));
+ALTER POLICY pos_venda_insert ON public.pos_venda_contatos TO authenticated WITH CHECK (criado_por = auth.uid() AND (vendedor_id = auth.uid() OR public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'regional') OR public.is_gestor_de(auth.uid(), vendedor_id)));
