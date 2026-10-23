@@ -100,6 +100,9 @@ type Cidade = {
 
 const num = (n: number) => (n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 const pct = (n: number) => `${((n || 0) * 100).toFixed(1).replace(".", ",")}%`;
+const brl = (n: number) => (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brlCurto = (n: number) =>
+  "R$ " + (n || 0).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 const anosDisponiveis = () => {
   const y = new Date().getFullYear();
   return [y + 1, y, y - 1, y - 2];
