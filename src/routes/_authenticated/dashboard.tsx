@@ -34,6 +34,7 @@ import {
 import { RankingTime } from "@/components/dashboard/ranking-time";
 import { NaoInstaladasDialog } from "@/components/dashboard/nao-instaladas-dialog";
 import { VendasMesDialog } from "@/components/dashboard/vendas-mes-dialog";
+import { KpiCategoriaDialog, type KpiCategoria } from "@/components/dashboard/kpi-categoria-dialog";
 import { LeadsResumo } from "@/components/dashboard/leads-resumo";
 import { AgendaHoje } from "@/components/dashboard/agenda-hoje";
 import { Estrategico } from "@/components/dashboard/estrategico";
@@ -176,6 +177,7 @@ function Dashboard() {
 
   const [verNaoInstaladas, setVerNaoInstaladas] = useState(false);
   const [verVendasMes, setVerVendasMes] = useState(false);
+  const [kpiAberto, setKpiAberto] = useState<KpiCategoria | null>(null);
   const [aba, setAba] = useState<"comercial" | "estrategico">("comercial");
   const comercial = !isGestor || aba === "comercial";
   const [filtros, setFiltros] = useState<Filtros>({ mes: [mesAtual()], pessoa: "all", unidades: [] });
@@ -583,6 +585,7 @@ function Dashboard() {
             icon={Wifi}
             projecaoValor={somaProj((r) => r.blInst)}
             meta={metasKpi.bl}
+            onClick={() => setKpiAberto("bl")}
           />
           <KpiCard
             title="Móvel"
@@ -592,6 +595,7 @@ function Dashboard() {
             icon={Smartphone}
             projecaoValor={somaProj((r) => r.mvLinhasInst)}
             meta={metasKpi.movel}
+            onClick={() => setKpiAberto("movel")}
           />
 
           <KpiCard
@@ -604,6 +608,7 @@ function Dashboard() {
             projecaoEm="rs"
             meta={metasKpi.renovRs}
             metaEm="rs"
+            onClick={() => setKpiAberto("renovacao")}
           />
 
 
@@ -634,6 +639,18 @@ function Dashboard() {
       <VendasMesDialog
         open={verVendasMes}
         onOpenChange={setVerVendasMes}
+        isGestor={isGestor}
+        uid={roleInfo?.uid}
+        canalConsultor={data?.canal}
+        escopoIds={escopoIds}
+        ativas={usarAtivas}
+        mesesRefISO={mesRefISOs}
+      />
+
+      <KpiCategoriaDialog
+        open={kpiAberto !== null}
+        onOpenChange={(v) => { if (!v) setKpiAberto(null); }}
+        categoria={kpiAberto ?? "bl"}
         isGestor={isGestor}
         uid={roleInfo?.uid}
         canalConsultor={data?.canal}
@@ -725,6 +742,7 @@ function KpiCard({
   projecaoEm = "qtd",
   meta,
   metaEm = "qtd",
+  onClick,
 }: {
   title: string;
   qtd: number | null;
@@ -739,10 +757,17 @@ function KpiCard({
   projecaoEm?: "qtd" | "rs";
   meta?: number | null;
   metaEm?: "qtd" | "rs";
+  onClick?: () => void;
 }) {
 
   return (
-    <Card>
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className={onClick ? "cursor-pointer transition-shadow hover:shadow-md" : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-primary" />
