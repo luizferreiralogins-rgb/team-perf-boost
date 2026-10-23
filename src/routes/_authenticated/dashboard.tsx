@@ -647,6 +647,18 @@ function Dashboard() {
         mesesRefISO={mesRefISOs}
       />
 
+      <KpiCategoriaDialog
+        open={kpiAberto !== null}
+        onOpenChange={(v) => { if (!v) setKpiAberto(null); }}
+        categoria={kpiAberto ?? "bl"}
+        isGestor={isGestor}
+        uid={roleInfo?.uid}
+        canalConsultor={data?.canal}
+        escopoIds={escopoIds}
+        ativas={usarAtivas}
+        mesesRefISO={mesRefISOs}
+      />
+
 
 
 
