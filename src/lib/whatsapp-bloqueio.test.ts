@@ -27,6 +27,15 @@ describe("consultoresComBloqueio", () => {
 });
 
 describe("minutosBloqueadoNoMes", () => {
+  it("ao selecionar setembro ou outubro, soma somente o tempo bloqueado daquele mês", () => {
+    const periodos = [
+      { user_id: "a", inicio: "2026-09-15T10:00:00Z", fim: "2026-09-15T12:00:00Z" },
+      { user_id: "a", inicio: "2026-10-15T10:00:00Z", fim: "2026-10-15T13:30:00Z" },
+    ];
+    const agora = new Date("2026-10-23T17:34:00Z");
+    expect(minutosBloqueadoNoMes(periodos, new Date("2026-09-01T00:00:00Z"), ini, agora)).toBe(120);
+    expect(minutosBloqueadoNoMes(periodos, ini, fim, agora)).toBe(210);
+  });
   it("conta só a parte dentro do mês", () => {
     const p = [{ user_id: "a", inicio: "2026-09-30T23:00:00Z", fim: "2026-10-01T01:00:00Z" }];
     expect(minutosBloqueadoNoMes(p, ini, fim, new Date("2026-10-20T00:00:00Z"))).toBe(60);

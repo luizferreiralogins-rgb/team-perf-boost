@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Produtividade: seleção independente de mês no quadro WhatsApp da equipe e teste de tempo por período.
 - [x] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, lista da equipe e cinco testes aprovados
 - [x] Agenda/Tarefas: aviso obrigatório no horário programado, confirmação individual e verificação em tela
 - [x] Criação de acessos: senha fraca bloqueada → botão "Gerar" e mensagem em português
