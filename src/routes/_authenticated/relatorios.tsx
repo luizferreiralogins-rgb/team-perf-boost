@@ -299,8 +299,6 @@ function EscolhaRelatorio({ onSelect }: { onSelect: (tipo: TipoRelatorio) => voi
 
 function useVendasDoMes(meses: string[], ids: string[]) {
   const ordenados = [...meses].sort();
-  const inicio = `${ordenados[0]}-01`;
-  const fim = fimDoMes(ordenados[ordenados.length - 1] ?? ordenados[0]!);
   return useQuery({
     queryKey: ["relatorio-vendas", ordenados.join(","), ids.join(",")],
     enabled: ids.length > 0 && ordenados.length > 0,
@@ -310,14 +308,12 @@ function useVendasDoMes(meses: string[], ids: string[]) {
           .from("vendas_loja")
           .select("id, vendedor_id, protocolo, nome_cliente, data_abertura, canal_origem, valor_novo, comissao, status")
           .in("vendedor_id", ids)
-          .gte("data_abertura", inicio)
-          .lte("data_abertura", fim),
+          .or(filtroMesesData("data_abertura", ordenados)),
         supabase
           .from("vendas_pap")
           .select("id, vendedor_id, protocolo, nome_cliente, data_venda, canal_origem, valor, valor_novo, comissao, status")
           .in("vendedor_id", ids)
-          .gte("data_venda", inicio)
-          .lte("data_venda", fim),
+          .or(filtroMesesData("data_venda", ordenados)),
       ]);
       if (lojaError) throw lojaError;
       if (papError) throw papError;

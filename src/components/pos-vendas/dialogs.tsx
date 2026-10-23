@@ -43,9 +43,10 @@ function useRegistrar(onDone: () => void) {
   return useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
       const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Sua sessão expirou. Entre novamente.");
       const { error } = await supabase
         .from("pos_venda_contatos")
-        .insert({ ...payload, criado_por: auth.user!.id } as never);
+        .insert({ ...payload, criado_por: auth.user.id } as never);
       if (error) throw error;
     },
     onSuccess: () => {

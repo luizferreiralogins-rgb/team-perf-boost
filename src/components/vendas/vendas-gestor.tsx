@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { filtroMesesData } from "@/lib/filtros-vendas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,26 +103,24 @@ export function VendasGestor() {
     queryKey: ["vendas-gestor", meses.join(","), consultoresIds.join(",")],
     enabled: consultoresIds.length > 0 && meses.length > 0,
     queryFn: async (): Promise<Linha[]> => {
-      const de = `${meses[0]}-01`;
-      const ate = fimDoMes(meses[meses.length - 1]!);
-      const [{ data: loja }, { data: pap }] = await Promise.all([
+      const [{ data: loja, error: lojaError }, { data: pap, error: papError }] = await Promise.all([
         supabase
           .from("vendas_loja")
           .select(
             "id, protocolo, vendedor_id, nome_cliente, valor_novo, status, data_abertura, data_ativacao, data_agendamento, comissao, classe_protocolo, qtd_linhas",
           )
           .in("vendedor_id", consultoresIds)
-          .gte("data_abertura", de)
-          .lte("data_abertura", ate),
+          .or(filtroMesesData("data_abertura", meses)),
         supabase
           .from("vendas_pap")
           .select(
             "id, protocolo, vendedor_id, nome_cliente, valor, status, data_venda, data_ativacao, data_agendamento, comissao, tipo_protocolo, qtd_linhas",
           )
           .in("vendedor_id", consultoresIds)
-          .gte("data_venda", de)
-          .lte("data_venda", ate),
+          .or(filtroMesesData("data_venda", meses)),
       ]);
+      if (lojaError) throw lojaError;
+      if (papError) throw papError;
       const rows: Linha[] = [
         ...(loja ?? []).map((v) => ({
           id: v.id,

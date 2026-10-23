@@ -15,7 +15,7 @@ export function useAniversariantes() {
     queryKey: ["aniversariantes-hoje"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("aniversariantes_hoje");
-      if (error) return [] as Aniversariante[];
+      if (error) throw error;
       return (data ?? []) as Aniversariante[];
     },
     staleTime: 10 * 60_000,
@@ -28,7 +28,7 @@ export function useProximoAniversariante() {
     queryKey: ["proximo-aniversariante"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("proximo_aniversariante");
-      if (error) return null;
+      if (error) throw error;
       const row = (data ?? [])[0];
       if (!row) return null;
       return row as ProximoAniversariante;
