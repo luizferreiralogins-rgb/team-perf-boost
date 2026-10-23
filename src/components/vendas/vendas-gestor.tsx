@@ -59,12 +59,6 @@ type Linha = {
   status: string;
 };
 
-function fimDoMes(mes: string) {
-  const [y, m] = mes.split("-").map(Number);
-  const d = new Date(y!, m!, 0);
-  return `${mes}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 const dataBR = (s: string | null) =>
   s ? new Date(s + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
@@ -175,6 +169,7 @@ export function VendasGestor() {
     return { valor, comissao, qtd: linhas.length };
   }, [linhas]);
 
+  if (vendas.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar as vendas. Tente novamente.</p>;
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>

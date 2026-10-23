@@ -9,8 +9,9 @@
 - [x] Pós vendas: remover coluna Ação também para Gerentes e Líder PAP (mesmo layout dos consultores)
 - [x] Site publicado: selo "Edit with Lovable" ocultado
 - [x] Restabelecer serviço após recarga — Lovable Cloud com autenticação e banco respondendo; tela inicial conferida, entrada na conta depende do usuário
-- [ ] Revisar e corrigir acesso administrativo aos contatos de pós-vendas
-- [ ] Revisar sessão expirada e erros ocultos nos indicadores
-- [ ] Revisar filtro Todos em Pós-vendas para incluir vendas próprias
-- [ ] Revisar edição de vendas Indique Ganhe sem duplicar indicações
-- [ ] Revisar seleção de meses não consecutivos em Vendas e Relatórios
+- [x] Acesso administrativo aos contatos de pós-vendas corrigido e políticas conferidas no banco
+- [x] Sessão expirada: cancelar consultas, limpar dados e encaminhar ao login; erros de indicadores deixam de retornar dados vazios
+- [x] Filtro Todos em Pós-vendas inclui vendas próprias para seleção vazia e legado; teste aprovado
+- [x] Edição Indique Ganhe carrega indicador quando inequívoco e não recria indicação; testes aprovados
+- [x] Meses não consecutivos em Vendas e Relatórios usam intervalos separados; testes aprovados
+- [ ] Validar fluxos completos com usuário autenticado — bloqueado: autorização de sessão de teste recusada

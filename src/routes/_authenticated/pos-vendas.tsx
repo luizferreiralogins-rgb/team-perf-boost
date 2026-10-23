@@ -376,6 +376,7 @@ function PosVendasPage() {
     });
   }, [itens, fase, situacao, busca]);
 
+  if (dados.isError) return <p role="alert" className="text-sm text-destructive">Não foi possível carregar os contatos de pós-vendas. Tente novamente.</p>;
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">

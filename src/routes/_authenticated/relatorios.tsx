@@ -100,12 +100,6 @@ const dataBR = (valor?: string | null) =>
 const dataHoraBR = (valor: string) =>
   new Date(valor).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-function fimDoMes(mes: string) {
-  const [ano, numeroMes] = mes.split("-").map(Number);
-  const ultimoDia = new Date(ano, numeroMes, 0).getDate();
-  return `${mes}-${String(ultimoDia).padStart(2, "0")}`;
-}
-
 function rolePrincipal(roles: string[]) {
   return (
     ["admin", "regional", "gerente_regional", "gerente", "lider_pap", "consultor"].find((role) =>
