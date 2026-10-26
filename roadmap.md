@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Prospecções: adaptar colunas ao padrão Assyst, importar a nova base e preservar clientes atuais em Contato feito, Negociando e Fechado.
+- [x] Prospecções: novo padrão Assyst e ícones mantidos; 1.159 clientes importados na equipe Luiz Carlos, 236 atuais preservados e 1.418 arquivados; conferido autenticado e sete testes aprovados.
 - [x] Produtividade: seleção independente de mês no quadro WhatsApp da equipe e teste de tempo por período.
 - [x] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, lista da equipe e cinco testes aprovados
 - [x] Agenda/Tarefas: aviso obrigatório no horário programado, confirmação individual e verificação em tela
