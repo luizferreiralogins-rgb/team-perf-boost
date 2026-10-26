@@ -92,6 +92,13 @@
       "when": 1792759064091,
       "tag": "0012_pos_venda_contatos_acesso_gestores",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793029093945,
+      "tag": "0013_prospeccoes_protocolo_assyst",
+      "breakpoints": true
     }
   ]
 }

@@ -18,3 +18,4 @@
 - Global auth sign-out cancels and clears protected queries before navigating to login; failed data reads must throw rather than masquerade as empty results.
 - Dashboard WhatsApp alerts query only open block periods for consultants in the existing authorized team, independently of sales filters, and refresh periodically so current blocks are not tied to historical months.
 - The team WhatsApp panel owns an independent month selector; monthly durations are clipped to that month while open periods keep current status independent of the selected month.
+- Prospect spreadsheet imports use a shared validated header/date/status parser; explicit consultant assignments resolve uniquely within the manager's eligible team, while unassigned bases retain equal distribution.

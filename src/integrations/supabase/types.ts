@@ -1273,6 +1273,7 @@ export type Database = {
           nome_cliente: string
           observacao: string | null
           plano: string | null
+          protocolo: string | null
           status: string | null
           telefone: string | null
           unidade: string | null
@@ -1291,6 +1292,7 @@ export type Database = {
           nome_cliente: string
           observacao?: string | null
           plano?: string | null
+          protocolo?: string | null
           status?: string | null
           telefone?: string | null
           unidade?: string | null
@@ -1309,6 +1311,7 @@ export type Database = {
           nome_cliente?: string
           observacao?: string | null
           plano?: string | null
+          protocolo?: string | null
           status?: string | null
           telefone?: string | null
           unidade?: string | null
