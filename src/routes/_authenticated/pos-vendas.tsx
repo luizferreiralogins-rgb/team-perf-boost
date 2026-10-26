@@ -12,6 +12,7 @@ import {
   Smile,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -505,7 +506,7 @@ function PosVendasPage() {
                           )}
                         </button>
                       </TableCell>
-                      <TableCell>{i.protocolo || "—"}</TableCell>
+                      <TableCell><ProtocoloAssyst protocolo={i.protocolo} /></TableCell>
                       <TableCell className="whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
                           {i.telefone ? <WhatsAppLink numero={i.telefone} /> : "—"}

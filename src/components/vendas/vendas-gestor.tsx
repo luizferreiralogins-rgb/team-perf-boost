@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { filtroMesesData } from "@/lib/filtros-vendas";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -221,7 +222,7 @@ export function VendasGestor() {
                 <TableBody>
                   {linhas.map((v) => (
                     <TableRow key={`${v.canal}-${v.id}`}>
-                      <TableCell className="whitespace-nowrap">{v.protocolo || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap"><ProtocoloAssyst protocolo={v.protocolo} /></TableCell>
                       <TableCell className="whitespace-nowrap">{dataBR(v.data || null)}</TableCell>
                       <TableCell className="whitespace-nowrap">{v.vendedor}</TableCell>
                       <TableCell>

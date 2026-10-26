@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightLeft, Copy, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, TrendingUp, Upload } from "lucide-react";
+import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MeuScript, CopiarScript } from "@/components/meu-script";
 import { consultorDaPlanilha, lerProspecto } from "@/lib/prospeccoes-importacao";
-import { copiarEAbrirAssyst } from "@/lib/assyst";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -449,29 +449,7 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
         </Select>
       </TableCell>
       <TableCell className="whitespace-nowrap text-xs">
-        {r.protocolo ? (
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto gap-1 p-0 text-xs font-medium hover:underline"
-            title="Copiar o protocolo e abrir a Assyst"
-            onClick={async () => {
-              const protocolo = r.protocolo ?? "";
-              if (!protocolo) return;
-              const resultado = await copiarEAbrirAssyst(protocolo);
-              if (resultado === "copiado") {
-                toast.success(`Protocolo ${protocolo} copiado. A Assyst abriu em nova aba — é só colar na pesquisa.`);
-              } else {
-                toast.warning(`A Assyst abriu em nova aba, mas não consegui copiar o protocolo ${protocolo}. Copie-o manualmente.`);
-              }
-            }}
-          >
-            {r.protocolo}
-            <Copy className="h-3 w-3" />
-          </Button>
-        ) : (
-          "—"
-        )}
+        <ProtocoloAssyst protocolo={r.protocolo} />
       </TableCell>
       <TableCell className="whitespace-nowrap text-xs">
         {r.data_registro ? new Date(r.data_registro).toLocaleDateString("pt-BR") : "—"}

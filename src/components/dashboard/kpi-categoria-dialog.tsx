@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -235,7 +236,7 @@ export function KpiCategoriaDialog({
                       {q.data?.nomes[i.vendedor_id] ?? "—"}
                     </TableCell>
                     <TableCell>{i.cliente}</TableCell>
-                    <TableCell>{i.protocolo ?? "—"}</TableCell>
+                    <TableCell><ProtocoloAssyst protocolo={i.protocolo} /></TableCell>
                     <TableCell>{i.produto}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{i.canal === "pap" ? "PAP" : "Loja"}</Badge>
