@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import {
   ArrowLeft,
   CalendarClock,
@@ -598,7 +599,7 @@ function RelatorioCanais({
                     .sort((a, b) => (b.data ?? "").localeCompare(a.data ?? ""))
                     .map((venda) => (
                       <TableRow key={`${venda.tabela}-${venda.id}`}>
-                        <TableCell className="whitespace-nowrap">{venda.protocolo || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap"><ProtocoloAssyst protocolo={venda.protocolo} /></TableCell>
                         <TableCell className="whitespace-nowrap">{dataBR(venda.data)}</TableCell>
                         <TableCell className="whitespace-nowrap">{nomes.get(venda.vendedorId) ?? "—"}</TableCell>
                         <TableCell>{venda.cliente}</TableCell>

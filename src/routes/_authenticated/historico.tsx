@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Send, Trash2, Search, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProtocoloAssyst } from "@/components/protocolo-assyst";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -642,7 +643,7 @@ function HistoricoPage() {
                       {isGestor && <TableCell>{nomePorId[r.vendedor_id] ?? "—"}</TableCell>}
                       <TableCell>{r.cliente}</TableCell>
 
-                      <TableCell className="whitespace-nowrap">{r.protocolo ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap"><ProtocoloAssyst protocolo={r.protocolo} /></TableCell>
                       <TableCell>{r.tipo}</TableCell>
                       <TableCell className="max-w-[220px] truncate">{r.produto}</TableCell>
                       <TableCell className="font-medium">{brl(r.valor)}</TableCell>
