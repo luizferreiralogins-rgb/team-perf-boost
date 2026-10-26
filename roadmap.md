@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Prospecções: adaptar colunas ao padrão Assyst, importar a nova base e preservar clientes atuais em Contato feito, Negociando e Fechado.
 - [x] Produtividade: seleção independente de mês no quadro WhatsApp da equipe e teste de tempo por período.
 - [x] Dashboard: ícone de WhatsApp bloqueado para Gerentes e Líderes PAP, lista da equipe e cinco testes aprovados
 - [x] Agenda/Tarefas: aviso obrigatório no horário programado, confirmação individual e verificação em tela
