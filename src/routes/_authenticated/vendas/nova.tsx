@@ -135,6 +135,7 @@ const TECNOLOGIAS = [
   "06.04 - Aluguel de Equipamento",
   "10.01 - Câmeras de monitoramento",
   "14.01 - Telefonia móvel 5G",
+  "14.04 - Telefonia Móvel Pré-pago",
   "11.01 - Wifi Business",
   "08.01 - Telefonia - Pabx Virtual",
   "12.01 - Telemedicina",
