@@ -19,3 +19,4 @@
 - [x] Meses não consecutivos em Vendas e Relatórios usam intervalos separados; testes aprovados
 - [ ] Validar fluxos completos com usuário autenticado, incluindo o novo aviso de WhatsApp — bloqueado: não há sessão disponível nem conta vinculada ao solicitante para entrar automaticamente; requer login na prévia
 - [x] Prospecções: protocolo clicável copia o número e abre a Assyst em nova aba; link e cópia conferidos na tela
+- [x] Protocolo clicável (copia + abre Assyst) aplicado em Vendas, Histórico, Pós-vendas, Relatórios e diálogo de KPIs; conferido nas cinco telas
