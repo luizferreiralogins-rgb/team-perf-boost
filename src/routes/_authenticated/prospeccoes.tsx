@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Plus, Settings2, ChevronLeft, ChevronRight, ShoppingCart, Trash2, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MeuScript, CopiarScript } from "@/components/meu-script";
+import { consultorDaPlanilha, lerProspecto } from "@/lib/prospeccoes-importacao";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -305,11 +306,11 @@ function Page() {
                   <TableHead className="w-10">Venda</TableHead>
                   <TableHead>Data contato</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Protocolo</TableHead>
+                  <TableHead>Data registro</TableHead>
                   <TableHead>Nome afetado</TableHead>
-                  <TableHead>Item</TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Unidade Operacional</TableHead>
+                  <TableHead>Cidade</TableHead>
                   <TableHead>Plano</TableHead>
                   <TableHead>Observação</TableHead>
                 </TableRow>
@@ -446,12 +447,12 @@ function Linha({ r, gestor, nome, equipe }: { r: any; gestor: boolean; nome?: st
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="whitespace-nowrap">{r.nome_cliente}</TableCell>
-      <TableCell className="text-xs">{r.item ?? "—"}</TableCell>
-      <TableCell className="text-xs">{r.categoria ?? "—"}</TableCell>
+      <TableCell className="whitespace-nowrap text-xs">{r.protocolo ?? "—"}</TableCell>
       <TableCell className="whitespace-nowrap text-xs">
         {r.data_registro ? new Date(r.data_registro).toLocaleDateString("pt-BR") : "—"}
       </TableCell>
+      <TableCell className="whitespace-nowrap">{r.nome_cliente}</TableCell>
+      <TableCell className="text-xs">{r.categoria ?? "—"}</TableCell>
       <TableCell className="text-xs">{r.unidade ?? "—"}</TableCell>
       <TableCell className="max-w-[220px] truncate text-xs" title={r.plano ?? ""}>{r.plano ?? "—"}</TableCell>
       <TableCell>
@@ -500,6 +501,7 @@ function AcoesGestor({ uid }: { uid: string }) {
 
   const [canalDist, setCanalDist] = useState<"loja" | "pap">("loja");
   const [qtdArquivos, setQtdArquivos] = useState(0);
+  const [usarConsultoresPlanilha, setUsarConsultoresPlanilha] = useState(false);
 
   const ler = async (files: File[]) => {
     setEnviando(true);
@@ -511,37 +513,19 @@ function AcoesGestor({ uid }: { uid: string }) {
         linhas.push(...XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: null }));
       }
       setQtdArquivos(files.length);
-      const { data: equipe } = await supabase.from("profiles").select("id, nome, canal").eq("gerente_id", uid).eq("ativo", true).order("nome");
-      const pega = (l: Record<string, unknown>, ...ks: string[]) => {
-        for (const k of Object.keys(l)) if (ks.includes(norm(k))) return l[k];
-        return null;
-      };
+      const { data: equipe, error: equipeErro } = await supabase.from("profiles").select("id, nome, canal").eq("gerente_id", uid).eq("ativo", true).order("nome");
+      if (equipeErro) throw equipeErro;
       const registros: Record<string, unknown>[] = [];
       for (const l of linhas) {
-        const nome = String(pega(l, "nome afetado", "nome", "cliente", "nome do cliente") ?? "").trim();
-        if (!nome) continue;
-        const d = pega(l, "data");
-        const txt = (k: string) => {
-          const v = pega(l, k);
-          return v == null || v === "" ? null : String(v);
-        };
-        registros.push({
-          gerente_id: uid,
-          nome_cliente: nome,
-          cpf_cnpj: txt("cpf/cnpj"),
-          telefone: txt("telefone") ?? txt("contato"),
-          item: txt("item"),
-          categoria: txt("categoria"),
-          data_registro: d instanceof Date ? d.toISOString() : null,
-          unidade: txt("unidade operacional"),
-          plano: txt("plano"),
-        });
+        const registro = lerProspecto(l, opcoesStatus.data ?? []);
+        if (registro) registros.push({ ...registro, gerente_id: uid });
       }
       if (!registros.length) throw new Error("Nenhum cliente encontrado na planilha.");
       const eq = (equipe ?? []) as { id: string; nome: string; canal: string }[];
       setEquipeImp(eq);
       setCanalDist("loja");
       setSel(new Set(eq.filter((p) => p.canal === "loja").map((p) => p.id)));
+      setUsarConsultoresPlanilha(registros.every((r) => !!r.consultor_planilha));
       setPendentes(registros);
     } catch (e) {
       toast.error((e as Error).message);
@@ -554,15 +538,15 @@ function AcoesGestor({ uid }: { uid: string }) {
   const distribuir = async () => {
     if (!pendentes) return;
     const ids = equipeImp.filter((p) => sel.has(p.id)).map((p) => p.id);
-    if (!ids.length) return toast.error("Selecione ao menos um consultor.");
+    if (!usarConsultoresPlanilha && !ids.length) return toast.error("Selecione ao menos um consultor.");
     setEnviando(true);
     try {
-      const regs = pendentes.map((r, i) => ({ ...r, vendedor_id: ids[i % ids.length] }));
+      const regs = pendentes.map(({ consultor_planilha, ...r }, i) => ({ ...r, vendedor_id: usarConsultoresPlanilha ? consultorDaPlanilha(consultor_planilha, equipeImp) : ids[i % ids.length] }));
       for (let i = 0; i < regs.length; i += 500) {
         const { error } = await supabase.from("prospeccoes").insert(regs.slice(i, i + 500) as never);
         if (error) throw error;
       }
-      toast.success(`${regs.length} clientes distribuídos entre ${ids.length} consultor(es) (≈${Math.ceil(regs.length / ids.length)} cada).`);
+      toast.success(usarConsultoresPlanilha ? `${regs.length} clientes importados para os consultores da planilha.` : `${regs.length} clientes distribuídos entre ${ids.length} consultor(es) (≈${Math.ceil(regs.length / ids.length)} cada).`);
       setPendentes(null);
       qc.invalidateQueries({ queryKey: ["prospeccoes"] });
       qc.invalidateQueries({ queryKey: ["prosp-contagens"] });
@@ -658,7 +642,13 @@ function AcoesGestor({ uid }: { uid: string }) {
               Distribuir {pendentes?.length ?? 0} clientes{qtdArquivos > 1 ? ` (${qtdArquivos} bases)` : ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-1">
+          {pendentes?.some((r) => !!r.consultor_planilha) && (
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={usarConsultoresPlanilha} onCheckedChange={(c) => setUsarConsultoresPlanilha(c === true)} />
+              Manter consultores informados na planilha
+            </label>
+          )}
+          {!usarConsultoresPlanilha && <><div className="space-y-1">
             <p className="text-sm font-medium">Distribuir para</p>
             <Tabs
               value={canalDist}
@@ -696,9 +686,10 @@ function AcoesGestor({ uid }: { uid: string }) {
               </label>
             ))}
           </div>
+          </>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendentes(null)} disabled={enviando}>Cancelar</Button>
-            <Button onClick={distribuir} disabled={enviando || !sel.size}>{enviando ? "Distribuindo…" : "Distribuir"}</Button>
+            <Button onClick={distribuir} disabled={enviando || (!usarConsultoresPlanilha && !sel.size)}>{enviando ? "Distribuindo…" : "Distribuir"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
