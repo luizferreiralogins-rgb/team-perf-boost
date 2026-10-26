@@ -18,3 +18,4 @@
 - [x] Edição Indique Ganhe carrega indicador quando inequívoco e não recria indicação; testes aprovados
 - [x] Meses não consecutivos em Vendas e Relatórios usam intervalos separados; testes aprovados
 - [ ] Validar fluxos completos com usuário autenticado, incluindo o novo aviso de WhatsApp — bloqueado: não há sessão disponível nem conta vinculada ao solicitante para entrar automaticamente; requer login na prévia
+- [x] Prospecções: protocolo clicável copia o número e abre a Assyst em nova aba; link e cópia conferidos na tela
