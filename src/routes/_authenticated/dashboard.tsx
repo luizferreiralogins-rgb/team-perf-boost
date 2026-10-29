@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Target, Award, Plus, Wifi, Smartphone, RefreshCw, Clock } from "lucide-react";
+import { useComissaoLider } from "@/lib/comissao-lider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatarMinutos, mapaTempos, useTempos } from "@/hooks/use-tempos";
 import {
@@ -78,7 +79,9 @@ function RitmoDiario({
   bl,
   movel,
   renovRs,
+  avisoLider,
 }: {
+  avisoLider?: string | null;
   mes: string;
   metas: { bl: number; movel: number; renovRs: number };
   semRenovacao: boolean;
@@ -107,7 +110,7 @@ function RitmoDiario({
   if (!semRenovacao && metas.renovRs > 0)
     partes.push(`${brl(Math.ceil(dRv))} em Renovações`);
   const semFrase = !mesCorrente || !partes.length;
-  if (semFrase && !aniversarios && !proximoAniversario) return null;
+  if (semFrase && !aniversarios && !proximoAniversario && !avisoLider) return null;
 
   const lista =
     partes.length > 1
@@ -132,6 +135,7 @@ function RitmoDiario({
           </>
         )}
 
+        {avisoLider && <> {avisoLider}</>}
         {aniversarios && (
           <> <span className="font-semibold text-foreground">{aniversarios}</span></>
         )}
@@ -195,6 +199,24 @@ function Dashboard() {
   /** Mês atual = mesmas vendas da aba Vendas (ativas, não arquivadas). */
   const usarAtivas = ehMesAtual;
   const faixaAtual = useFaixaAtual(isGestor ? undefined : roleInfo?.uid);
+  const comissaoLider = useComissaoLider(
+    roleInfo?.isLiderPap ? roleInfo.uid : undefined,
+    `${meses.length === 1 ? meses[0] : mesAtual()}-01`,
+  );
+  const avisoLider = useMemo(() => {
+    const d = comissaoLider.data;
+    if (!d) return null;
+    if (!d.detalhes.length) return "Você ainda não tem consultores na equipe para gerar comissão de Líder PAP.";
+    const prox = d.detalhes
+      .filter((x) => x.proxima)
+      .sort((a, b) => a.proxima!.falta - b.proxima!.falta)
+      .slice(0, 3)
+      .map((x) => `${x.nome.split(" ")[0]} faltam ${brl(Math.ceil(x.proxima!.falta))} para a Faixa ${x.proxima!.faixa}`);
+    if (d.comissao === 0)
+      return `Para começar a comissionar como Líder, cada consultor precisa passar de R$ 2.000,00 em Banda Larga instalada: ${prox.join("; ")}.`;
+    if (d.somaPct >= d.tetoPct) return `Sua comissão de Líder já está no teto da equipe (${brl(d.comissao)}).`;
+    return prox.length ? `Para aumentar sua comissão de Líder: ${prox.join("; ")}.` : null;
+  }, [comissaoLider.data]);
 
 
 
@@ -399,6 +421,7 @@ function Dashboard() {
           bl={data?.blInst ?? 0}
           movel={data?.mvLinhasInst ?? 0}
           renovRs={data?.rvRs ?? 0}
+          avisoLider={avisoLider}
         />
         {!isGestor && (
           <div className="flex flex-col items-stretch gap-2">
@@ -570,6 +593,19 @@ function Dashboard() {
           value={isLoading ? null : brl(data?.comissao ?? 0)}
           icon={Target}
           projecao={isLoading ? null : `Projeção: ${brl(somaProj((r) => r.comissao))}`}
+          footer={
+            roleInfo?.isLiderPap && comissaoLider.data ? (
+              <div className="mt-3 border-t pt-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Sua Comissão</span>
+                  <span className="whitespace-nowrap text-sm font-semibold text-primary">{brl(comissaoLider.data.comissao)}</span>
+                </div>
+                <p className="mt-0.5 text-muted-foreground">
+                  {(comissaoLider.data.somaPct * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% de R$ 9.000 · teto {(comissaoLider.data.tetoPct * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+                </p>
+              </div>
+            ) : undefined
+          }
         />
       </div>
 
