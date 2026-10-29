@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import diretrizLoja from "@/assets/diretriz-loja.pdf.asset.json";
 import diretrizPap from "@/assets/diretriz-pap-v9.pdf.asset.json";
+import diretrizLider from "@/assets/diretriz-lider-pap.pdf.asset.json";
 import planoPap from "@/assets/plano-pap.pdf.asset.json";
 
 const DOCS = [
@@ -27,6 +28,13 @@ const DOCS = [
     versao: "Versão 001 — aprovada em 01/10/2026",
     url: planoPap.url,
     arquivo: "PV-MER-008_Planos_de_Vendas_para_Consultor_de_Vendas_-_PAP.pdf",
+  },
+  {
+    codigo: "DC-MER-005",
+    titulo: "Diretriz Líder de Vendas PAP",
+    versao: "Versão 006 — aprovada em 01/07/2026",
+    url: diretrizLider.url,
+    arquivo: "DC-MER-005_Diretriz_Lider_de_Vendas_PAP.pdf",
   },
   {
     codigo: "DC-MER-020",
