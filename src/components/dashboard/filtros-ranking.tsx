@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFaixasEquipe } from "@/lib/faixa-atual";
+import { atingimentoPorVendedor, calcularComissaoLider } from "@/lib/comissao-lider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -364,7 +365,7 @@ export function RankingEquipe({
       const papQ = supabase
         .from("vendas_pap")
         .select("vendedor_id, tecnologia, produto, tipo_protocolo, qtd_linhas, valor, valor_novo, valor_antigo, comissao, status, data_ativacao")
-        .in("vendedor_id", ids);
+        .in("vendedor_id", [...new Set([...ids, ...membros.filter((m) => escopo.some((e) => e.role === "lider_pap" && e.id === m.gerente_id)).map((m) => m.id)])]);
       if (ehMesAtual) {
         // mês atual incluso: vendas ativas + as já arquivadas com referência nos meses escolhidos
         lojaQ.or(`arquivada_em.is.null,mes_ref.in.(${mesRefs.join(",")})`);
@@ -391,7 +392,7 @@ export function RankingEquipe({
         let m = membroPorId.get(userId);
         if (!m) return null;
         // Gerente/Líder: ranking individual apenas de consultores (sem acumular nos líderes)
-        if (!isRegional) return m.role === "consultor" ? m.id : null;
+        if (!isRegional) return m.role === "consultor" || m.role === "lider_pap" ? m.id : null;
         const visto = new Set<string>();
         while (m.gerente_id && membroPorId.has(m.gerente_id) && !visto.has(m.id)) {
           visto.add(m.id);
@@ -457,6 +458,16 @@ export function RankingEquipe({
         get(k).leads++;
       }
 
+      // Líder PAP: comissão pela DC-MER-005 sobre a equipe direta
+      if (!isRegional) {
+        const at = atingimentoPorVendedor(pap.data ?? []);
+        for (const lider of escopo.filter((m) => m.role === "lider_pap")) {
+          const equipe = membros.filter((m) => m.gerente_id === lider.id && m.role === "consultor");
+          const r = calcularComissaoLider(equipe.map((m) => ({ id: m.id, nome: m.nome, atingimento: at.get(m.id) ?? 0 })));
+          get(lider.id).comissaoRs += r.comissao;
+        }
+      }
+
       // garante que todos os "topos" apareçam mesmo zerados
       for (const m of escopo) {
         const k = chaveDe(m.id);
@@ -473,7 +484,7 @@ export function RankingEquipe({
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Ranking por indicador — {isRegional ? "Gerentes" : "Consultores"}
+        Ranking por indicador — {isRegional ? "Gerentes" : "Consultores e Líderes PAP"}
       </h2>
       {isLoading ? (
         <Skeleton className="h-48 w-full" />
